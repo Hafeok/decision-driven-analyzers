@@ -105,15 +105,19 @@ jobs:
           global-json-file: global.json
 
       - name: Build the samples
+        # Every sample project, not just the ones Sample.Host reaches: Sample.Layer1.Tests
+        # is nobody's dependency and would otherwise never be compiled with the analyzers
+        # loaded, which is the only reason it exists.
+        #
         # The samples conform, so a diagnostic on any of them is a false positive and
         # warnings are errors: this job failing means a rule reported code that follows it.
-        run: dotnet build samples/Consumer/Sample.Host/Sample.Host.csproj --configuration Release
+        run: dotnet build samples/Consumer/Consumer.slnx --configuration Release
 
       - name: Build the samples with the violating code enabled
         # DD_SAMPLE_VIOLATIONS is a no-op define today. It is wired now so that the session
         # which writes the first rules adds the violating samples and the expected
         # diagnostics, and does not also have to invent the plumbing.
-        run: dotnet build samples/Consumer/Sample.Host/Sample.Host.csproj --configuration Release -p:DD_SAMPLE_VIOLATIONS=true
+        run: dotnet build samples/Consumer/Consumer.slnx --configuration Release -p:DD_SAMPLE_VIOLATIONS=true
 
   format:
     name: format

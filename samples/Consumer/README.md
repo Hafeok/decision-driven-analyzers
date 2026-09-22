@@ -16,6 +16,10 @@ All five set `ArchFamily=Sample`. `Sample.Host` is the composition root, which i
 is allowed to name every layer at once; `Sample.Layer1.Tests` is at the layer of the code
 it tests.
 
+`Consumer.slnx` gathers all five so that CI compiles every one of them. `Sample.Host`
+does not reference `Sample.Layer1.Tests`, so building the host alone would quietly leave
+the test sample out of the only thing it is for.
+
 Everything here conforms. That is the point: CI builds these projects and a diagnostic on
 any of them fails the build, so the samples are the standing proof that the rules are
 silent on code that follows them.

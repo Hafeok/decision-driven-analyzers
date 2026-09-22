@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Sample.Host/Sample.Host.csproj" />
+  <Project Path="Sample.Layer0/Sample.Layer0.csproj" />
+  <Project Path="Sample.Layer1/Sample.Layer1.csproj" />
+  <Project Path="Sample.Layer1.Tests/Sample.Layer1.Tests.csproj" />
+  <Project Path="Sample.Layer2/Sample.Layer2.csproj" />
+</Solution>
