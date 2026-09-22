@@ -17,8 +17,9 @@ consumer that builds with warnings as errors, and are recorded as such.
   and pull request templates, and an editor configuration.
 - An empty solution that builds, tests and packs: the analyzer package with its MSBuild
   props, the `DecisionDriven.Report` tool, test projects, and a sample consumer.
-- Tag-driven versioning, continuous integration, and a publish workflow using NuGet
-  trusted publishing.
+- Tag-driven versioning with MinVer: a `v*` tag is a release version and every other
+  build of the trunk is a prerelease.
+- Continuous integration, and a publish workflow using NuGet trusted publishing.
 - The rule page format and its template, in `docs/rules/`.
 
 No rules are shipped yet and nothing has been published to NuGet.

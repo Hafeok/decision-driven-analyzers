@@ -49,6 +49,14 @@
   </ItemGroup>
 
   <!--
+    build-time-dependencies.VersionFromGitTags: MinVer. Versions are derived from the tag
+    history rather than written into a file, so nothing can disagree with the tag.
+  -->
+  <ItemGroup>
+    <PackageVersion Include="MinVer" Version="8.0.0" />
+  </ItemGroup>
+
+  <!--
     build-time-dependencies.AnalyzerTestingHarness: Microsoft.CodeAnalysis.Testing with
     xUnit v3. The harness resolves its verifier from the test framework at runtime, so
     there is no separate verifier package.

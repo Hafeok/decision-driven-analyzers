@@ -13,4 +13,16 @@
     <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
   </ItemGroup>
 
+  <!--
+    Every project, not only the packable ones: the report tool prints its own version and
+    its tests assert that it has one, so a test project that was versioned differently
+    from the thing it tests would be testing the wrong number.
+
+    PrivateAssets="all" because MinVer does its work during the build and has no business
+    appearing as a dependency of anything.
+  -->
+  <ItemGroup>
+    <PackageReference Include="MinVer" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+  </ItemGroup>
+
 </Project>

@@ -40,6 +40,24 @@
     <IsPublishable>false</IsPublishable>
   </PropertyGroup>
 
+  <!--
+    build-time-dependencies.VersionFromGitTags. MinVer reads the tag history and sets
+    Version, so there is no version in any file to forget to bump.
+
+      on a v* tag          the tag's version, e.g. v0.2.0 -> 0.2.0
+      anywhere else        the next patch above the last tag, with a prerelease label and
+                           the height above that tag, e.g. 0.2.1-alpha.0.4
+      before any tag       0.0.0-alpha.0.<height>
+
+    MinVerAutoIncrement=minor would claim every untagged build is heading for a feature
+    release; patch is the smaller claim and the tag overrides it either way.
+  -->
+  <PropertyGroup>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <MinVerDefaultPreReleaseIdentifiers>alpha.0</MinVerDefaultPreReleaseIdentifiers>
+    <MinVerAutoIncrement>patch</MinVerAutoIncrement>
+  </PropertyGroup>
+
   <!-- Package metadata, shared by both published packages. -->
   <PropertyGroup>
     <Authors>Hafeok</Authors>
