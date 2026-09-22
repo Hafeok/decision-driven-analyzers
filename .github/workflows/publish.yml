@@ -1,0 +1,110 @@
+name: publish
+
+# Publishing uses NuGet trusted publishing: the workflow proves who it is with a GitHub
+# OIDC token and nuget.org hands back an API key that lives for an hour. No key is stored
+# as a repository secret, so there is nothing here to leak or to rotate.
+#
+# The matching policy on nuget.org, under the decision-driven-design organisation, has to
+# say exactly this or the exchange is refused:
+#
+#   Repository Owner   Hafeok
+#   Repository         decision-driven-analyzers
+#   Workflow File      publish.yml          (the file name, not the path)
+#   Environment        nuget                (must match the environment named below)
+#
+# A policy on a repository that has never published starts out active for seven days only;
+# the first successful publish is what makes it permanent.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type "publish" to push the prerelease packages built from this ref to NuGet.
+        required: true
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  publish:
+    name: publish
+    runs-on: ubuntu-latest
+
+    environment:
+      name: nuget
+      url: https://www.nuget.org/profiles/decision-driven-design
+
+    permissions:
+      # NuGet trusted publishing exchanges this workflow's OIDC token for a short-lived
+      # API key. There is no key in repository secrets to leak or to rotate.
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Refuse an unconfirmed manual run
+        if: github.event_name == 'workflow_dispatch' && inputs.confirm != 'publish'
+        run: |
+          echo "Publishing is not undoable: a version pushed to NuGet cannot be replaced."
+          echo 'Re-run with the confirmation field set to "publish".'
+          exit 1
+
+      - name: Check out
+        uses: actions/checkout@v5
+        with:
+          # MinVer reads the tags to decide whether this is a release or a prerelease.
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Build
+        run: dotnet build DecisionDriven.slnx --configuration Release
+
+      - name: Test
+        # A tag does not make a red build green. The same tests that gate a pull request
+        # gate a release.
+        run: dotnet test DecisionDriven.slnx --configuration Release --no-build
+
+      - name: Pack
+        run: dotnet pack DecisionDriven.slnx --configuration Release --no-build --output artifacts/packages
+
+      - name: Report what is about to be published
+        run: ls -l artifacts/packages
+
+      - name: Authenticate to NuGet
+        # Exchanges the OIDC token for a temporary API key. The trusted publishing policy
+        # on the decision-driven-design organisation names this repository and workflow;
+        # a run from anywhere else gets nothing.
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: decision-driven-design
+
+      - name: Push
+        run: |
+          dotnet nuget push "artifacts/packages/*.nupkg" \
+            --source https://api.nuget.org/v3/index.json \
+            --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" \
+            --skip-duplicate
+
+      - name: Upload the published packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: published-packages
+          path: |
+            artifacts/packages/*.nupkg
+            artifacts/packages/*.snupkg
+          if-no-files-found: error
