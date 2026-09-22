@@ -59,11 +59,16 @@ with GPG, SSH or S/MIME and turn it on for this repository:
 git config commit.gpgsign true
 ```
 
-The maintainer may override the signed-commit requirement when merging pull requests
-that were produced in a cloud agent session, until agent commits can be signed with a
-key that GitHub verifies. This is a temporary exception recorded here so that an
-unsigned commit on `main` is never a surprise; it is not an invitation to send unsigned
-commits by hand.
+The maintainer may override the signed-commit requirement when merging a pull request
+produced in a cloud agent session whose commits GitHub cannot verify. This is recorded
+here so that an unverified commit on `main` is explainable rather than a surprise; it is
+not an invitation to send unsigned commits by hand.
+
+It is an exception, not the normal case. A cloud session with a signing key registered on
+the account signs its commits like anyone else — the commits that bootstrapped this
+repository are SSH-signed and GitHub reports them as verified. The override is for the
+session that has no such key, and the maintainer should check which kind they are looking
+at before using it.
 
 ## Adding a rule
 

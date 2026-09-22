@@ -52,10 +52,11 @@ a repository secret.
 | Block force pushes | on |
 | Restrict deletions | on |
 
-The maintainer may bypass the ruleset. That bypass exists for one named case — merging
-pull requests produced in a cloud agent session, whose commits cannot yet be signed with
-a key GitHub verifies — and is noted in `CONTRIBUTING.md` so that an unsigned commit on
-`main` is explainable rather than mysterious.
+The maintainer may bypass the ruleset. That bypass exists for one named case — merging a
+pull request produced in a cloud agent session whose commits GitHub cannot verify — and
+is noted in `CONTRIBUTING.md` so that an unverified commit on `main` is explainable
+rather than mysterious. It is not the usual case: a session with a signing key registered
+on the account produces commits GitHub verifies, as the bootstrap commits here did.
 
 The ruleset is applied with the GitHub API. The exact call that creates it is kept in
 `.github/rulesets/main.json`, so that the protection on `main` is reviewable as a file
