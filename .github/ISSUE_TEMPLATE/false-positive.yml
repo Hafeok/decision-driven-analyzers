@@ -1,0 +1,66 @@
+name: False positive
+description: A rule reported code that conforms to the decision behind it.
+title: "DDnnnn false positive: "
+labels: ["false-positive"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A false positive is a bug in the rule or in the decision behind it, and it is fixed
+        in one of those two places. Please do not work around it with
+        `#pragma warning disable` or `[SuppressMessage]`.
+
+  - type: input
+    id: rule-id
+    attributes:
+      label: Diagnostic id
+      placeholder: DD0001
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Package version
+      description: The `DecisionDriven.Analyzers` version, or the commit if you built from source.
+    validations:
+      required: true
+
+  - type: textarea
+    id: code
+    attributes:
+      label: Reported code
+      description: The smallest code that is reported. Please include enough of the surrounding declarations to make it compile.
+      render: csharp
+    validations:
+      required: true
+
+  - type: textarea
+    id: message
+    attributes:
+      label: The diagnostic, verbatim
+      description: Copy the whole message, including the `Decide:` line.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: why-conforming
+    attributes:
+      label: Why this code conforms
+      description: |
+        Which decision does the rule cite, and why does this code satisfy it? If you think
+        the decision itself is what is wrong, say that — that is a useful answer.
+    validations:
+      required: true
+
+  - type: textarea
+    id: configuration
+    attributes:
+      label: Your configuration
+      description: |
+        The `ArchFamily`, `ArchLayer`, `ArchCompositionRoot` and `ArchContractTypeAssemblies`
+        values for the project, and any `dotnet_diagnostic` entries for this rule.
+      render: xml
+    validations:
+      required: false

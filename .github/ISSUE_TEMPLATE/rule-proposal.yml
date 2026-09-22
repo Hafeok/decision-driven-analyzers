@@ -1,0 +1,89 @@
+name: Rule proposal
+description: Propose a new analyzer rule, or a change to an existing one.
+title: "Rule: "
+labels: ["rule-proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A rule exists only as an analyzer with tests and a doc page. Before proposing one,
+        check whether `PublicApiAnalyzers`, `BannedApiAnalyzers` or the SDK's trimming, AOT
+        and single-file analyzers already express it exactly — off-the-shelf beats a DD rule.
+
+  - type: textarea
+    id: rule
+    attributes:
+      label: The rule
+      description: One sentence, in the form "a <thing> must/must not <property>".
+      placeholder: A type in a composition root must not be referenced by any type outside it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: decision
+    attributes:
+      label: Motivating decision
+      description: |
+        The decision this rule enforces, as `<Set>.<Key>`, from `docs/decisions/`. If the
+        decision does not exist yet, say what it would state — one line, the way the set
+        files state it. Do not propose an acceptance; that is a maintainer act.
+      placeholder: stable-dependency-rules.DependenciesPointInward
+    validations:
+      required: true
+
+  - type: dropdown
+    id: tier
+    attributes:
+      label: Proposed tier
+      description: |
+        Tier 1 — mechanical, decidable within one compilation, ships as an error.
+        Tier 2 — heuristic, needs a written false-positive story, ships as a warning.
+        Tier 3 — needs the whole graph, is a CI report rather than a diagnostic.
+      options:
+        - Tier 1 (error, mechanical, single compilation)
+        - Tier 2 (warning, heuristic)
+        - Tier 3 (report over the whole graph)
+    validations:
+      required: true
+
+  - type: textarea
+    id: violating
+    attributes:
+      label: Violating example
+      description: The smallest code that should be reported.
+      render: csharp
+    validations:
+      required: true
+
+  - type: textarea
+    id: conforming
+    attributes:
+      label: Conforming example
+      description: |
+        The smallest code that is the same shape but must not be reported. A rule with no
+        conforming example is a ban, not a rule.
+      render: csharp
+    validations:
+      required: true
+
+  - type: textarea
+    id: false-positives
+    attributes:
+      label: False-positive story
+      description: |
+        Where would this rule be wrong, and what does a consumer do about it? Required for
+        a tier-2 proposal. Note that suppressing a DD rule with `#pragma warning disable`
+        or `[SuppressMessage]` is not an answer.
+    validations:
+      required: false
+
+  - type: textarea
+    id: configuration
+    attributes:
+      label: Configuration
+      description: |
+        What would a consumer need to configure for this rule to mean anything — MSBuild
+        properties such as `ArchFamily` or `ArchLayer`, or `.editorconfig` options? Adopting
+        a rule must never require analyzer code changes.
+    validations:
+      required: false

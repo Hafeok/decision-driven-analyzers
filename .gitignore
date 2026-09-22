@@ -1,0 +1,48 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+artifacts/
+*.binlog
+*.nupkg
+*.snupkg
+
+# Test and coverage output
+[Tt]est[Rr]esults/
+*.trx
+*.coverage
+coverage*.json
+coverage*.xml
+coverage*.info
+
+# NuGet
+*.nuget.props
+*.nuget.targets
+.packages/
+packages/
+
+# Visual Studio / Rider / VS Code
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.DotSettings.user
+
+# Roslyn and MSBuild scratch
+.roslyn/
+msbuild.log
+msbuild.err
+msbuild.wrn
+*.sln.iml
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local overrides that must never be committed
+Directory.Build.local.props
+*.local.json

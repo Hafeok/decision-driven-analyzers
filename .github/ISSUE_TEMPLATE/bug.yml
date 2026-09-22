@@ -1,0 +1,65 @@
+name: Bug
+description: Something other than a false positive is wrong — a crash, a wrong message, a packaging or tooling problem.
+title: "Bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If a rule reported code that you believe conforms, use the false-positive template
+        instead. If you believe you have found a security issue, do not open an issue —
+        see [SECURITY.md](../blob/main/SECURITY.md).
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The commands you ran, and the smallest project that shows it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Build or tool output
+      description: The relevant part of the output, verbatim. For a crash inside the compiler, the `AD0001` diagnostic and its stack trace.
+      render: text
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: Package version
+      description: The `DecisionDriven.Analyzers` or `DecisionDriven.Report` version, or the commit if you built from source.
+    validations:
+      required: true
+
+  - type: input
+    id: sdk
+    attributes:
+      label: .NET SDK version
+      description: The output of `dotnet --version`.
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+    validations:
+      required: false
