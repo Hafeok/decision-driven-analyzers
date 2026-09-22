@@ -13,6 +13,10 @@ decisions:
     statement: "A tier-3 metric gates only by a decision that states the threshold and the baseline it was measured against"
   - key: RuleDeliverableOrder
     statement: "Deliverable order for a rule: analyzer, tests (one violating and one conforming sample per diagnostic), doc page with tier and principle, motivating decision"
+  - key: BuildTargetChecksAreTierOne
+    statement: "An MSBuild target that fails the build is an accepted tier-1 form alongside a Roslyn analyzer, with id family DDBUILD"
+  - key: SamplesJobIsTheFalsePositiveCheck
+    statement: "The samples job is the standing zero-false-positive check for every rule, and a failure there is attributed to the rule before the sample"
 ---
 
 Interim set file (decisions-as-types, InterimFrontMatterUntilExport). No `accepted-by`: every decision here is unaccepted until a holder with accept-decision accepts it in the ledger. Narrative: docs/drafts/ADR-A01-*.md.

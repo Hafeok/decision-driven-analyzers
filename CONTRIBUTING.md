@@ -59,16 +59,10 @@ with GPG, SSH or S/MIME and turn it on for this repository:
 git config commit.gpgsign true
 ```
 
-The maintainer may override the signed-commit requirement when merging a pull request
-produced in a cloud agent session whose commits GitHub cannot verify. This is recorded
-here so that an unverified commit on `main` is explainable rather than a surprise; it is
-not an invitation to send unsigned commits by hand.
-
-It is an exception, not the normal case. A cloud session with a signing key registered on
-the account signs its commits like anyone else — the commits that bootstrapped this
-repository are SSH-signed and GitHub reports them as verified. The override is for the
-session that has no such key, and the maintainer should check which kind they are looking
-at before using it.
+The requirement is enforced by a ruleset on `main` and there is no per-merge override.
+The Claude GitHub App is on that ruleset's bypass list, which covers agent sessions
+whose signing key the account has rotated; it is not a way for a person to send unsigned
+commits.
 
 ## Adding a rule
 

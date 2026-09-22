@@ -51,7 +51,16 @@
   </ItemGroup>
 
   <!--
-    build-time-dependencies.RoslynPinnedToLowestSupported, enforced rather than described.
+    Implements BuildTimeDependencies.RoslynPinEnforcedByBuild and is an instance of
+    RuleTiers.BuildTargetChecksAreTierOne: a build target that fails the build is a
+    tier-1 rule in the DDBUILD id family, held to the same bar as a Roslyn analyzer.
+    Doc page: docs/rules/DDBUILD0001.md.
+
+    (These will be [DesignDecision(typeof(BuildTimeDependencies.RoslynPinEnforcedByBuild))]
+    once the generator of decisions-as-types emits the decision types; MSBuild has nowhere
+    to put an attribute, so this comment is the citation.)
+
+    BuildTimeDependencies.RoslynPinnedToLowestSupported, enforced rather than described.
 
     The floor is repeated here on purpose. Directory.Packages.props is the one file a
     dependency bot edits, and a bot that raises the Roslyn pin breaks the decision while

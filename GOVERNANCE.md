@@ -39,49 +39,33 @@ the trunk produces a prerelease version. Tagging is a maintainer act. Publicatio
 from a tag through GitHub Actions with NuGet trusted publishing, so no API key is held as
 a repository secret.
 
-## Branch ruleset on `main`
+## Branch rulesets on `main`
 
-`main` is protected by a branch ruleset with these rules:
+`main` is protected by two rulesets rather than one. They are separate because they have
+different bypass lists, and a single ruleset can only have one:
 
-| Rule | Setting |
-| --- | --- |
-| Require a pull request before merging | on, 1 approving review, stale approvals dismissed |
-| Require status checks to pass | on, required check `ci`, strict (branch must be up to date) |
-| Require signed commits | on |
-| Require linear history | on |
-| Block force pushes | on |
-| Restrict deletions | on |
+**`ci`** — requires the `ci` status check to pass, with no bypass for anybody. The check
+is the gathering job of the CI workflow, not a single matrix leg, so adding a job to CI
+does not mean editing the ruleset. Nobody merges past a red build, the maintainer
+included: a bypass here would make the check advisory, and an advisory check is not a
+check.
 
-The maintainer may bypass the ruleset. That bypass exists for one named case — merging a
-pull request produced in a cloud agent session whose commits GitHub cannot verify — and
-is noted in `CONTRIBUTING.md` so that an unverified commit on `main` is explainable
-rather than mysterious. It is not the usual case: a session with a signing key registered
-on the account produces commits GitHub verifies, as the bootstrap commits here did.
+**signed commits** — requires commits to be signed, with the Claude GitHub App on the
+bypass list. The app is there because an agent session's commits are signed by a key the
+account registers, and that arrangement is easier to change than a rule; the bypass keeps
+a key rotation from blocking merges. Every other author signs.
 
-The ruleset is applied with the GitHub API. The exact call that creates it is kept in
-`.github/rulesets/main.json`, so that the protection on `main` is reviewable as a file
-rather than only as a screen in the repository settings:
+Neither ruleset requires a pull request or linear history at the ruleset level. What
+protects `main` is that nothing merges without a green `ci`.
 
-```
-gh api --method POST /repos/Hafeok/decision-driven-analyzers/rulesets \
-  --input .github/rulesets/main.json
-```
+The bootstrap session left a `.github/rulesets/main.json` describing a single ruleset. It
+is deleted rather than kept: it was never applied, it is not the shape above, and a file
+whose only use is to be fed to `gh api` is a trap once it disagrees with the branch.
 
-The ruleset is **not applied yet**. It was written in a cloud agent session whose GitHub
-token is read-only for repository settings, so the call above was refused and has to be
-run by the maintainer. Until it is, `main` carries no protection at all — the file
-describes the intent, not the state.
-
-Apply it only once `main` exists and is the repository's default branch. The ruleset
-targets `~DEFAULT_BRANCH` rather than a branch by name, so applying it earlier would
-protect whichever branch happens to be the default at the time.
-
-To check what is actually on the branch:
+To see what is actually on the branch rather than what this file says:
 
 ```
 gh api /repos/Hafeok/decision-driven-analyzers/rulesets
 ```
 
-Changing the ruleset is a maintainer act. Change the file and re-apply it with
-`--method PUT` on `/rulesets/{id}`, so that what is in the repository and what is on the
-branch stay the same thing.
+Changing a ruleset is a maintainer act, and so is adding one.

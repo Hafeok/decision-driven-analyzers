@@ -127,12 +127,14 @@ jobs:
           global-json-file: global.json
 
       - name: Build the samples
+        # Implements RuleTiers.SamplesJobIsTheFalsePositiveCheck. The samples conform, so a
+        # diagnostic on any of them is a false positive, and warnings are errors here. When
+        # this job fails, the rule is wrong until shown otherwise - the sample is only
+        # suspect once the rule has been cleared.
+        #
         # Every sample project, not just the ones Sample.Host reaches: Sample.Layer1.Tests
         # is nobody's dependency and would otherwise never be compiled with the analyzers
         # loaded, which is the only reason it exists.
-        #
-        # The samples conform, so a diagnostic on any of them is a false positive and
-        # warnings are errors: this job failing means a rule reported code that follows it.
         run: dotnet build samples/Consumer/Consumer.slnx --configuration Release
 
       - name: Build the samples with the violating code enabled
