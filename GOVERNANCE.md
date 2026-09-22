@@ -38,3 +38,45 @@ Versions come from git tags. A `v*` tag produces a release version; every other 
 the trunk produces a prerelease version. Tagging is a maintainer act. Publication runs
 from a tag through GitHub Actions with NuGet trusted publishing, so no API key is held as
 a repository secret.
+
+## Branch ruleset on `main`
+
+`main` is protected by a branch ruleset with these rules:
+
+| Rule | Setting |
+| --- | --- |
+| Require a pull request before merging | on, 1 approving review, stale approvals dismissed |
+| Require status checks to pass | on, required check `ci`, strict (branch must be up to date) |
+| Require signed commits | on |
+| Require linear history | on |
+| Block force pushes | on |
+| Restrict deletions | on |
+
+The maintainer may bypass the ruleset. That bypass exists for one named case — merging
+pull requests produced in a cloud agent session, whose commits cannot yet be signed with
+a key GitHub verifies — and is noted in `CONTRIBUTING.md` so that an unsigned commit on
+`main` is explainable rather than mysterious.
+
+The ruleset is applied with the GitHub API. The exact call that creates it is kept in
+`.github/rulesets/main.json`, so that the protection on `main` is reviewable as a file
+rather than only as a screen in the repository settings:
+
+```
+gh api --method POST /repos/Hafeok/decision-driven-analyzers/rulesets \
+  --input .github/rulesets/main.json
+```
+
+The ruleset is **not applied yet**. It was written in a cloud agent session whose GitHub
+token is read-only for repository settings, so the call above was refused and has to be
+run by the maintainer. Until it is, `main` carries no protection at all — the file below
+describes the intent, not the state.
+
+To check what is actually on the branch:
+
+```
+gh api /repos/Hafeok/decision-driven-analyzers/rulesets
+```
+
+Changing the ruleset is a maintainer act. Change the file and re-apply it with
+`--method PUT` on `/rulesets/{id}`, so that what is in the repository and what is on the
+branch stay the same thing.
