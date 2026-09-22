@@ -21,14 +21,20 @@ updates:
       # bump. Left ungated, Dependabot opens the same wrong pull request every week.
       - dependency-name: Microsoft.CodeAnalysis.CSharp
       - dependency-name: Microsoft.CodeAnalysis.CSharp.Workspaces
+      # Not free to float either, though it ships no API here. Microsoft.CodeAnalysis.CSharp
+      # 5.9.0 requires Analyzers >= 5.9.0, so raising Analyzers on its own makes the pinned
+      # Roslyn a package downgrade - and Dependabot resolves that by raising Roslyn too,
+      # ignore rule or not. Observed, not predicted: that is how pull request 9 came to bump
+      # Microsoft.CodeAnalysis.CSharp while an ignore rule for it was already in place.
+      - dependency-name: Microsoft.CodeAnalysis.Analyzers
     groups:
       analyzer-tooling:
-        # Not the Roslyn API packages above: these only run during the build, so they are
-        # free to track the newest version.
+        # The harness packages only. Everything Roslyn-versioned is ignored above.
         patterns:
-          - "Microsoft.CodeAnalysis.Analyzers"
-          - "Microsoft.CodeAnalysis.*Analyzers"
           - "Microsoft.CodeAnalysis.*.Testing"
+          - "Microsoft.CodeAnalysis.*Analyzers"
+        exclude-patterns:
+          - "Microsoft.CodeAnalysis.Analyzers"
       testing:
         patterns:
           - "xunit*"

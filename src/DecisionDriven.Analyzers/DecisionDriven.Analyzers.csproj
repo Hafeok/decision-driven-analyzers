@@ -51,6 +51,33 @@
   </ItemGroup>
 
   <!--
+    build-time-dependencies.RoslynPinnedToLowestSupported, enforced rather than described.
+
+    The floor is repeated here on purpose. Directory.Packages.props is the one file a
+    dependency bot edits, and a bot that raises the Roslyn pin breaks the decision while
+    every build still passes: the analyzers keep working on the SDK that CI happens to
+    run, and stop working on the oldest SDK of the band, which CI never exercises. That
+    is exactly the failure this repository exists to argue against - a rule nobody can
+    check is a preference.
+
+    Raising the floor is a decision about which SDKs the package supports. Make it by
+    changing this line and the pin together, and say in the commit which SDK band the new
+    floor belongs to.
+  -->
+  <PropertyGroup>
+    <ExpectedRoslynVersion>5.0.0</ExpectedRoslynVersion>
+  </PropertyGroup>
+
+  <Target Name="_VerifyRoslynFloor" BeforeTargets="CoreCompile">
+    <Error Condition="'%(PackageVersion.Identity)' == 'Microsoft.CodeAnalysis.CSharp' and '%(PackageVersion.Version)' != '$(ExpectedRoslynVersion)'"
+           Code="DDBUILD0001"
+           Text="Microsoft.CodeAnalysis.CSharp is pinned to %(PackageVersion.Version), but this project expects $(ExpectedRoslynVersion). build-time-dependencies.RoslynPinnedToLowestSupported pins Roslyn to the lowest version the current LTS SDK band ships, so that the analyzers load on every SDK in the band rather than only the newest. If the floor is meant to move, change ExpectedRoslynVersion in this project and the pin in Directory.Packages.props in the same commit." />
+    <Error Condition="'%(PackageVersion.Identity)' == 'Microsoft.CodeAnalysis.CSharp.Workspaces' and '%(PackageVersion.Version)' != '$(ExpectedRoslynVersion)'"
+           Code="DDBUILD0001"
+           Text="Microsoft.CodeAnalysis.CSharp.Workspaces is pinned to %(PackageVersion.Version), but this project expects $(ExpectedRoslynVersion). The tests run the analyzers against the Roslyn they are built for, so the two pins move together or not at all." />
+  </Target>
+
+  <!--
     Release tracking for the diagnostics this assembly declares. Empty for now: this
     repository ships no rules yet. A new rule is added to AnalyzerReleases.Unshipped.md
     in the same commit as the analyzer, and moves to Shipped on release.
