@@ -60,13 +60,13 @@ jobs:
           exit 1
 
       - name: Check out
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           # MinVer reads the tags to decide whether this is a release or a prerelease.
           fetch-depth: 0
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
 
@@ -101,7 +101,7 @@ jobs:
             --skip-duplicate
 
       - name: Upload the published packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: published-packages
           path: |
