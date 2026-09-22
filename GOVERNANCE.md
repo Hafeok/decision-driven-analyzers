@@ -68,8 +68,12 @@ gh api --method POST /repos/Hafeok/decision-driven-analyzers/rulesets \
 
 The ruleset is **not applied yet**. It was written in a cloud agent session whose GitHub
 token is read-only for repository settings, so the call above was refused and has to be
-run by the maintainer. Until it is, `main` carries no protection at all — the file below
+run by the maintainer. Until it is, `main` carries no protection at all — the file
 describes the intent, not the state.
+
+Apply it only once `main` exists and is the repository's default branch. The ruleset
+targets `~DEFAULT_BRANCH` rather than a branch by name, so applying it earlier would
+protect whichever branch happens to be the default at the time.
 
 To check what is actually on the branch:
 
