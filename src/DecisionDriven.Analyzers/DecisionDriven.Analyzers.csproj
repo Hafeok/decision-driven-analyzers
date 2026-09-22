@@ -1,0 +1,89 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      netstandard2.0 is what the compiler loads analyzers from. It is not a choice about
+      which consumers are supported; it is the only target a Roslyn component can have.
+    -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <RootNamespace>DecisionDriven.Analyzers</RootNamespace>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageId>DecisionDriven.Analyzers</PackageId>
+    <Title>DecisionDriven.Analyzers</Title>
+    <Description>
+      Roslyn analyzers that enforce decision-driven design: every rule they check exists
+      because a decision says so, and the diagnostic names the decision by key. A
+      development-time package; it never appears in a consumer's runtime output.
+    </Description>
+
+    <!--
+      two-packages.DevelopmentTimeOnly. DevelopmentDependency marks the package so that a
+      consumer's PackageReference defaults to PrivateAssets=all and the package cannot
+      flow to whoever consumes the consumer.
+    -->
+    <DevelopmentDependency>true</DevelopmentDependency>
+
+    <!--
+      The assembly ships under analyzers/dotnet/cs, not lib/, so there is no build output
+      to include and no dependency to declare: the compiler supplies Roslyn.
+    -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <IncludeSymbols>false</IncludeSymbols>
+
+    <!--
+      NU5128 is NuGet observing that the package declares a target framework but ships no
+      lib/ or ref/ assets for it. For an analyzer package that is the point, not a
+      mistake: a lib/ folder here would put the analyzer on a consumer's compile path.
+      The pack verification in CI asserts that lib/ stays absent.
+    -->
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" ExcludeAssets="runtime" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!--
+    Release tracking for the diagnostics this assembly declares. Empty for now: this
+    repository ships no rules yet. A new rule is added to AnalyzerReleases.Unshipped.md
+    in the same commit as the analyzer, and moves to Shipped on release.
+  -->
+  <ItemGroup>
+    <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+  </ItemGroup>
+
+  <!--
+    The package layout:
+      analyzers/dotnet/cs/DecisionDriven.Analyzers.dll   the component the compiler loads
+      build/DecisionDriven.Analyzers.props|.targets      what a consumer's build imports
+    The build assets live in ../DecisionDriven.Analyzers.Package/ so that they are
+    editable and reviewable as files rather than as strings inside this project.
+  -->
+  <ItemGroup>
+    <None Include="../DecisionDriven.Analyzers.Package/DecisionDriven.Analyzers.props"
+          Pack="true" PackagePath="build/DecisionDriven.Analyzers.props" Visible="false" />
+    <None Include="../DecisionDriven.Analyzers.Package/DecisionDriven.Analyzers.targets"
+          Pack="true" PackagePath="build/DecisionDriven.Analyzers.targets" Visible="false" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetsForTfmSpecificContentInPackage>
+      $(TargetsForTfmSpecificContentInPackage);_PackAnalyzerAssembly
+    </TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+
+  <Target Name="_PackAnalyzerAssembly">
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="$(TargetPath)" PackagePath="analyzers/dotnet/cs" />
+    </ItemGroup>
+  </Target>
+
+</Project>

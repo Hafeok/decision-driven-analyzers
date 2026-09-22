@@ -1,0 +1,48 @@
+<Project>
+
+  <!--
+    Imported into a consuming project before the project body, from build/ in the
+    DecisionDriven.Analyzers package.
+
+    two-packages.ConfigurationViaMsBuildProperties: a consumer describes its own
+    architecture with MSBuild properties and .editorconfig options. Adopting a rule never
+    requires a change to analyzer code, so everything the analyzers need to know about a
+    project has to arrive through this file.
+  -->
+
+  <PropertyGroup>
+    <!-- Marks the package as imported, for a consumer that wants to test for it. -->
+    <DecisionDrivenAnalyzersImported>true</DecisionDrivenAnalyzersImported>
+  </PropertyGroup>
+
+  <!--
+    The four properties the rules read about a project. They are declared here rather than
+    defaulted, so that "not set" stays distinguishable from "set to the default" - a rule
+    that needs ArchLayer must be able to tell a project that has no layer from a project
+    at layer 0.
+
+      ArchFamily                   the group of projects a layering rule applies within;
+                                   projects in different families are unrelated
+      ArchLayer                    the project's layer as an integer; dependencies point
+                                   from a higher layer to a lower one
+      ArchCompositionRoot          true for the one project allowed to know about every
+                                   layer in order to wire them together
+      ArchContractTypeAssemblies   the assemblies whose types may appear on a contract
+  -->
+  <ItemGroup>
+    <CompilerVisibleProperty Include="ArchFamily" />
+    <CompilerVisibleProperty Include="ArchLayer" />
+    <CompilerVisibleProperty Include="ArchCompositionRoot" />
+    <CompilerVisibleProperty Include="ArchContractTypeAssemblies" />
+  </ItemGroup>
+
+  <!--
+    An analyzer reads an AdditionalFile's metadata through AnalyzerConfigOptions, and only
+    metadata named here is visible there. DdLedger is how a decision set file is told apart
+    from whatever else a consumer has put in AdditionalFiles.
+  -->
+  <ItemGroup>
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="DdLedger" />
+  </ItemGroup>
+
+</Project>

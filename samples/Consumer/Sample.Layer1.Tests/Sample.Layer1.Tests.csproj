@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      A test project sits at the layer of what it tests. Several rules are meant to be
+      looser inside test code than outside it, and this project is where that difference
+      gets a sample to be wrong about.
+
+      It carries no test framework and is not an IsTestProject: `dotnet test` on the
+      solution must not try to run the samples. What it is for is being compiled with the
+      analyzers loaded.
+    -->
+    <ArchLayer>1</ArchLayer>
+    <ArchTestProject>true</ArchTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Sample.Layer1/Sample.Layer1.csproj" />
+  </ItemGroup>
+
+</Project>

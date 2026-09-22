@@ -1,0 +1,16 @@
+<Project>
+
+  <!--
+    Evaluated after the project body, so conditions here can see what the project set.
+  -->
+
+  <!--
+    PackageReadmeFile names README.md, so every package that is actually produced has to
+    carry it. Done here rather than in Directory.Build.props because IsPackable is not
+    known until the project has been read.
+  -->
+  <ItemGroup Condition="'$(IsPackable)' == 'true'">
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
+</Project>

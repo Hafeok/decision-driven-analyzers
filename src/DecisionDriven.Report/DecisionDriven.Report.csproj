@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- The LTS TFM. The tool runs on a build machine, not inside the compiler. -->
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>DecisionDriven.Report</RootNamespace>
+    <AssemblyName>DecisionDriven.Report</AssemblyName>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>decisiondriven-report</ToolCommandName>
+
+    <!--
+      A tool package carries its own assemblies under tools/, so there is nothing for a
+      separate symbol package to be about: NuGet rejects the .snupkg as empty. The symbols
+      go inside the tool instead, which is also where a stack trace from a CI run needs
+      them to be.
+    -->
+    <IncludeSymbols>false</IncludeSymbols>
+    <DebugType>embedded</DebugType>
+
+    <PackageId>DecisionDriven.Report</PackageId>
+    <Title>DecisionDriven.Report</Title>
+    <Description>
+      The whole-graph reports that a single compilation cannot produce: the tier-3 half of
+      decision-driven design. A .NET tool, run in CI against a built solution.
+    </Description>
+  </PropertyGroup>
+
+  <!--
+    The SDK's trimming, AOT and single-file analyzers, from
+    build-time-dependencies.OffTheShelfBeforeOwnRule. They cost nothing here and they are
+    the reason this project will not quietly grow a reflection dependency.
+  -->
+  <PropertyGroup>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
+  </PropertyGroup>
+
+</Project>

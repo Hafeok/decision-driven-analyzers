@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+
+    <!--
+      The composition root: the one project allowed to know every layer at once, because
+      wiring them together is the whole of what it does.
+    -->
+    <ArchCompositionRoot>true</ArchCompositionRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Sample.Layer0/Sample.Layer0.csproj" />
+    <ProjectReference Include="../Sample.Layer1/Sample.Layer1.csproj" />
+    <ProjectReference Include="../Sample.Layer2/Sample.Layer2.csproj" />
+  </ItemGroup>
+
+</Project>

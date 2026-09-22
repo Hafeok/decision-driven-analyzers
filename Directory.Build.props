@@ -1,0 +1,62 @@
+<Project>
+
+  <!--
+    Settings shared by every project in the repository. Projects under samples/ import
+    this file explicitly through their own Directory.Build.props, so a sample is built
+    the same way a consumer would build it, with the same language settings.
+  -->
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+
+    <!--
+      Implicit usings are off everywhere. Analyzer and generator sources are read by
+      people deciding whether a rule is right, and an invisible using list makes a file
+      mean something different depending on its project.
+    -->
+    <ImplicitUsings>disable</ImplicitUsings>
+
+    <!--
+      A warning is a finding nobody has decided about yet, so it fails the build rather
+      than scrolling past. This is what makes "zero warnings" checkable.
+    -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+
+    <!-- Deterministic output: the same source produces the same bytes. -->
+    <Deterministic>true</Deterministic>
+    <DeterministicSourcePaths Condition="'$(ContinuousIntegrationBuild)' == 'true'">true</DeterministicSourcePaths>
+    <DebugType>portable</DebugType>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!--
+      Set by the CI workflow, which exports CI=true. Off locally, where normalised source
+      paths would break debugging.
+    -->
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+
+    <IsPackable>false</IsPackable>
+    <IsPublishable>false</IsPublishable>
+  </PropertyGroup>
+
+  <!-- Package metadata, shared by both published packages. -->
+  <PropertyGroup>
+    <Authors>Hafeok</Authors>
+    <Company>decision-driven-design</Company>
+    <Product>DecisionDriven</Product>
+    <Copyright>Copyright (c) DecisionDriven contributors</Copyright>
+    <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/Hafeok/decision-driven-analyzers</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Hafeok/decision-driven-analyzers</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageTags>analyzers;roslyn;architecture;decision-driven-design</PackageTags>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+  </PropertyGroup>
+
+</Project>

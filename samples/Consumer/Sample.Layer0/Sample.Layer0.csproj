@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <ArchLayer>0</ArchLayer>
+  </PropertyGroup>
+
+</Project>

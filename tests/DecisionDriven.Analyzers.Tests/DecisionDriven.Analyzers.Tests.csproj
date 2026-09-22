@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsTestProject>true</IsTestProject>
+
+    <!--
+      xUnit v3 runs on Microsoft.Testing.Platform, which makes the test project an
+      executable rather than a library the VSTest host loads.
+    -->
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>DecisionDriven.Analyzers.Tests</RootNamespace>
+
+    <!-- Test names read better than they compile; the doc comment rule is not useful here. -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      build-time-dependencies.AnalyzerTestingHarness: Microsoft.CodeAnalysis.Testing with
+      xUnit v3. The harness compiles a snippet with the analyzers loaded and compares the
+      diagnostics against what the test says they should be, which is the only way to
+      assert a rule's exact message.
+    -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.SourceGenerators.Testing" />
+
+    <!--
+      The harness asks only for a floor on Workspaces, so without this the restore would
+      resolve a version from a decade ago. Pinned to the same Roslyn as the analyzers, so
+      the tests run the analyzers against the version they are built for.
+    -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
+
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      A plain reference, not OutputItemType="Analyzer": the tests drive the analyzers
+      through the harness, which loads them itself. Loading them into this project's own
+      compilation as well would have them analysing the tests.
+    -->
+    <ProjectReference Include="../../src/DecisionDriven.Analyzers/DecisionDriven.Analyzers.csproj" />
+  </ItemGroup>
+
+</Project>

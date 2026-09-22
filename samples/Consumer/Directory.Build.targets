@@ -1,0 +1,25 @@
+<Project>
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
+
+  <!--
+    two-packages.GenericPackageOwnRepository says a consumer references a published
+    package, never a project. These samples are not a consumer: they are this repository
+    testing itself, and they have to see the analyzers as they are in the working tree
+    rather than as they were at the last release. OutputItemType="Analyzer" with
+    ReferenceOutputAssembly="false" is the project-reference spelling of what the nupkg
+    does - the assembly is loaded by the compiler and is not on the compile path.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)../../src/DecisionDriven.Analyzers/DecisionDriven.Analyzers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <!--
+    Imported last, the way the nupkg's build/ targets are imported after a consuming
+    project's body: this is what puts docs/decisions/ into AdditionalFiles.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)../../src/DecisionDriven.Analyzers.Package/DecisionDriven.Analyzers.targets" />
+
+</Project>

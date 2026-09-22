@@ -1,0 +1,40 @@
+<Project>
+
+  <!--
+    Imported into a consuming project after the project body, from build/ in the
+    DecisionDriven.Analyzers package. After, so that a project can set DdLedgerDirectory
+    in its own body and have it honoured here.
+  -->
+
+  <PropertyGroup>
+    <!--
+      Where the decisions live. The default is docs/decisions/ beside the project; a
+      solution that keeps one ledger for many projects sets this to that one directory.
+      Set it to empty to turn the globbing off.
+    -->
+    <DdLedgerDirectory Condition="'$(DdLedgerDirectory)' == ''">$(MSBuildProjectDirectory)/docs/decisions</DdLedgerDirectory>
+  </PropertyGroup>
+
+  <!--
+    The decisions the analyzers read.
+
+      DdLedger="decision-set"    an interim set file: front matter with a set id, a
+                                 namespace and a list of keys with one-line statements
+      DdLedger="ledger-export"   the ledger's N-Triples export, once decision-cli emits it
+
+    Both forms are passed in so that a compilation can be checked against whichever exists.
+    Nothing here reads the files; the generator does, and it tells them apart by this
+    metadata rather than by extension.
+  -->
+  <ItemGroup Condition="'$(DdLedgerDirectory)' != '' and Exists('$(DdLedgerDirectory)')">
+    <AdditionalFiles Include="$(DdLedgerDirectory)/*.md" DdLedger="decision-set" />
+    <AdditionalFiles Include="$(DdLedgerDirectory)/*.nt" DdLedger="ledger-export" />
+  </ItemGroup>
+
+  <!--
+    A ledger that is not one flat directory needs no support from here: a consumer adds
+    AdditionalFiles itself and puts the DdLedger metadata on them, which the props file
+    has already made visible to the analyzers.
+  -->
+
+</Project>

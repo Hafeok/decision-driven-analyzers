@@ -1,0 +1,43 @@
+<Project>
+
+  <!--
+    A sample is only useful if it is built the way a consumer would build it. This file
+    imports the repository's settings, then imports the package's own props exactly as the
+    nupkg's build/ folder would be imported into a consuming project.
+  -->
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <Import Project="$(MSBuildThisFileDirectory)../../src/DecisionDriven.Analyzers.Package/DecisionDriven.Analyzers.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+
+    <!--
+      The decisions these samples are checked against are this repository's own. A real
+      consumer would point this at its own ledger.
+    -->
+    <DdLedgerDirectory>$(MSBuildThisFileDirectory)../../docs/decisions</DdLedgerDirectory>
+
+    <!--
+      Every sample project belongs to the same family, so the layering rules have
+      something to compare. ArchLayer and ArchCompositionRoot are per project.
+    -->
+    <ArchFamily>Sample</ArchFamily>
+    <ArchCompositionRoot>false</ArchCompositionRoot>
+  </PropertyGroup>
+
+  <!--
+    Wired now, asserts nothing yet.
+
+    CI builds these projects a second time with -p:DD_SAMPLE_VIOLATIONS=true. Today that
+    define is a no-op and the second build is the same build. It is here so that the
+    session which writes the first rules only has to add code under the define and the
+    expected diagnostics to the workflow - the plumbing is already proven to work.
+  -->
+  <PropertyGroup Condition="'$(DD_SAMPLE_VIOLATIONS)' == 'true'">
+    <DefineConstants>$(DefineConstants);DD_SAMPLE_VIOLATIONS</DefineConstants>
+  </PropertyGroup>
+
+</Project>

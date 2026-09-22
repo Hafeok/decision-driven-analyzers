@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <ArchLayer>1</ArchLayer>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Sample.Layer0/Sample.Layer0.csproj" />
+  </ItemGroup>
+
+</Project>

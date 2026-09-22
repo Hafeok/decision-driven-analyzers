@@ -1,0 +1,67 @@
+<Project>
+
+  <!--
+    Central package management. Every version this repository depends on is pinned here
+    and nowhere else; a project names a package, never a version.
+
+    The packages below are the ones allowed by docs/decisions/build-time-dependencies.md.
+    Adding a package to this file is adding it to that decision set first.
+  -->
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <!--
+    build-time-dependencies.RoslynPinnedToLowestSupported: Microsoft.CodeAnalysis.CSharp
+    is pinned to the lowest version the current LTS SDK supports, so that the analyzers
+    load in every SDK of the .NET 10 LTS band rather than only in the newest one.
+
+    Verified, not guessed. The SDK pinned in global.json reports 10.0.401, whose
+    Roslyn/bincore compiler reports 5.9.0-1.26423.113; the same compiler taken from SDK
+    10.0.100 reports 5.0.0-2.25523.111.
+
+    10.0.100 is the lowest SDK in the .NET 10 LTS band, so 5.0.0 is the floor. The
+    compiler loads an analyzer built against its own Roslyn version or older, so an
+    analyzer built against 5.0.0 runs on every 10.0.x SDK; one built against 5.9.0 would
+    not run on 10.0.100.
+  -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.0.0" />
+
+    <!--
+      Not 5.0.0: that version was never released as stable, and 5.3.0 is the lowest that
+      was. This package contributes no API to the analyzers, it only checks them while
+      they build, so its version is free to differ from the Roslyn floor above.
+    -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.3.0" />
+  </ItemGroup>
+
+  <!--
+    build-time-dependencies.OffTheShelfBeforeOwnRule: pinned here so that a rule which one
+    of these expresses exactly is taken from the shelf rather than written as a DD rule.
+  -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.0.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.0.0" />
+  </ItemGroup>
+
+  <!--
+    build-time-dependencies.AnalyzerTestingHarness: Microsoft.CodeAnalysis.Testing with
+    xUnit v3. The harness resolves its verifier from the test framework at runtime, so
+    there is no separate verifier package.
+
+    xUnit v3 is a Microsoft.Testing.Platform runner and each test project is its own
+    executable, so there is no Microsoft.NET.Test.Sdk and no VSTest adapter either: the
+    .NET 10 SDK dropped VSTest, and the "test" section of global.json points
+    `dotnet test` at the platform instead.
+  -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" Version="1.1.4" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.SourceGenerators.Testing" Version="1.1.4" />
+    <PackageVersion Include="xunit.v3" Version="4.0.1" />
+  </ItemGroup>
+
+</Project>
