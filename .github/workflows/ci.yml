@@ -79,6 +79,28 @@ jobs:
 
           Write-Host "$($nupkg.Name): no lib/, analyzer and build assets present."
 
+      - name: Check the tool package layout
+        shell: pwsh
+        run: |
+          # A tool package whose tools/ folder holds only DotnetToolSettings.xml packs
+          # without complaint and fails at `dotnet tool install`. Assert the entry point
+          # the settings file names is actually in the package.
+          $nupkg = Get-ChildItem artifacts/packages/DecisionDriven.Report.*.nupkg |
+            Where-Object { $_.Name -notlike '*.symbols.nupkg' } |
+            Select-Object -First 1
+          if (-not $nupkg) { throw 'No DecisionDriven.Report package was produced.' }
+
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = [System.IO.Compression.ZipFile]::OpenRead($nupkg.FullName)
+          try { $entries = $zip.Entries | ForEach-Object { $_.FullName } } finally { $zip.Dispose() }
+
+          $entry = $entries | Where-Object { $_ -like 'tools/*/any/DecisionDriven.Report.dll' }
+          if (-not $entry) {
+            throw "The tool package has no entry point. tools/ contains: $(($entries | Where-Object { $_ -like 'tools/*' }) -join ', ')"
+          }
+
+          Write-Host "$($nupkg.Name): entry point at $entry."
+
       - name: Upload the packages
         if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v4
