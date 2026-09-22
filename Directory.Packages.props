@@ -14,7 +14,7 @@
   </PropertyGroup>
 
   <!--
-    build-time-dependencies.RoslynPinnedToLowestSupported: Microsoft.CodeAnalysis.CSharp
+    BuildTimeDependencies.RoslynPinnedToLowestSupported: Microsoft.CodeAnalysis.CSharp
     is pinned to the lowest version the current LTS SDK supports, so that the analyzers
     load in every SDK of the .NET 10 LTS band rather than only in the newest one.
 
@@ -40,7 +40,7 @@
   </ItemGroup>
 
   <!--
-    build-time-dependencies.OffTheShelfBeforeOwnRule: pinned here so that a rule which one
+    BuildTimeDependencies.OffTheShelfBeforeOwnRule: pinned here so that a rule which one
     of these expresses exactly is taken from the shelf rather than written as a DD rule.
   -->
   <ItemGroup>
@@ -49,7 +49,7 @@
   </ItemGroup>
 
   <!--
-    build-time-dependencies.VersionFromGitTags: MinVer. Versions are derived from the tag
+    BuildTimeDependencies.VersionFromGitTags: MinVer. Versions are derived from the tag
     history rather than written into a file, so nothing can disagree with the tag.
   -->
   <ItemGroup>
@@ -57,7 +57,7 @@
   </ItemGroup>
 
   <!--
-    build-time-dependencies.AnalyzerTestingHarness: Microsoft.CodeAnalysis.Testing with
+    BuildTimeDependencies.AnalyzerTestingHarness: Microsoft.CodeAnalysis.Testing with
     xUnit v3. The harness resolves its verifier from the test framework at runtime, so
     there is no separate verifier package.
 

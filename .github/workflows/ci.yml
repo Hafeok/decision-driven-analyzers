@@ -56,7 +56,7 @@ jobs:
         shell: pwsh
         run: |
           # An analyzer package with a lib/ folder puts the analyzer on the consumer's
-          # compile path, which is exactly what two-packages.DevelopmentTimeOnly rules out.
+          # compile path, which is exactly what TwoPackages.DevelopmentTimeOnly rules out.
           # Cheap to assert, and invisible until somebody consumes the package otherwise.
           $nupkg = Get-ChildItem artifacts/packages/DecisionDriven.Analyzers.*.nupkg |
             Where-Object { $_.Name -notlike '*.symbols.nupkg' } |

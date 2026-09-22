@@ -40,7 +40,7 @@
 
   <!--
     The SDK's trimming, AOT and single-file analyzers, from
-    build-time-dependencies.OffTheShelfBeforeOwnRule. They cost nothing here and they are
+    BuildTimeDependencies.OffTheShelfBeforeOwnRule. They cost nothing here and they are
     the reason this project will not quietly grow a reflection dependency.
   -->
   <PropertyGroup>

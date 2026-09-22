@@ -4,7 +4,7 @@
     Imported into a consuming project before the project body, from build/ in the
     DecisionDriven.Analyzers package.
 
-    two-packages.ConfigurationViaMsBuildProperties: a consumer describes its own
+    TwoPackages.ConfigurationViaMsBuildProperties: a consumer describes its own
     architecture with MSBuild properties and .editorconfig options. Adopting a rule never
     requires a change to analyzer code, so everything the analyzers need to know about a
     project has to arrive through this file.

@@ -35,13 +35,15 @@ The name and address must be ones you can be reached at. Commits without a
 ## One issue per commit
 
 Every commit references exactly one issue, and every commit that implements a decision
-names the decision it implements as `<Set>.<Key>` — the set id from the front matter of
-the file in `docs/decisions/`, and the decision's key.
+names the decision it implements as `<Set>.<Key>` — the generated static class for the
+set, which is the PascalCase of the `set:` id in `docs/decisions/`, and the decision's
+key. That pair is the type the code cites, so `build-time-dependencies` is written
+`BuildTimeDependencies`.
 
 ```
 Reject a public type whose name repeats its namespace
 
-Implements names-and-namespaces.NoNamespaceEchoInTypeName. The analyzer
+Implements NamesAndNamespaces.NoNamespaceEchoInTypeName. The analyzer
 reports DD0101 on the declaration and the message names both paths.
 
 Refs #42
@@ -67,7 +69,7 @@ commits.
 ## Adding a rule
 
 A rule is an analyzer, not a document about an analyzer. The deliverable order is fixed
-(`rule-tiers.RuleDeliverableOrder`) and a pull request that stops early is incomplete:
+(`RuleTiers.RuleDeliverableOrder`) and a pull request that stops early is incomplete:
 
 1. **Analyzer.** The diagnostic in `src/DecisionDriven.Analyzers/`, with an id in the
    `DD` range, registered in `AnalyzerReleases.Unshipped.md`. Its tier decides its
@@ -89,7 +91,7 @@ A rule is an analyzer, not a document about an analyzer. The deliverable order i
 Prefer an off-the-shelf analyzer to a new rule. Where `PublicApiAnalyzers`,
 `BannedApiAnalyzers` or the SDK's trimming, AOT and single-file analyzers express the
 rule exactly, use them at error severity and write no DD rule
-(`build-time-dependencies.OffTheShelfBeforeOwnRule`).
+(`BuildTimeDependencies.OffTheShelfBeforeOwnRule`).
 
 Never silence a DD rule with `#pragma warning disable` or `[SuppressMessage]`. If a rule
 is wrong, change the rule or the decision behind it.

@@ -18,7 +18,7 @@
 
   <ItemGroup>
     <!--
-      build-time-dependencies.AnalyzerTestingHarness: Microsoft.CodeAnalysis.Testing with
+      BuildTimeDependencies.AnalyzerTestingHarness: Microsoft.CodeAnalysis.Testing with
       xUnit v3. The harness compiles a snippet with the analyzers loaded and compares the
       diagnostics against what the test says they should be, which is the only way to
       assert a rule's exact message.

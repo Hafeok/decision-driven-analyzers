@@ -71,7 +71,7 @@ guarantees the tree keeps agreeing with the number that exercise produced.
 
 ```text
 DDBUILD0001: Microsoft.CodeAnalysis.CSharp is pinned to 5.9.0, but this project expects
-5.0.0. build-time-dependencies.RoslynPinnedToLowestSupported pins Roslyn to the lowest
+5.0.0. BuildTimeDependencies.RoslynPinnedToLowestSupported pins Roslyn to the lowest
 version the current LTS SDK band ships, so that the analyzers load on every SDK in the
 band rather than only the newest. If the floor is meant to move, change
 ExpectedRoslynVersion in this project and the pin in Directory.Packages.props in the same

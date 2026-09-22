@@ -223,8 +223,8 @@ dotnet_naming_symbols.local_symbols.applicable_kinds = parameter, local, local_f
 #### Diagnostic severities ####
 
 # Deliberately empty. Severities are a decision: a rule's default severity comes from its
-# tier (rule-tiers.ThreeTiers) and lives with the rule, not here. Entries in this section
+# tier (RuleTiers.ThreeTiers) and lives with the rule, not here. Entries in this section
 # would be this repository overriding its own rules for itself, and each one needs a
 # decision to point at. The off-the-shelf analyzers named in
-# build-time-dependencies.OffTheShelfBeforeOwnRule are raised to error in
+# BuildTimeDependencies.OffTheShelfBeforeOwnRule are raised to error in
 # Directory.Build.props instead, where the reason for the setting can be written down.

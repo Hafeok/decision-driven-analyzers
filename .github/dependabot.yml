@@ -12,7 +12,7 @@ updates:
       prefix: "build"
       include: scope
     ignore:
-      # build-time-dependencies.RoslynPinnedToLowestSupported pins these to the LOWEST
+      # BuildTimeDependencies.RoslynPinnedToLowestSupported pins these to the LOWEST
       # Roslyn the current LTS SDK supports, so that the analyzers load in every SDK of
       # the band. An update is therefore a regression: bumping to the newest Roslyn would
       # stop the package working on 10.0.100 while every build here still passed.
