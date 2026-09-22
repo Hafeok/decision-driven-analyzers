@@ -11,21 +11,33 @@ updates:
     commit-message:
       prefix: "build"
       include: scope
+    ignore:
+      # build-time-dependencies.RoslynPinnedToLowestSupported pins these to the LOWEST
+      # Roslyn the current LTS SDK supports, so that the analyzers load in every SDK of
+      # the band. An update is therefore a regression: bumping to the newest Roslyn would
+      # stop the package working on 10.0.100 while every build here still passed.
+      #
+      # These move when the pinned LTS SDK band moves, which is a decision, not a version
+      # bump. Left ungated, Dependabot opens the same wrong pull request every week.
+      - dependency-name: Microsoft.CodeAnalysis.CSharp
+      - dependency-name: Microsoft.CodeAnalysis.CSharp.Workspaces
     groups:
-      roslyn:
+      analyzer-tooling:
+        # Not the Roslyn API packages above: these only run during the build, so they are
+        # free to track the newest version.
         patterns:
-          - "Microsoft.CodeAnalysis*"
+          - "Microsoft.CodeAnalysis.Analyzers"
+          - "Microsoft.CodeAnalysis.*Analyzers"
+          - "Microsoft.CodeAnalysis.*.Testing"
       testing:
         patterns:
           - "xunit*"
-          - "Microsoft.NET.Test.Sdk"
       build-tooling:
         patterns:
           - "*"
         exclude-patterns:
           - "Microsoft.CodeAnalysis*"
           - "xunit*"
-          - "Microsoft.NET.Test.Sdk"
 
   - package-ecosystem: github-actions
     directory: /
