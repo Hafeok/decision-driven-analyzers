@@ -56,6 +56,13 @@
     <MinVerTagPrefix>v</MinVerTagPrefix>
     <MinVerDefaultPreReleaseIdentifiers>alpha.0</MinVerDefaultPreReleaseIdentifiers>
     <MinVerAutoIncrement>patch</MinVerAutoIncrement>
+
+    <!--
+      The floor for an untagged build. Without it the trunk reports 0.0.0-alpha.0.N, which reads as
+      "nothing has happened here yet" for a package that has rules in it. 0.1 says the first
+      release being worked towards is 0.1.0, and a v0.1.0 tag then produces exactly that.
+    -->
+    <MinVerMinimumMajorMinor>0.1</MinVerMinimumMajorMinor>
   </PropertyGroup>
 
   <!-- Package metadata, shared by both published packages. -->

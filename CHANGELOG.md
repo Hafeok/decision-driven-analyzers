@@ -11,33 +11,44 @@ consumer that builds with warnings as errors, and are recorded as such.
 
 ## [Unreleased]
 
+The first prerelease. Nothing has been published before this, so everything is new and there is
+nothing to deprecate.
+
 ### Added
 
-- Repository scaffolding: licence, contributor path, governance, security policy, issue
-  and pull request templates, and an editor configuration.
-- An empty solution that builds, tests and packs: the analyzer package with its MSBuild
-  props, the `DecisionDriven.Report` tool, test projects, and a sample consumer.
-- Tag-driven versioning with MinVer: a `v*` tag is a release version and every other
-  build of the trunk is a prerelease.
-- Continuous integration, and a publish workflow using NuGet trusted publishing.
-- The rule page format and its template, in `docs/rules/`.
-- The decision ledger source generator: the marker attributes (`ArchLayer`, `Contract`,
-  `DomainModel`, `HotPath`, `DesignDecision`) and `ExceptionScope` emitted into each
-  consuming compilation, and one nested type per decision so that a citation is a symbol
-  reference the compiler checks. Reads the ledger's N-Triples export and, until that
-  exists, the interim markdown front matter.
-- `DD0001`: a reference within a family points strictly downward, read from the referenced
+- **The decision ledger source generator.** Reads the decisions a repository has filed and emits
+  one static class per set with one nested type per decision, so a citation is a type reference the
+  compiler checks. Emits the marker attributes `Contract`, `DomainModel`, `HotPath`,
+  `DesignDecision` and `ArchLayer`, and the closed `ExceptionScope` enum, into each consuming
+  compilation. A decision with no unrevoked acceptance of its tip version is obsolete as a warning;
+  a revoked decision with no successor is obsolete as an error; supersession is neither.
+- **The interim decision format.** A markdown set file with YAML front matter carrying `set`,
+  `namespace`, and decisions with `key`, `statement`, `accepted-by`, `accepted-at` and `revoked-at`.
+  This is the form used until `decision-cli` can export the ledger, and it is deleted once it can.
+  The N-Triples reader for that export is implemented and has no producer yet.
+- **`DD0001`** - a reference within a family points strictly downward, read from the referenced
   assembly's metadata so package references are checked like project references.
-- `DD0002`: every `InternalsVisibleTo` target is a test assembly.
-- `DD0003`: services are resolved only in the composition root.
-- Code fixes, in a `DecisionDriven.Analyzers.CodeFixes` assembly packed alongside the
-  analyzers: the documented-exception placeholder for every DD rule, and the design-change
-  fix for `DD0002`. Apply them from a terminal with
+- **`DD0002`** - every `InternalsVisibleTo` target is a test assembly.
+- **`DD0003`** - services are resolved only in the composition root.
+- **`DD0004`** - no mutable static state, including the static registry.
+- **`DD0005`** - no grab-bag name on an assembly or a namespace.
+- **`DD0006`** - public types live under the assembly's root namespace.
+- **The code-fixes assembly.** `DecisionDriven.Analyzers.CodeFixes`, packed alongside the analyzers
+  in `analyzers/dotnet/cs`: the documented-exception placeholder for every DD rule, which does not
+  compile by design, and the design-change fix for `DD0002`. Apply them from a terminal with
   `dotnet format analyzers --diagnostics <id>`.
-- `DDBUILD0002`: the package is not produced without its code-fixes assembly.
-- `DDGEN0001`-`DDGEN0004`: generator errors for a duplicate decision key, a key that is
-  not an identifier, a key changed between versions, and an unparseable export line.
+- **`DDBUILD0001`** - the Roslyn pin matches the floor the analyzers declare, so a dependency bump
+  cannot quietly drop support for the oldest SDK in the band.
+- **`DDBUILD0002`** - no package is produced without its code-fixes assembly.
+- **`DDGEN0001`-`DDGEN0004`** - the decision input is well formed: no duplicate key in a namespace,
+  no key that is not an identifier, no key changed between versions, no unparseable export line.
+- `DecisionDriven.Report`, a .NET tool, reporting its version. The whole-graph metrics it exists for
+  are not implemented yet.
 
-No rules are shipped yet and nothing has been published to NuGet.
+### Notes for consumers
+
+Every decision in this repository's own `docs/decisions/` is unaccepted, which is the mechanism
+working rather than an oversight: citing one produces `CS0618` on every citation, so they are usable
+on a branch and will not ship under `TreatWarningsAsErrors`.
 
 [Unreleased]: https://github.com/Hafeok/decision-driven-analyzers/commits/main
