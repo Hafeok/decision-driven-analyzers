@@ -21,6 +21,13 @@ consumer that builds with warnings as errors, and are recorded as such.
   build of the trunk is a prerelease.
 - Continuous integration, and a publish workflow using NuGet trusted publishing.
 - The rule page format and its template, in `docs/rules/`.
+- The decision ledger source generator: the marker attributes (`ArchLayer`, `Contract`,
+  `DomainModel`, `HotPath`, `DesignDecision`) and `ExceptionScope` emitted into each
+  consuming compilation, and one nested type per decision so that a citation is a symbol
+  reference the compiler checks. Reads the ledger's N-Triples export and, until that
+  exists, the interim markdown front matter.
+- `DDGEN0001`-`DDGEN0004`: generator errors for a duplicate decision key, a key that is
+  not an identifier, a key changed between versions, and an unparseable export line.
 
 No rules are shipped yet and nothing has been published to NuGet.
 
