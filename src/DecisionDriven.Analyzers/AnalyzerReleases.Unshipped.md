@@ -12,3 +12,6 @@ DDGEN0004 | DecisionDriven.Ledger | Error | Unparseable line in the ledger expor
 DD0001 | DecisionDriven | Error | Reference does not point strictly downward, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0001.md)
 DD0002 | DecisionDriven | Error | InternalsVisibleTo grants access to something that is not a test assembly, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0002.md)
 DD0003 | DecisionDriven | Error | Service resolved at runtime outside the composition root, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0003.md)
+DD0004 | DecisionDriven | Error | Mutable static state, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0004.md)
+DD0005 | DecisionDriven | Error | Grab-bag name on an assembly or namespace, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0005.md)
+DD0006 | DecisionDriven | Error | Public type outside the assembly's root namespace, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0006.md)

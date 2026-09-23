@@ -18,4 +18,13 @@ internal static class DiagnosticIds
 
     /// <summary>A service resolved at runtime outside the composition root.</summary>
     internal const string ServiceLocation = "DD0003";
+
+    /// <summary>Mutable static state, including the static registry.</summary>
+    internal const string MutableStaticState = "DD0004";
+
+    /// <summary>A grab-bag name on an assembly or a namespace.</summary>
+    internal const string BannedName = "DD0005";
+
+    /// <summary>A public type outside the assembly's root namespace.</summary>
+    internal const string RootNamespace = "DD0006";
 }

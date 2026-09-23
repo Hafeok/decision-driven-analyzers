@@ -63,6 +63,28 @@ internal static class Descriptors
             + "one that fails at run time, and hides it from every rule that reads the reference graph. "
             + "The composition root is where wiring belongs, and it says so with ArchCompositionRoot.");
 
+    internal static readonly DiagnosticDescriptor MutableStaticState = Rule(
+        DiagnosticIds.MutableStaticState,
+        "Mutable static state",
+        "{0}. Decide: {1} | " + ExceptionPath + ". " + Guard,
+        "A mutable static is shared by every caller on every thread, and a static collection is how "
+            + "a lower layer discovers a higher one without a reference - the hole a layering rule "
+            + "cannot see. Pools and interning caches are the honest exception, and they say so.");
+
+    internal static readonly DiagnosticDescriptor BannedName = Rule(
+        DiagnosticIds.BannedName,
+        "Grab-bag name on an assembly or namespace",
+        "{0}. Decide: {1} | " + ExceptionPath + ". " + Guard,
+        "Common, Core, Utils and their relatives are where the second reason to change accumulates. "
+            + "The name is the only honest cohesion gate: size metrics measure size, not responsibility.");
+
+    internal static readonly DiagnosticDescriptor RootNamespace = Rule(
+        DiagnosticIds.RootNamespace,
+        "Public type outside the assembly's root namespace",
+        "{0}. Decide: {1} | " + ExceptionPath + ". " + Guard,
+        "An assembly with one root namespace equal to its name is one package with one name. Public "
+            + "types outside it are a second package hiding in the first.");
+
     private static DiagnosticDescriptor Rule(string id, string title, string messageFormat, string description) =>
         new DiagnosticDescriptor(
             id: id,

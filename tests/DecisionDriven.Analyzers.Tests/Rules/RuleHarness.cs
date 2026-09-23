@@ -51,7 +51,8 @@ internal static class RuleHarness
         string? archFamily = null,
         int? archLayer = null,
         bool compositionRoot = false,
-        IEnumerable<Referenced>? references = null)
+        IEnumerable<Referenced>? references = null,
+        Dictionary<string, string>? editorConfig = null)
     {
         List<MetadataReference> metadata = new List<MetadataReference>(PlatformReferences());
 
@@ -80,6 +81,13 @@ internal static class RuleHarness
         if (compositionRoot)
         {
             options["build_property.ArchCompositionRoot"] = "true";
+        }
+
+        // .editorconfig options arrive through the same provider as MSBuild properties, without
+        // the build_property prefix.
+        foreach (KeyValuePair<string, string> entry in editorConfig ?? new Dictionary<string, string>(StringComparer.Ordinal))
+        {
+            options[entry.Key] = entry.Value;
         }
 
         CompilationWithAnalyzers withAnalyzers = compilation.WithAnalyzers(
