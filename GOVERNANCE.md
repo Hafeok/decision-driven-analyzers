@@ -56,7 +56,21 @@ account registers, and that arrangement is easier to change than a rule; the byp
 a key rotation from blocking merges. Every other author signs.
 
 Neither ruleset requires a pull request or linear history at the ruleset level. What
-protects `main` is that nothing merges without a green `ci`.
+protects `main` is that no commit arrives on it without a green `ci` attached to that
+exact commit.
+
+That phrasing is load-bearing. A required status check is evaluated against the commit
+being pushed, and a commit that has never been built carries no status, so a direct push
+of a fresh commit is refused — the check is required and has nothing to report. CI
+therefore runs on every branch, which makes the direct-push route possible:
+
+```
+git push origin HEAD:refs/heads/my-work    # ci runs, goes green on this SHA
+git push origin HEAD:main                  # same SHA, status already attached
+```
+
+A pull request reaches the same place by the same rule. Neither is privileged; the
+branch simply never receives a commit nobody built.
 
 The bootstrap session left a `.github/rulesets/main.json` describing a single ruleset. It
 is deleted rather than kept: it was never applied, it is not the shape above, and a file

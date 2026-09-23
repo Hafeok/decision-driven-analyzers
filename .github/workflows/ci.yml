@@ -1,8 +1,19 @@
 name: ci
 
 on:
+  # Every branch, not just main. A ruleset's required-status-check rule is evaluated
+  # against the commit being pushed, and a brand new commit has no `ci` status yet, so a
+  # direct push to a protected main is rejected before any run can exist. Running CI on
+  # every branch fixes that: push the commit to a branch, let `ci` go green on that exact
+  # SHA, then fast-forward the same SHA onto main. The status is already attached to the
+  # commit, so the rule is satisfied and the push goes through.
+  #
+  # The cost is that a pull request from a branch in this repository is built twice, once
+  # for the push and once for the pull request. That is the price of being able to push
+  # to main at all; the pull_request trigger stays because a fork's branch never fires
+  # the push trigger here.
   push:
-    branches: [main]
+    branches: ['**']
   pull_request:
   workflow_dispatch:
 
