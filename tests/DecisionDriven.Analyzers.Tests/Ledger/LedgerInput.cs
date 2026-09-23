@@ -42,10 +42,11 @@ internal static class LedgerInput
     /// source. A real export carries a ULID and a content hash; what is being tested here is that
     /// the two readers agree, not that a ULID round-trips.
     /// </remarks>
-    internal static string NTriples(string setId, string key, string statement, string? acceptedBy = null, string? revokedAt = null)
+    internal static string NTriples(string setId, string key, string statement, string? acceptedBy = null, string? acceptanceRevokedAt = null)
     {
         const string Ledger = "urn:ledger:ns#";
         const string Rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
+        const string Prov = "http://www.w3.org/ns/prov#";
 
         string decision = "dec:" + Namespace + "/" + key;
         string version = "urn:interim:" + Namespace + "/" + key;
@@ -63,14 +64,24 @@ internal static class LedgerInput
         {
             string acceptance = "urn:acceptance:" + key;
             text += "<" + acceptance + "> <" + Rdf + "type> <" + Ledger + "Acceptance> ." + Environment.NewLine
+                + "<" + acceptance + "> <" + Ledger + "ofDecision> <" + decision + "> ." + Environment.NewLine
                 + "<" + acceptance + "> <" + Ledger + "signsVersion> <" + version + "> ." + Environment.NewLine
-                + "<" + acceptance + "> <" + Ledger + "acceptedBy> <" + acceptedBy + "> ." + Environment.NewLine
-                + "<" + acceptance + "> <" + Ledger + "acceptedAt> \"2026-01-01T00:00:00Z\"^^<http://www.w3.org/2001/XMLSchema#dateTime> ." + Environment.NewLine;
+                + "<" + acceptance + "> <" + Ledger + "scope> \"version\" ." + Environment.NewLine
+                + "<" + acceptance + "> <" + Prov + "wasAttributedTo> <" + acceptedBy + "> ." + Environment.NewLine
+                + "<" + acceptance + "> <" + Prov + "generatedAtTime> \"2026-01-01T00:00:00Z\"^^<http://www.w3.org/2001/XMLSchema#dateTime> ." + Environment.NewLine;
         }
 
-        if (revokedAt is not null)
+        if (acceptanceRevokedAt is not null)
         {
-            text += "<" + decision + "> <" + Ledger + "revokedAt> \"" + revokedAt + "\" ." + Environment.NewLine;
+            // The ledger revokes acceptances, not decisions: there is no decision-level retirement
+            // predicate, which docs/rules/ledger-input.md records as an open item. A revoked
+            // decision can therefore only be expressed in the interim front matter, so the export
+            // form of this helper revokes the acceptance instead, which is a different thing and is
+            // what the corresponding test asserts.
+            string acceptance = "urn:acceptance:" + key;
+            text += "<" + acceptance + "> <" + Ledger + "revokedAt> \"" + acceptanceRevokedAt + "\" ." + Environment.NewLine
+                + "<" + acceptance + "> <" + Ledger + "revokedBy> <mailto:someone@example.com> ." + Environment.NewLine
+                + "<" + acceptance + "> <" + Ledger + "revocationReason> \"Superseded by a later decision.\" ." + Environment.NewLine;
         }
 
         return text;

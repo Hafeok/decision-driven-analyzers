@@ -17,6 +17,8 @@ decisions:
     statement: "An MSBuild target that fails the build is an accepted tier-1 form alongside a Roslyn analyzer, with id family DDBUILD"
   - key: SamplesJobIsTheFalsePositiveCheck
     statement: "The samples job is the standing zero-false-positive check for every rule, and a failure there is attributed to the rule before the sample"
+  - key: IdFamilies
+    statement: "Diagnostic id families: DD for Roslyn analyzers, DDBUILD for build-target checks, DDGEN for generator diagnostics; a new family is a new key"
 ---
 
 Interim set file (decisions-as-types, InterimFrontMatterUntilExport). No `accepted-by`: every decision here is unaccepted until a holder with accept-decision accepts it in the ledger. Narrative: docs/drafts/ADR-A01-*.md.

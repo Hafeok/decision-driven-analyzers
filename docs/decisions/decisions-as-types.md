@@ -10,7 +10,7 @@ decisions:
   - key: InterimFrontMatterUntilExport
     statement: "Until the ledger format carries keys and decision-cli exports, a markdown set file with a decisions list maps one-to-one onto the same model and is deleted once imported"
   - key: OneTypePerSetNestedTypePerDecision
-    statement: "The generator emits one static class per set (tip-version membership) with one nested static class per decision named by its key, in namespace DecisionDriven.Ledger.<namespace>"
+    statement: "The generator emits one static class per set (tip-version membership) with one nested static class per decision named by its key, in namespace DecisionDriven.Ledger.<Namespace> where the ledger namespace is PascalCased the same way a set id is"
   - key: VersionLevelKeyCarriedAcrossSupersession
     statement: "A decision key is a hashed version-level field unique per (namespace, key), immutable across versions, carried to the successor on supersession, syntax ^[A-Z][A-Za-z0-9]{0,63}$"
   - key: SupersessionIsNotObsolescence
@@ -18,7 +18,7 @@ decisions:
   - key: UnacceptedEmitsWarningObsolete
     statement: "A decision whose tip version has no unrevoked acceptance is emitted with Obsolete(error=false), so it cannot ship under TreatWarningsAsErrors"
   - key: RevokedEmitsErrorObsolete
-    statement: "A revoked decision without successor is emitted with Obsolete(error=true)"
+    statement: "A revoked decision without successor is emitted with Obsolete(error=true); the ledger has no decision-level retirement yet, so until it does this is fed only by the interim front matter's revoked-at"
   - key: CitationVersionDerivedNotWritten
     statement: "The version a citation was written against is never written in source; the report tool derives it from the introducing commit and the ledger tip at that commit"
   - key: AttributesAreSourceGenerated

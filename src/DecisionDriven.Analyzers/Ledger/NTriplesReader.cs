@@ -299,15 +299,15 @@ internal static class NTriplesReader
 
             string ledgerNamespace = ReadNamespace(node.Value, node.Key);
             LedgerNamespace ns = GetOrAddNamespace(namespaces, ledgerNamespace);
-            Decision decision = ns.GetOrAdd(node.Key);
+            ns.GetOrAdd(node.Key);
 
-            foreach (Triple triple in node.Value)
-            {
-                if (triple.Predicate == Ledger + "revokedAt")
-                {
-                    decision.RevokedAt = triple.Object;
-                }
-            }
+            // ledger:id, prov:wasAttributedTo, prov:generatedAtTime and prov:wasGeneratedBy are on
+            // this node too. The generator has no use for provenance: what it emits is a type per
+            // decision, and who filed it when is the report tool's question.
+            //
+            // There is deliberately no decision-level revocation read here. The ledger has no
+            // decision-level retirement, so RevokedEmitsErrorObsolete is fed only by the interim
+            // front matter until the format grows one. docs/rules/ledger-input.md records it.
         }
 
         // Versions, which also tell us who supersedes whom.
@@ -395,21 +395,41 @@ internal static class NTriplesReader
             Acceptance acceptance = new Acceptance(versionId);
             foreach (Triple triple in node.Value)
             {
-                if (triple.Predicate == Ledger + "acceptedBy")
+                if (triple.Predicate == Ledger + "ofDecision")
                 {
-                    acceptance.By = triple.Object;
+                    acceptance.DecisionId = triple.Object;
                 }
-                else if (triple.Predicate == Ledger + "acceptedAt")
+                else if (triple.Predicate == Ledger + "scope")
                 {
-                    acceptance.At = triple.Object;
+                    acceptance.Scope = triple.Object;
+                }
+                else if (triple.Predicate == Prov + "wasAttributedTo")
+                {
+                    acceptance.AttributedTo = triple.Object;
+                }
+                else if (triple.Predicate == Prov + "generatedAtTime")
+                {
+                    acceptance.GeneratedAtTime = triple.Object;
                 }
                 else if (triple.Predicate == Ledger + "revokedAt")
                 {
                     acceptance.RevokedAt = triple.Object;
                 }
+                else if (triple.Predicate == Ledger + "revokedBy")
+                {
+                    acceptance.RevokedBy = triple.Object;
+                }
+                else if (triple.Predicate == Ledger + "revocationReason")
+                {
+                    acceptance.RevocationReason = triple.Object;
+                }
             }
 
-            Decision? owner = FindByVersion(namespaces, versionId);
+            Decision? owner = acceptance.DecisionId is { Length: > 0 } ofDecision
+                ? Find(namespaces, ofDecision)
+                : null;
+
+            owner ??= FindByVersion(namespaces, versionId);
             owner?.Acceptances.Add(acceptance);
         }
 

@@ -187,10 +187,15 @@ internal static class FrontMatterReader
             // and the front-matter format says so: accepted-at is required *with* accepted-by.
             if (entry.AcceptedBy is { Length: > 0 })
             {
+                // The interim form's accepted-by/accepted-at map onto what the export calls
+                // prov:wasAttributedTo and prov:generatedAtTime. Scope is "version": the front
+                // matter has no way to express a class acceptance and no need for one.
                 decision.Acceptances.Add(new Acceptance(version.Id)
                 {
-                    By = entry.AcceptedBy,
-                    At = entry.AcceptedAt,
+                    DecisionId = id,
+                    Scope = "version",
+                    AttributedTo = entry.AcceptedBy,
+                    GeneratedAtTime = entry.AcceptedAt,
                 });
             }
         }

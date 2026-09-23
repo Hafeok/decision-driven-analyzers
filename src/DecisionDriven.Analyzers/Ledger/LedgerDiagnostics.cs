@@ -20,6 +20,15 @@ namespace DecisionDriven.Analyzers.Ledger;
 /// </remarks>
 internal static class LedgerDiagnostics
 {
+    /// <summary>
+    /// The category these are reported under.
+    /// </summary>
+    /// <remarks>
+    /// The ids are the DDGEN family of <c>RuleTiers.IdFamilies</c>: DD is Roslyn analyzers, DDBUILD
+    /// is build-target checks, DDGEN is generator diagnostics. The families are separate so that a
+    /// reader can tell from the id alone whether a finding is about the code being compiled or about
+    /// the inputs the build was handed. A new family is a new key in that decision.
+    /// </remarks>
     private const string Category = "DecisionDriven.Ledger";
 
     /// <summary>Two decisions claim the same key in one ledger namespace.</summary>

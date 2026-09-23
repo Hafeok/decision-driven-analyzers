@@ -26,7 +26,8 @@ src/DecisionDriven.Report/             CI tool (ADR-A12)
 tests/DecisionDriven.Analyzers.Tests/  Microsoft.CodeAnalysis.Testing, xUnit v3
 tests/DecisionDriven.Report.Tests/
 samples/Consumer/                            three-project family (layers 0,1,2) + a host + a test project; must build clean
-docs/adr/                                    the ADRs, numbered
+docs/drafts/                                 the narrative decision records, numbered
+docs/decisions/                              the interim set files the generator reads and code cites
 docs/rules/DDnnnn.md                         one page per rule: tier, principle, motivating ADR, configuration, false-positive story, examples
 ```
 

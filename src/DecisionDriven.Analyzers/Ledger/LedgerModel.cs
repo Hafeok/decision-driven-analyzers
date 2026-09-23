@@ -51,17 +51,38 @@ internal sealed class Acceptance
         VersionId = versionId;
     }
 
-    /// <summary>The version signed.</summary>
+    /// <summary>The version signed, from <c>ledger:signsVersion</c>.</summary>
     internal string VersionId { get; }
 
-    /// <summary>The identity that signed it.</summary>
-    internal string? By { get; set; }
+    /// <summary>The decision the acceptance is of, from <c>ledger:ofDecision</c>.</summary>
+    internal string? DecisionId { get; set; }
 
-    /// <summary>When it was signed.</summary>
-    internal string? At { get; set; }
+    /// <summary>
+    /// <c>ledger:scope</c>: <c>"version"</c>, or <c>"class:&lt;ref&gt;"</c> for an acceptance that
+    /// covers a class of decisions rather than one version.
+    /// </summary>
+    /// <remarks>
+    /// Carried but not acted on. Acceptance here is decided by <c>ledger:signsVersion</c> naming the
+    /// tip, so a class-scoped acceptance does not make a decision accepted for the generator's
+    /// purposes. That is the conservative reading: treating a class acceptance as covering the tip
+    /// would let code ship citing a version nobody signed.
+    /// </remarks>
+    internal string? Scope { get; set; }
 
-    /// <summary>Set when the acceptance itself has been revoked, which makes it stop counting.</summary>
+    /// <summary>The identity that signed it, from <c>prov:wasAttributedTo</c>.</summary>
+    internal string? AttributedTo { get; set; }
+
+    /// <summary>When it was signed, from <c>prov:generatedAtTime</c>.</summary>
+    internal string? GeneratedAtTime { get; set; }
+
+    /// <summary>Set by <c>ledger:revokedAt</c> on the acceptance, which makes it stop counting.</summary>
     internal string? RevokedAt { get; set; }
+
+    /// <summary>Who revoked it, from <c>ledger:revokedBy</c>.</summary>
+    internal string? RevokedBy { get; set; }
+
+    /// <summary>Why, from <c>ledger:revocationReason</c>.</summary>
+    internal string? RevocationReason { get; set; }
 
     /// <summary>Whether this acceptance still counts towards the decision being accepted.</summary>
     internal bool IsLive => RevokedAt is null;
@@ -90,7 +111,14 @@ internal sealed class Decision
     /// <summary>Every acceptance of any version of this decision.</summary>
     internal List<Acceptance> Acceptances { get; } = new List<Acceptance>();
 
-    /// <summary>Set when the decision itself was revoked.</summary>
+    /// <summary>
+    /// Set when the decision itself was revoked.
+    /// </summary>
+    /// <remarks>
+    /// Only the interim front matter can set this. The ledger has no decision-level retirement, so
+    /// <c>DecisionsAsTypes.RevokedEmitsErrorObsolete</c> has nothing in the export to read: see
+    /// docs/rules/ledger-input.md, where it is recorded as an open item for the ledger format.
+    /// </remarks>
     internal string? RevokedAt { get; set; }
 
     /// <summary>The interim set file this decision was read from, for the duplicate-key message.</summary>

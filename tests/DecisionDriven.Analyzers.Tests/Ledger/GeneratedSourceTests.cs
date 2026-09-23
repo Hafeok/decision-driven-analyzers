@@ -75,23 +75,63 @@ public sealed class GeneratedSourceTests
         const string Ledger = "urn:ledger:ns#";
         const string Rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 
-        string export = LedgerInput.NTriples("sample-set", "SomeKey", "The old one.", revokedAt: "2026-10-02T00:00:00Z")
+        string export = LedgerInput.NTriples("sample-set", "SomeKey", "The old one.", acceptedBy: "mailto:someone@example.com")
             + "<dec:sample-ns/Successor> <" + Rdf + "type> <" + Ledger + "Decision> .\n"
             + "<dec:sample-ns/Successor> <" + Ledger + "namespace> \"sample-ns\" .\n"
             + "<urn:interim:sample-ns/Successor> <" + Rdf + "type> <" + Ledger + "DecisionVersion> .\n"
             + "<urn:interim:sample-ns/Successor> <" + Ledger + "ofDecision> <dec:sample-ns/Successor> .\n"
             + "<urn:interim:sample-ns/Successor> <" + Ledger + "set> \"sample-set\" .\n"
             + "<urn:interim:sample-ns/Successor> <" + Ledger + "key> \"Successor\" .\n"
-            + "<urn:interim:sample-ns/Successor> <" + Ledger + "supersedes> <dec:sample-ns/SomeKey> .\n"
-            + "<urn:acceptance:SomeKey> <" + Rdf + "type> <" + Ledger + "Acceptance> .\n"
-            + "<urn:acceptance:SomeKey> <" + Ledger + "signsVersion> <urn:interim:sample-ns/SomeKey> .\n"
-            + "<urn:acceptance:SomeKey> <" + Ledger + "acceptedBy> <mailto:someone@example.com> .\n";
+            + "<urn:interim:sample-ns/Successor> <" + Ledger + "supersedes> <dec:sample-ns/SomeKey> .\n";
 
         GeneratorHarness.Result result = GeneratorHarness.Run(
             CitationOf("SomeKey"),
             new[] { LedgerInput.AsExport(export) });
 
         Assert.Empty(result.CompilationDiagnostics.Where(d => d.Id is "CS0612" or "CS0618" or "CS0619"));
+    }
+
+    [Fact]
+    public void A_decision_whose_only_acceptance_was_revoked_is_unaccepted()
+    {
+        // The ledger revokes acceptances rather than decisions, so this is the revocation the export
+        // can actually express. A revoked acceptance stops counting, which leaves the tip unaccepted:
+        // a warning, not an error. Decision-level retirement would be the error case, and the format
+        // has no predicate for it yet - docs/rules/ledger-input.md, open item 1.
+        string export = LedgerInput.NTriples(
+            "sample-set",
+            "SomeKey",
+            "A statement.",
+            acceptedBy: "mailto:someone@example.com",
+            acceptanceRevokedAt: "2026-10-02T00:00:00Z");
+
+        GeneratorHarness.Result result = GeneratorHarness.Run(
+            CitationOf("SomeKey"),
+            new[] { LedgerInput.AsExport(export) });
+
+        Diagnostic obsolete = Assert.Single(result.CompilationDiagnostics.Where(d => d.Id == "CS0618"));
+        Assert.Equal(DiagnosticSeverity.Warning, obsolete.Severity);
+    }
+
+    [Fact]
+    public void A_class_scoped_acceptance_does_not_make_a_decision_accepted()
+    {
+        // docs/rules/ledger-input.md, open item 2. Acceptance is decided by signsVersion naming the
+        // tip; treating a class acceptance as covering it would let code ship citing a version
+        // nobody signed. Conservative on purpose, and recorded so the choice is visible.
+        const string Ledger = "urn:ledger:ns#";
+        const string Rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
+
+        string export = LedgerInput.NTriples("sample-set", "SomeKey", "A statement.")
+            + "<urn:acceptance:class> <" + Rdf + "type> <" + Ledger + "Acceptance> .\n"
+            + "<urn:acceptance:class> <" + Ledger + "ofDecision> <dec:sample-ns/SomeKey> .\n"
+            + "<urn:acceptance:class> <" + Ledger + "scope> \"class:some-class\" .\n";
+
+        GeneratorHarness.Result result = GeneratorHarness.Run(
+            CitationOf("SomeKey"),
+            new[] { LedgerInput.AsExport(export) });
+
+        Assert.Single(result.CompilationDiagnostics.Where(d => d.Id == "CS0618"));
     }
 
     [Fact]
