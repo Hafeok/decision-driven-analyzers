@@ -1,8 +1,19 @@
 name: ci
 
 on:
+  # Every branch, not just main. A ruleset's required-status-check rule is evaluated
+  # against the commit being pushed, and a brand new commit has no `ci` status yet, so a
+  # direct push to a protected main is rejected before any run can exist. Running CI on
+  # every branch fixes that: push the commit to a branch, let `ci` go green on that exact
+  # SHA, then fast-forward the same SHA onto main. The status is already attached to the
+  # commit, so the rule is satisfied and the push goes through.
+  #
+  # The cost is that a pull request from a branch in this repository is built twice, once
+  # for the push and once for the pull request. That is the price of being able to push
+  # to main at all; the pull_request trigger stays because a fork's branch never fires
+  # the push trigger here.
   push:
-    branches: [main]
+    branches: ['**']
   pull_request:
   workflow_dispatch:
 
@@ -56,7 +67,7 @@ jobs:
         shell: pwsh
         run: |
           # An analyzer package with a lib/ folder puts the analyzer on the consumer's
-          # compile path, which is exactly what two-packages.DevelopmentTimeOnly rules out.
+          # compile path, which is exactly what TwoPackages.DevelopmentTimeOnly rules out.
           # Cheap to assert, and invisible until somebody consumes the package otherwise.
           $nupkg = Get-ChildItem artifacts/packages/DecisionDriven.Analyzers.*.nupkg |
             Where-Object { $_.Name -notlike '*.symbols.nupkg' } |
@@ -127,12 +138,14 @@ jobs:
           global-json-file: global.json
 
       - name: Build the samples
+        # Implements RuleTiers.SamplesJobIsTheFalsePositiveCheck. The samples conform, so a
+        # diagnostic on any of them is a false positive, and warnings are errors here. When
+        # this job fails, the rule is wrong until shown otherwise - the sample is only
+        # suspect once the rule has been cleared.
+        #
         # Every sample project, not just the ones Sample.Host reaches: Sample.Layer1.Tests
         # is nobody's dependency and would otherwise never be compiled with the analyzers
         # loaded, which is the only reason it exists.
-        #
-        # The samples conform, so a diagnostic on any of them is a false positive and
-        # warnings are errors: this job failing means a rule reported code that follows it.
         run: dotnet build samples/Consumer/Consumer.slnx --configuration Release
 
       - name: Build the samples with the violating code enabled

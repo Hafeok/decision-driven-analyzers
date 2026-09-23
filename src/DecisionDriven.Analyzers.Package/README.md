@@ -11,7 +11,7 @@ no project file.
 | `DecisionDriven.Analyzers.targets` | after the consuming project's body | adds the decision set files and the ledger export to `AdditionalFiles`, tagged with `DdLedger` |
 
 A consumer configures the rules like this, and never by changing analyzer code
-(`two-packages.ConfigurationViaMsBuildProperties`):
+(`TwoPackages.ConfigurationViaMsBuildProperties`):
 
 ```xml
 <PropertyGroup>

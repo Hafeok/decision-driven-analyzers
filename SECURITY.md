@@ -20,7 +20,7 @@ given in the advisory unless you ask otherwise.
 
 This package is a development-time analyzer package. It runs inside the compiler and the
 IDE on the machine of whoever builds a consuming project, and it never ships in a
-consumer's runtime output (`two-packages.DevelopmentTimeOnly`). The interesting attack
+consumer's runtime output (`TwoPackages.DevelopmentTimeOnly`). The interesting attack
 surface is therefore build-time: what the analyzers read from `AdditionalFiles` and
 MSBuild properties, what the source generator emits into a consumer's compilation, and
 what `DecisionDriven.Report` does with a solution it is pointed at.

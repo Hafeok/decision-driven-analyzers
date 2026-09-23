@@ -27,7 +27,7 @@ body:
         The decision this rule enforces, as `<Set>.<Key>`, from `docs/decisions/`. If the
         decision does not exist yet, say what it would state — one line, the way the set
         files state it. Do not propose an acceptance; that is a maintainer act.
-      placeholder: stable-dependency-rules.DependenciesPointInward
+      placeholder: StableDependencyRules.DependenciesPointInward
     validations:
       required: true
 

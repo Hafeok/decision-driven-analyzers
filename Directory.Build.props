@@ -41,7 +41,7 @@
   </PropertyGroup>
 
   <!--
-    build-time-dependencies.VersionFromGitTags. MinVer reads the tag history and sets
+    BuildTimeDependencies.VersionFromGitTags. MinVer reads the tag history and sets
     Version, so there is no version in any file to forget to bump.
 
       on a v* tag          the tag's version, e.g. v0.2.0 -> 0.2.0

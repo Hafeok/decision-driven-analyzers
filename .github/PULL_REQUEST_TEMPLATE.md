@@ -7,9 +7,11 @@ Refs #
 ## Decision
 
 <!--
-Name the decision this implements as <Set>.<Key> — the set id from the front matter of
-the file in docs/decisions/, and the key. If this change implements no decision (a typo
-fix, a CI tweak), say so instead of leaving it blank.
+Name the decision this implements as <Set>.<Key> — the generated static class for the
+set (the PascalCase of the `set:` id in docs/decisions/, so build-time-dependencies is
+BuildTimeDependencies) and the key, which together are the type the code cites. If this
+change implements no decision (a typo fix, a CI tweak), say so instead of leaving it
+blank.
 -->
 
 Implements:
