@@ -26,6 +26,10 @@ consumer that builds with warnings as errors, and are recorded as such.
   consuming compilation, and one nested type per decision so that a citation is a symbol
   reference the compiler checks. Reads the ledger's N-Triples export and, until that
   exists, the interim markdown front matter.
+- `DD0001`: a reference within a family points strictly downward, read from the referenced
+  assembly's metadata so package references are checked like project references.
+- `DD0002`: every `InternalsVisibleTo` target is a test assembly.
+- `DD0003`: services are resolved only in the composition root.
 - `DDGEN0001`-`DDGEN0004`: generator errors for a duplicate decision key, a key that is
   not an identifier, a key changed between versions, and an unparseable export line.
 

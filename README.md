@@ -12,6 +12,19 @@ in a consumer's runtime output.
 
 Status: pre-release, nothing published yet.
 
+## Rules
+
+| Id | Tier | Rule | Decision |
+| --- | --- | --- | --- |
+| [DD0001](docs/rules/DD0001.md) | 1 | A reference within a family points strictly downward | `StableDependencyRules.LayerReferenceStrictlyDownward` |
+| [DD0002](docs/rules/DD0002.md) | 1 | Every `InternalsVisibleTo` target is a test assembly | `StableDependencyRules.InternalsVisibleToTestsOnly` |
+| [DD0003](docs/rules/DD0003.md) | 1 | Services are resolved only in the composition root | `StableDependencyRules.NoServiceLocationOutsideCompositionRoot` |
+| [DDBUILD0001](docs/rules/DDBUILD0001.md) | 1 | The Roslyn pin matches the floor the analyzers declare | `BuildTimeDependencies.RoslynPinEnforcedByBuild` |
+
+Id families are `RuleTiers.IdFamilies`: `DD` for Roslyn analyzers, `DDBUILD` for build-target
+checks, `DDGEN` for generator diagnostics. What the generator reads is
+[`docs/rules/ledger-input.md`](docs/rules/ledger-input.md).
+
 Drop into the empty repository root, run `PROMPT-bootstrap.md` in Claude Code, then `PROMPT-session-1.md`.
 
 - `docs/drafts/` — narrative decision records (ADR-A01…A14 minus A13). Kept as narrative; not what code cites.
