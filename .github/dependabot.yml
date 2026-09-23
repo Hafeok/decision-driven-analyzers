@@ -26,6 +26,7 @@ updates:
       # Roslyn a package downgrade - and Dependabot resolves that by raising Roslyn too,
       # ignore rule or not. Observed, not predicted: that is how pull request 9 came to bump
       # Microsoft.CodeAnalysis.CSharp while an ignore rule for it was already in place.
+      - dependency-name: Microsoft.CodeAnalysis.Workspaces.Common
       - dependency-name: Microsoft.CodeAnalysis.Analyzers
     groups:
       analyzer-tooling:

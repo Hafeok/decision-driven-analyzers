@@ -30,6 +30,11 @@ consumer that builds with warnings as errors, and are recorded as such.
   assembly's metadata so package references are checked like project references.
 - `DD0002`: every `InternalsVisibleTo` target is a test assembly.
 - `DD0003`: services are resolved only in the composition root.
+- Code fixes, in a `DecisionDriven.Analyzers.CodeFixes` assembly packed alongside the
+  analyzers: the documented-exception placeholder for every DD rule, and the design-change
+  fix for `DD0002`. Apply them from a terminal with
+  `dotnet format analyzers --diagnostics <id>`.
+- `DDBUILD0002`: the package is not produced without its code-fixes assembly.
 - `DDGEN0001`-`DDGEN0004`: generator errors for a duplicate decision key, a key that is
   not an identifier, a key changed between versions, and an unparseable export line.
 

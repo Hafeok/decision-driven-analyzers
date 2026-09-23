@@ -9,6 +9,8 @@ decisions:
     statement: "Generic rule ids are DD0001 onward; product-specific analyzers use their own prefix and reference the generic package"
   - key: ConfigurationViaMsBuildProperties
     statement: "Consumers configure the rules through CompilerVisibleProperty MSBuild properties (ArchFamily, ArchLayer, ArchCompositionRoot, ArchContractTypeAssemblies) and .editorconfig options; adoption never requires analyzer code changes"
+  - key: CodeFixesShipInSeparateAssembly
+    statement: "Code fixes ship in their own assembly alongside the analyzers in analyzers/dotnet/cs, because the compiler loads the analyzer assembly and only an IDE or dotnet format loads the fixes"
   - key: DevelopmentTimeOnly
     statement: "The package is consumed with PrivateAssets=all and never appears in a consumer runtime output"
 ---

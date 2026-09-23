@@ -43,6 +43,20 @@ The answer is never `#pragma warning disable` or `[SuppressMessage]`: suppressin
 is DD0008. It is one of: configure the project so the rule's premise is right, change the
 code, or change the decision - and if it is the last of those, this section says so.>
 
+## Applying the fixes
+
+`dotnet build` never runs a code fix, so a fix that only an IDE can reach is invisible to anyone
+working from a terminal — an agent included. From a terminal, apply them with:
+
+```
+dotnet format analyzers --diagnostics DDnnnn
+```
+
+The documented-exception fix inserts `[DesignDecision(typeof(____.____), Scope = ExceptionScope.____)]`,
+which does not compile (`DiagnosticMessages.PlaceholderFixDoesNotCompile`). That is the point: the
+build stays red with one remaining error naming exactly what is missing, and no fix reaches green
+without either a design change or a filed, accepted decision.
+
 ## Violating example
 
 ```csharp

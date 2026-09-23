@@ -20,6 +20,7 @@ Status: pre-release, nothing published yet.
 | [DD0002](docs/rules/DD0002.md) | 1 | Every `InternalsVisibleTo` target is a test assembly | `StableDependencyRules.InternalsVisibleToTestsOnly` |
 | [DD0003](docs/rules/DD0003.md) | 1 | Services are resolved only in the composition root | `StableDependencyRules.NoServiceLocationOutsideCompositionRoot` |
 | [DDBUILD0001](docs/rules/DDBUILD0001.md) | 1 | The Roslyn pin matches the floor the analyzers declare | `BuildTimeDependencies.RoslynPinEnforcedByBuild` |
+| [DDBUILD0002](docs/rules/DDBUILD0002.md) | 1 | The package carries the code-fixes assembly | `TwoPackages.CodeFixesShipInSeparateAssembly` |
 
 Id families are `RuleTiers.IdFamilies`: `DD` for Roslyn analyzers, `DDBUILD` for build-target
 checks, `DDGEN` for generator diagnostics. What the generator reads is

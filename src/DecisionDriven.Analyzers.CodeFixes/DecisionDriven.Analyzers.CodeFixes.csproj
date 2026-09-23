@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <RootNamespace>DecisionDriven.Analyzers.CodeFixes</RootNamespace>
+
+    <!--
+      TwoPackages.CodeFixesShipInSeparateAssembly. Two assemblies is the Roslyn layout, not a
+      departure from it: the compiler loads the analyzer assembly on every build, and only an IDE
+      or `dotnet format` loads the fixes. Keeping them apart is also what lets the analyzer assembly
+      satisfy RS1038, which forbids a compiler extension from referencing Workspaces at all.
+
+      Both pack into analyzers/dotnet/cs of the one package. A consumer references one thing.
+    -->
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" ExcludeAssets="runtime" />
+
+    <!--
+      BuildTimeDependencies.WorkspacesForCodeFixesOnly. A compile-time reference only: the host
+      that loads this assembly already has Workspaces, and shipping a copy would put a second one
+      in the process. ExcludeAssets="runtime" says so.
+    -->
+    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" PrivateAssets="all" ExcludeAssets="runtime" />
+
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!--
+    The ids, linked rather than referenced. A ProjectReference to the analyzers would be a cycle,
+    because the analyzer project has to build this one in order to pack it. Linking the one file
+    both assemblies need also keeps them independent at run time: Roslyn loads each on its own, and
+    neither has to bind to the other.
+  -->
+  <ItemGroup>
+    <Compile Include="../DecisionDriven.Analyzers/Rules/DiagnosticIds.cs" Link="Rules/DiagnosticIds.cs" />
+  </ItemGroup>
+
+</Project>

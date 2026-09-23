@@ -32,6 +32,15 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.0.0" />
 
     <!--
+      BuildTimeDependencies.WorkspacesForCodeFixesOnly. Referenced only by the code-fixes
+      assembly, which an IDE or `dotnet format` loads and the compiler never does. It is a
+      compile-time reference whose implementation the host supplies at run time, so it is not a
+      dependency of a consumer's package graph and does not touch TwoPackages.DevelopmentTimeOnly.
+      Pinned with the rest of Roslyn, and DDBUILD0001 holds it there.
+    -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="5.0.0" />
+
+    <!--
       Not 5.0.0: that version was never released as stable, and 5.3.0 is the lowest that
       was. This package contributes no API to the analyzers, it only checks them while
       they build, so its version is free to differ from the Roslyn floor above.
@@ -68,6 +77,7 @@
   -->
   <ItemGroup>
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" Version="1.1.4" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.CodeFix.Testing" Version="1.1.4" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.SourceGenerators.Testing" Version="1.1.4" />
     <PackageVersion Include="xunit.v3" Version="4.0.1" />
   </ItemGroup>

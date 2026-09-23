@@ -25,6 +25,7 @@
     -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.SourceGenerators.Testing" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.CodeFix.Testing" />
 
     <!--
       The harness asks only for a floor on Workspaces, so without this the restore would
@@ -43,6 +44,7 @@
       compilation as well would have them analysing the tests.
     -->
     <ProjectReference Include="../../src/DecisionDriven.Analyzers/DecisionDriven.Analyzers.csproj" />
+    <ProjectReference Include="../../src/DecisionDriven.Analyzers.CodeFixes/DecisionDriven.Analyzers.CodeFixes.csproj" />
   </ItemGroup>
 
 </Project>

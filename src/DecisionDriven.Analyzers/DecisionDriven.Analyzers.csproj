@@ -84,6 +84,9 @@
     <Error Condition="'%(PackageVersion.Identity)' == 'Microsoft.CodeAnalysis.CSharp.Workspaces' and '%(PackageVersion.Version)' != '$(ExpectedRoslynVersion)'"
            Code="DDBUILD0001"
            Text="Microsoft.CodeAnalysis.CSharp.Workspaces is pinned to %(PackageVersion.Version), but this project expects $(ExpectedRoslynVersion). The tests run the analyzers against the Roslyn they are built for, so the two pins move together or not at all." />
+    <Error Condition="'%(PackageVersion.Identity)' == 'Microsoft.CodeAnalysis.Workspaces.Common' and '%(PackageVersion.Version)' != '$(ExpectedRoslynVersion)'"
+           Code="DDBUILD0001"
+           Text="Microsoft.CodeAnalysis.Workspaces.Common is pinned to %(PackageVersion.Version), but this project expects $(ExpectedRoslynVersion). BuildTimeDependencies.WorkspacesForCodeFixesOnly pins it with the rest of Roslyn: the host supplies the implementation at run time, and a code-fixes assembly built against a newer Workspaces than the host loads fails where the analyzer still works." />
   </Target>
 
   <!--
@@ -116,9 +119,38 @@
     </TargetsForTfmSpecificContentInPackage>
   </PropertyGroup>
 
-  <Target Name="_PackAnalyzerAssembly">
+  <!--
+    TwoPackages.CodeFixesShipInSeparateAssembly: both assemblies go into analyzers/dotnet/cs of the
+    one package. The compiler loads the analyzer and ignores the fixes; an IDE, or `dotnet format
+    analyzers`, loads both. A consumer references one thing either way.
+
+    The code-fixes project is built first through a ProjectReference that contributes no compile
+    reference - this project must not reference Workspaces, which is what RS1038 is about - so the
+    dependency exists only to order the build and find the output.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="../DecisionDriven.Analyzers.CodeFixes/DecisionDriven.Analyzers.CodeFixes.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all" />
+  </ItemGroup>
+
+  <!--
+    Where the code-fixes assembly is expected. A property rather than a literal inside the target,
+    so that the check below can be exercised: pointing it somewhere empty is how DDBUILD0002 is
+    tested, and it is also the knob if the output layout ever moves.
+  -->
+  <PropertyGroup>
+    <CodeFixesAssemblyPath Condition="'$(CodeFixesAssemblyPath)' == ''">$(MSBuildThisFileDirectory)../DecisionDriven.Analyzers.CodeFixes/bin/$(Configuration)/netstandard2.0/DecisionDriven.Analyzers.CodeFixes.dll</CodeFixesAssemblyPath>
+  </PropertyGroup>
+
+  <Target Name="_PackAnalyzerAssembly" DependsOnTargets="ResolveProjectReferences">
+    <Error Condition="!Exists('$(CodeFixesAssemblyPath)')"
+           Code="DDBUILD0002"
+           Text="The code-fixes assembly was not found at $(CodeFixesAssemblyPath). TwoPackages.CodeFixesShipInSeparateAssembly puts it in the same package as the analyzers, so a package without it silently ships rules whose documented-exception path cannot be applied." />
+
     <ItemGroup>
       <TfmSpecificPackageFile Include="$(TargetPath)" PackagePath="analyzers/dotnet/cs" />
+      <TfmSpecificPackageFile Include="$(CodeFixesAssemblyPath)" PackagePath="analyzers/dotnet/cs" />
     </ItemGroup>
   </Target>
 

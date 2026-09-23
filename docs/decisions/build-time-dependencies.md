@@ -11,6 +11,8 @@ decisions:
     statement: "Analyzer and generator tests use Microsoft.CodeAnalysis.Testing with xUnit v3"
   - key: VersionFromGitTags
     statement: "Package versions are derived from git tags by MinVer: a v* tag is a release version and every other build of the trunk is a prerelease"
+  - key: WorkspacesForCodeFixesOnly
+    statement: "Microsoft.CodeAnalysis.Workspaces is referenced only by the code-fixes assembly, pinned with the other Roslyn packages, and supplied by the host at run time rather than shipped"
   - key: RoslynPinEnforcedByBuild
     statement: "The Roslyn pin is enforced by an MSBuild check (DDBUILD0001) that fails the build on a bump; Microsoft.CodeAnalysis.CSharp, Microsoft.CodeAnalysis.Analyzers and Microsoft.CodeAnalysis.CSharp.Workspaces move together and only by a deliberate decision, which is why all three are ignored by Dependabot"
 ---

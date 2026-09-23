@@ -111,6 +111,8 @@ internal static class RuleHarness
     /// <summary>
     /// Compiles a referenced project the way a build would, so its <c>[ArchLayer]</c> is in metadata.
     /// </summary>
+    internal static MetadataReference BuildReference(Referenced reference) => Build(reference);
+
     private static MetadataReference Build(Referenced reference)
     {
         List<SyntaxTree> trees = new List<SyntaxTree>
@@ -168,6 +170,9 @@ internal static class RuleHarness
             }
         }
     }
+
+    /// <summary>The MSBuild properties a rule reads, as an options provider.</summary>
+    internal static AnalyzerConfigOptionsProvider OptionsFor(Dictionary<string, string> values) => new GlobalOptionsProvider(values);
 
     private sealed class GlobalOptionsProvider : AnalyzerConfigOptionsProvider
     {

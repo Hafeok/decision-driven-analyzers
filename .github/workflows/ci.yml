@@ -61,7 +61,10 @@ jobs:
         run: dotnet test DecisionDriven.slnx --configuration Release --no-build
 
       - name: Pack
-        run: dotnet pack DecisionDriven.slnx --configuration Release --no-build --output artifacts/packages
+        # No --no-build: the analyzer project builds the code-fixes project in order to pack it,
+        # and NoBuild forbids invoking Build on a project reference (NETSDK1085). Everything is
+        # already up to date from the step above, so this is incremental rather than a rebuild.
+        run: dotnet pack DecisionDriven.slnx --configuration Release --output artifacts/packages
 
       - name: Check the analyzer package layout
         shell: pwsh
@@ -81,8 +84,12 @@ jobs:
           $lib = $entries | Where-Object { $_ -like 'lib/*' }
           if ($lib) { throw "The analyzer package must ship no lib/ assets, but it has: $($lib -join ', ')" }
 
+          # The code-fixes assembly is the half of every rule that dotnet build never loads, so
+          # nothing about a green build says it is here. DDBUILD0002 checks it at pack time; this
+          # checks the artifact that actually ships.
           foreach ($required in @(
             'analyzers/dotnet/cs/DecisionDriven.Analyzers.dll',
+            'analyzers/dotnet/cs/DecisionDriven.Analyzers.CodeFixes.dll',
             'build/DecisionDriven.Analyzers.props',
             'build/DecisionDriven.Analyzers.targets')) {
             if ($entries -notcontains $required) { throw "The analyzer package is missing $required." }
