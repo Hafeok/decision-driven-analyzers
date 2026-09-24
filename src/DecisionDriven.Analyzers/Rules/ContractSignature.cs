@@ -59,6 +59,14 @@ internal static class ContractSignature
     /// <summary>Every position on <paramref name="type"/>'s public surface where a type is named.</summary>
     internal static IEnumerable<Part> Parts(INamedTypeSymbol type, CancellationToken cancellationToken)
     {
+        // An enum has no surface. Its members are constants of itself, so walking them would
+        // report the declaration once per member the moment somebody adds the enum to
+        // dd_banned_primitive_types_add - three findings about one line, none of them a signature.
+        if (type.TypeKind == TypeKind.Enum)
+        {
+            yield break;
+        }
+
         if (type.TypeKind == TypeKind.Delegate)
         {
             if (type.DelegateInvokeMethod is { } invoke)

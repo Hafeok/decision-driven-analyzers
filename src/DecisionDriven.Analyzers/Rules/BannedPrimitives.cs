@@ -21,8 +21,8 @@ namespace DecisionDriven.Analyzers.Rules;
 /// </remarks>
 internal sealed class BannedPrimitives
 {
-    /// <summary>The .editorconfig option that replaces the list.</summary>
-    internal const string Option = "dd_banned_primitive_types";
+    /// <summary>The .editorconfig option that adds to the list.</summary>
+    internal const string Option = "dd_banned_primitive_types_add";
 
     private static readonly string[] Default =
     {
@@ -41,15 +41,29 @@ internal sealed class BannedPrimitives
         this.banned = banned;
     }
 
-    /// <summary>The configured list, or the one ADR-A09 names.</summary>
+    /// <summary>ADR-A09's list, plus whatever the consumer added to it.</summary>
     /// <remarks>
-    /// The option replaces the list rather than adding to it. A consumer that wants the default plus
-    /// one writes the default plus one, which is longer and is also the only version of the setting
-    /// whose meaning can be read off the file.
+    /// <para>
+    /// <c>PrimitiveFreeSurfaces.BannedPrimitiveListIsAdditiveOnly</c>. The option adds and can never
+    /// remove. A list a consumer could shorten would be a suppression path around DD0013 with no
+    /// citation anywhere: <c>dd_banned_primitive_types = Guid</c> would silently unban
+    /// <c>string</c> and <c>long</c> across a whole repository, which is exactly what
+    /// <c>DecisionsAsTypes.NoPragmaOrSuppressMessage</c> exists to stop. Taking a type off the list
+    /// is a superseding decision here, not a consumer setting.
+    /// </para>
+    /// <para>
+    /// The name says so too. An option called <c>dd_banned_primitive_types</c> reads like the list,
+    /// and somebody would set it to the one type they were thinking about.
+    /// </para>
     /// </remarks>
     internal static BannedPrimitives Read(AnalyzerConfigOptions options)
     {
         HashSet<string> names = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (string name in Default)
+        {
+            names.Add(name);
+        }
 
         if (options.TryGetValue(Option, out string? configured) && configured is { Length: > 0 })
         {
@@ -60,14 +74,6 @@ internal sealed class BannedPrimitives
                 {
                     names.Add(trimmed);
                 }
-            }
-        }
-
-        if (names.Count == 0)
-        {
-            foreach (string name in Default)
-            {
-                names.Add(name);
             }
         }
 

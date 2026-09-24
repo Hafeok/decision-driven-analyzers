@@ -77,9 +77,10 @@ public sealed class NakedPrimitiveAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        // PrimitiveFreeSurfaces.BoundaryMembersExempt: the wrapper's own members are where its
-        // primitive is allowed to appear. Without this, Position(long) and Position.Value are both
-        // errors and the type nobody can build is the one the rule was asking for.
+        // PrimitiveFreeSurfaces.WrapperExposesItsOwnPrimitive: the wrapper's own members are where
+        // its primitive is allowed to appear. Without this, Position(long) and Position.Value are
+        // both errors and the type nobody can build is the one the rule was asking for. The
+        // exemption is the wrapped primitive, not the type: a Guid on Position is still reported.
         ITypeSymbol? wrapped = Wrappers.Wrapped(type, banned);
 
         foreach (ContractSignature.Part part in Surfaces.Parts(type, context.CancellationToken))
@@ -145,7 +146,11 @@ public sealed class NakedPrimitiveAnalyzer : DiagnosticAnalyzer
                 return null;
 
             default:
-                return type.TypeKind == TypeKind.Enum || !banned.IsBanned(type) ? null : type;
+                // The list is asked first and is the whole answer. An enum is not on it by default,
+                // which is how ADR-A09 exempts enums; a consumer who adds one with
+                // dd_banned_primitive_types_add means it, and a check that exempted enums ahead of
+                // the list would make that line do nothing while looking like it did something.
+                return banned.IsBanned(type) ? type : null;
         }
     }
 

@@ -54,7 +54,8 @@ nothing to deprecate.
   `[DomainModel]` types. Arrays, tasks and sequences are looked through; spans and memories are not,
   whatever they hold. `bool`, enums and type parameters are never banned. The parse and format
   boundary, the wrapper's own constructors and factories, and `[HotPath]` members are exempt, as is
-  a wrapper's own primitive on its own members. List replaceable with `dd_banned_primitive_types`.
+  a wrapper's own primitive on its own members. The list is extended, never shortened, with `dd_banned_primitive_types_add`: a list a
+  consumer could shorten would be a suppression path around the rule with no citation anywhere.
 - **`DD0014`** - a `[DomainModel]` type wrapping one primitive is a `readonly record struct`, or a
   `readonly struct` with value equality. A class, a mutable struct and a struct relying on the
   default `ValueType.Equals` each get their own sentence.

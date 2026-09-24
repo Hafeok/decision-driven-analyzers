@@ -140,18 +140,40 @@ public sealed class PrimitiveSurfaceTests
     }
 
     [Fact]
-    public void The_banned_list_is_replaced_by_the_editorconfig_option()
+    public void The_editorconfig_option_adds_a_type_to_the_banned_list()
     {
-        // The option replaces the list rather than adding to it, so a consumer who lists only
-        // string gets long back.
-        Dictionary<string, string> onlyString = new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            [BannedPrimitivesOption] = "string",
-        };
+        Assert.Empty(Contract("global::Consumer.Model.Mode Read();"));
 
-        Assert.Empty(Contract("long Read();", onlyString));
-        Assert.Single(Contract("string Read();", onlyString));
+        Assert.Single(Contract(
+            "global::Consumer.Model.Mode Read();",
+            Option("Consumer.Model.Mode")));
     }
+
+    [Fact]
+    public void An_option_naming_a_type_already_banned_changes_nothing()
+    {
+        // PrimitiveFreeSurfaces.BannedPrimitiveListIsAdditiveOnly. Adding string to a list that
+        // already has string is a line that does nothing, which is the correct amount.
+        Assert.Single(Contract("string Read();"));
+        Assert.Single(Contract("string Read();", Option("string")));
+        Assert.Single(Contract("long Read();", Option("string")));
+    }
+
+    [Theory]
+    [InlineData("Guid")]
+    [InlineData("System.Guid")]
+    [InlineData("")]
+    [InlineData("long")]
+    public void No_option_can_make_string_silent(string configured)
+    {
+        // The option that could shorten the list would be a suppression path around DD0013 with no
+        // citation anywhere: one .editorconfig line unbanning string across a repository, which is
+        // what DecisionsAsTypes.NoPragmaOrSuppressMessage exists to stop.
+        Assert.Single(Contract("string Read();", Option(configured)));
+    }
+
+    private static Dictionary<string, string> Option(string value) =>
+        new Dictionary<string, string>(StringComparer.Ordinal) { [BannedPrimitivesOption] = value };
 
     [Fact]
     public void The_message_is_exactly_this()
@@ -187,7 +209,7 @@ public sealed class PrimitiveSurfaceTests
         Assert.Equal(2, Contract("long Read(long position);").Length);
     }
 
-    private const string BannedPrimitivesOption = "dd_banned_primitive_types";
+    private const string BannedPrimitivesOption = "dd_banned_primitive_types_add";
 
     private static ImmutableArray<Diagnostic> Contract(string member, Dictionary<string, string>? options = null) =>
         Run(
