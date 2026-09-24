@@ -21,12 +21,10 @@ name: publish
 #
 # which reads as a missing policy and is really a wrong username.
 #
-# It comes from the NUGET_USER repository variable rather than being written here as a
-# literal. A literal would be more reviewable, on the same grounds as the branch rulesets
-# in GOVERNANCE, and that is the better end state; it is a variable because the creator's
-# account is a person's identity rather than a property of this code, and nobody should
-# have to guess it into a commit. It is a variable and not a secret: a nuget.org profile
-# name is public.
+# It is written here as a literal, on the same grounds GOVERNANCE gives for keeping the
+# branch rulesets in a file: who may publish this package should be reviewable in a diff
+# rather than only on a settings screen. It is not a secret - a nuget.org profile name is
+# public - and changing who publishes should be a commit somebody approves.
 #
 # A policy on a repository that has never published starts out active for seven days only;
 # the first successful publish is what makes it permanent.
@@ -75,19 +73,6 @@ jobs:
           echo 'Re-run with the confirmation field set to "publish".'
           exit 1
 
-      - name: Refuse to publish without a policy creator
-        if: vars.NUGET_USER == ''
-        run: |
-          echo "The NUGET_USER repository variable is not set."
-          echo
-          echo "It is the nuget.org username of the account that CREATED the trusted"
-          echo "publishing policy - not decision-driven-design, which OWNS it. Using the"
-          echo "organisation fails the token exchange with 'No matching trust policy owned"
-          echo "by user ...', which reads as a missing policy and is really a wrong name."
-          echo
-          echo "Set it under Settings > Secrets and variables > Actions > Variables."
-          exit 1
-
       - name: Check out
         uses: actions/checkout@v7
         with:
@@ -125,7 +110,7 @@ jobs:
         uses: NuGet/login@v1
         id: login
         with:
-          user: ${{ vars.NUGET_USER }}
+          user: hafeok
 
       - name: Push
         run: |
