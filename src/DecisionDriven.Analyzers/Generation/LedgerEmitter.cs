@@ -103,6 +103,7 @@ internal static class LedgerEmitter
     private static void EmitSet(StringBuilder builder, string setId, SortedDictionary<string, Decision> decisions)
     {
         builder.Append("    /// <summary>Decision set <c>").Append(EscapeXml(setId)).Append("</c>.</summary>\n");
+        AppendGeneratedCode(builder, "    ");
         builder.Append("    internal static class ").Append(Identifiers.ToPascalCase(setId)).Append('\n');
         builder.Append("    {\n");
         builder.Append("        /// <summary>The set id as written in the ledger.</summary>\n");
@@ -125,6 +126,11 @@ internal static class LedgerEmitter
         {
             builder.Append("        /// <summary>").Append(EscapeXml(statement)).Append("</summary>\n");
         }
+
+        // Before [Obsolete], because provenance is true of the type whatever its acceptance state
+        // is: a revoked decision's type is still one this generator emitted, and DD0007 has to be
+        // able to say so while the compiler is refusing the citation for a different reason.
+        AppendGeneratedCode(builder, "        ");
 
         // DecisionsAsTypes.RevokedEmitsErrorObsolete beats UnacceptedEmitsWarningObsolete: a revoked
         // decision is not merely unaccepted, and reporting it as unaccepted would understate it.
@@ -150,6 +156,23 @@ internal static class LedgerEmitter
         builder.Append("\n            /// <summary>The ledger namespace the decision lives in.</summary>\n");
         builder.Append("            public const string Namespace = \"").Append(EscapeLiteral(decision.Namespace)).Append("\";\n");
         builder.Append("        }\n");
+    }
+
+    /// <summary>
+    /// The BCL's own generated-code marker, which is one of the two signals DD0007 reads.
+    /// </summary>
+    /// <remarks>
+    /// <c>GeneratorIdentity</c> says why this attribute rather than one of ours, and why it is not
+    /// enough on its own.
+    /// </remarks>
+    private static void AppendGeneratedCode(StringBuilder builder, string indent)
+    {
+        builder.Append(indent)
+            .Append("[global::System.CodeDom.Compiler.GeneratedCode(\"")
+            .Append(EscapeLiteral(GeneratorIdentity.ToolName))
+            .Append("\", \"")
+            .Append(EscapeLiteral(GeneratorIdentity.Version))
+            .Append("\")]\n");
     }
 
     /// <summary>

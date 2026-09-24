@@ -21,24 +21,24 @@ not ship it.
 
 ```csharp
 using DecisionDriven;
-using DecisionDriven.Ledger.Varve;
+using DecisionDriven.Ledger.Catalog;
 
-[Contract(typeof(StoreShape.QuadSourceContract), Role = "store read side")]
-public interface IQuadSource
+[Contract(typeof(CatalogShape.ProductLookupContract), Role = "catalog read side")]
+public interface IProductLookup
 {
-    int Read(QuadWindow window);
+    Product? Find(ProductId id);
 }
 ```
 
-cites this, in `docs/decisions/store-shape.md`:
+cites this, in `docs/decisions/catalog-shape.md`:
 
 ```yaml
 ---
-set: store-shape
-namespace: varve
+set: catalog-shape
+namespace: catalog
 decisions:
-  - key: QuadSourceContract
-    statement: "The store's read side is one contract, and it is narrow"
+  - key: ProductLookupContract
+    statement: "The catalog's read side is one contract, and it is narrow"
     accepted-by: mailto:someone@example.com
     accepted-at: 2026-01-14T09:00:00Z
 ---

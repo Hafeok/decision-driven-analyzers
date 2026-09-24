@@ -59,11 +59,10 @@ public sealed class DecisionCitationAnalyzer : DiagnosticAnalyzer
                 return;
             }
 
-            GeneratedDecisions decisions = new GeneratedDecisions();
             AssemblyNamespaces namespaces = new AssemblyNamespaces(start.Compilation);
 
             start.RegisterSyntaxNodeAction(
-                node => Analyze(node, citations, decisions, namespaces),
+                node => Analyze(node, citations, namespaces),
                 SyntaxKind.Attribute);
         });
     }
@@ -71,7 +70,6 @@ public sealed class DecisionCitationAnalyzer : DiagnosticAnalyzer
     private static void Analyze(
         SyntaxNodeAnalysisContext context,
         Citations citations,
-        GeneratedDecisions decisions,
         AssemblyNamespaces namespaces)
     {
         AttributeSyntax attribute = (AttributeSyntax)context.Node;
@@ -94,7 +92,7 @@ public sealed class DecisionCitationAnalyzer : DiagnosticAnalyzer
         // One attribute, one report. An attribute that cites nothing real is wrong for that
         // reason; a second diagnostic about a missing Role on it would be noise, and fixing the
         // citation is what brings the rest into view.
-        if (!CheckDecisionArgument(context, kind.Value, arguments, decisions))
+        if (!CheckDecisionArgument(context, kind.Value, arguments))
         {
             return;
         }
@@ -112,8 +110,7 @@ public sealed class DecisionCitationAnalyzer : DiagnosticAnalyzer
     private static bool CheckDecisionArgument(
         SyntaxNodeAnalysisContext context,
         Citation kind,
-        SeparatedSyntaxList<AttributeArgumentSyntax> arguments,
-        GeneratedDecisions decisions)
+        SeparatedSyntaxList<AttributeArgumentSyntax> arguments)
     {
         // DomainModel takes the namespace prefix first, so the decision is the second argument.
         int position = kind == Citation.DomainModel ? 1 : 0;
@@ -145,7 +142,7 @@ public sealed class DecisionCitationAnalyzer : DiagnosticAnalyzer
             return false;
         }
 
-        GeneratedDecisions.Verdict verdict = decisions.Classify(cited as INamedTypeSymbol, context.CancellationToken);
+        GeneratedDecisions.Verdict verdict = GeneratedDecisions.Classify(cited as INamedTypeSymbol);
 
         if (verdict == GeneratedDecisions.Verdict.Generated)
         {
@@ -155,7 +152,7 @@ public sealed class DecisionCitationAnalyzer : DiagnosticAnalyzer
         string display = cited.ToDisplayString();
 
         string finding = verdict == GeneratedDecisions.Verdict.HandWritten
-            ? $"[{Name(kind)}] cites '{display}', which is shaped like a decision but was not generated from the ledger"
+            ? $"[{Name(kind)}] cites '{display}', which is shaped like a decision but did not come out of a generator run"
             : $"[{Name(kind)}] cites '{display}', which is not a decision type";
 
         Report(

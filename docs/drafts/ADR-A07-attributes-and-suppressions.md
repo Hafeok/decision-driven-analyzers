@@ -4,6 +4,11 @@
 **Date:** 2026-09-22
 **Deciders:** Emil
 
+> **Amended 2026-09-24.** DD0008's rule below named a specific consumer's id prefix; it now reads
+> "product-prefix rules". Where this narrative and `docs/decisions/decisions-as-types.md` disagree,
+> the decision file governs: the drafts were written before the repository and are narrative, not
+> the decision.
+
 ## Context
 
 Rules need markers in source: which interfaces are contracts, which namespaces are domain model, which members are hot paths, which violations are accepted decisions. A string citation names a document, not a decision, is checked only after the fact, and lets code exist without a decision as long as the string parses. C# attribute arguments must be compile-time constants (primitives, `string`, `Type`, enums, arrays), so binding has to be built from `Type`.
@@ -74,7 +79,7 @@ ulong Id { get; }
 ### Rules
 
 - **DD0007, tier 1.** The `decision` argument must be a generator-emitted decision type (a hand-written type of that shape is an error); required named arguments must be present; `[DomainModel]` prefixes must be namespaces of the current assembly. A citation of a decision that does not exist is already a compile error.
-- **DD0008, tier 1.** `#pragma warning disable` and `[SuppressMessage]` for any `DD*`/`VARVE*` rule are errors; `[DesignDecision]` on the offending symbol is the only way to accept a violation. `.editorconfig` severity downgrades of a DD rule below its declared tier are reported with no exception path: changing a rule's tier is a superseding decision in the generic repository, not a consumer setting.
+- **DD0008, tier 1.** `#pragma warning disable` and `[SuppressMessage]` for any `DD*` or product-prefix rule are errors; `[DesignDecision]` on the offending symbol is the only way to accept a violation. `.editorconfig` severity downgrades of a DD rule below its declared tier are reported with no exception path: changing a rule's tier is a superseding decision in the generic repository, not a consumer setting.
 
 ## Alternatives considered
 
@@ -83,7 +88,7 @@ ulong Id { get; }
 - A private `dd:` vocabulary aligned to the ledger later. Rejected once the ledger vocabulary was seen: two vocabularies for one thing, alignment as permanent maintenance.
 - Enum members per decision with `nameof`. Rejected in favour of nested types: one `Type` argument, no string, and constants per decision.
 - Version hash pinned in the attribute. Rejected: restates a ledger fact; derived from git instead.
-- Turtle input. Rejected: the generator is dependency-free `netstandard2.0`; N-Triples is trivially readable, Turtle is not, and `Varve.Turtle` cannot be used without a cycle.
+- Turtle input. Rejected: the generator is dependency-free `netstandard2.0`; N-Triples is trivially readable, Turtle is not, and a consumer's own Turtle parser cannot be used without a cycle.
 - Runtime `Annotations` package; marker interfaces. Rejected as before (runtime dependency; public-surface change).
 
 ## Consequences

@@ -43,13 +43,52 @@ public sealed class DecisionCitationTests
         // The point of the rule. This type has the emitted shape down to the three constants and
         // the namespace, and nothing generated it.
         Diagnostic diagnostic = Assert.Single(Run(
-            Lookalike
+            Lookalike(generatedCode: false)
             + "namespace Consumer { "
             + Contract("global::DecisionDriven.Ledger.SampleNs.Forged.NotFromTheLedger", "\"store read side\"")
             + " public interface IQuadSource { } }"));
 
         Assert.Equal("DD0007", diagnostic.Id);
-        Assert.Contains("was not generated from the ledger", diagnostic.GetMessage(), System.StringComparison.Ordinal);
+        Assert.Contains("did not come out of a generator run", diagnostic.GetMessage(), System.StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_lookalike_that_copies_the_generated_code_attribute_is_still_reported()
+    {
+        // The attribute is text, and anyone can type text. It is required because a file that does
+        // not claim to be generated is not, and it is not sufficient because claiming costs
+        // nothing. What this file cannot have is the path Roslyn gives generator output.
+        Diagnostic diagnostic = Assert.Single(Run(
+            Lookalike(generatedCode: true)
+            + "namespace Consumer { "
+            + Contract("global::DecisionDriven.Ledger.SampleNs.Forged.NotFromTheLedger", "\"store read side\"")
+            + " public interface IQuadSource { } }"));
+
+        Assert.Equal("DD0007", diagnostic.Id);
+        Assert.Contains("did not come out of a generator run", diagnostic.GetMessage(), System.StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_generator_emits_both_signals()
+    {
+        // The rule reads what the generator writes. If these two drifted apart, every citation in
+        // every consumer would be reported and the tests above would still pass.
+        GeneratorHarness.Result result = Generate("namespace Consumer { }");
+
+        string source = Assert.IsType<string>(result.GeneratedSource("DecisionDriven.Ledger.SampleNs.g.cs"));
+        Assert.Contains(
+            "[global::System.CodeDom.Compiler.GeneratedCode(\"DecisionDriven.Analyzers\", ",
+            source,
+            System.StringComparison.Ordinal);
+
+        SyntaxTree tree = Assert.Single(
+            result.Compilation.SyntaxTrees,
+            t => t.FilePath.EndsWith("DecisionDriven.Ledger.SampleNs.g.cs", System.StringComparison.Ordinal));
+
+        Assert.Contains(
+            "DecisionDriven.Analyzers.DecisionLedgerGenerator",
+            tree.FilePath,
+            System.StringComparison.Ordinal);
     }
 
     [Fact]
@@ -169,13 +208,19 @@ public sealed class DecisionCitationTests
     }
 
     /// <summary>A type with the emitted shape, in the emitted namespace, that nothing emitted.</summary>
-    private const string Lookalike =
-        "namespace DecisionDriven.Ledger.SampleNs { internal static class Forged { "
-        + "public const string SetId = \"forged\"; "
-        + "public static class NotFromTheLedger { "
-        + "public const string Id = \"dec:sample-ns/NotFromTheLedger\"; "
-        + "public const string Key = \"NotFromTheLedger\"; "
-        + "public const string Namespace = \"sample-ns\"; } } }";
+    private static string Lookalike(bool generatedCode)
+    {
+        string marker = generatedCode
+            ? "[global::System.CodeDom.Compiler.GeneratedCode(\"DecisionDriven.Analyzers\", \"9.9.9\")] "
+            : string.Empty;
+
+        return "namespace DecisionDriven.Ledger.SampleNs { " + marker + "internal static class Forged { "
+            + "public const string SetId = \"forged\"; "
+            + marker + "public static class NotFromTheLedger { "
+            + "public const string Id = \"dec:sample-ns/NotFromTheLedger\"; "
+            + "public const string Key = \"NotFromTheLedger\"; "
+            + "public const string Namespace = \"sample-ns\"; } } }";
+    }
 
     private static string Contract(string decision, string role) =>
         "[global::DecisionDriven.Contract(typeof(" + decision + "), Role = " + role + ")]";

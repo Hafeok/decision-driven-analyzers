@@ -28,7 +28,7 @@ decisions:
   - key: ExceptionScopeIsClosed
     statement: "ExceptionScope is a closed enum (Boundary, HotPath, Pool, Interop, Compatibility, Migration) mirrored by a SKOS scheme in the ledger vocabulary"
   - key: AttributeArgumentsMustBeGenerated
-    statement: "DD0007: the decision argument must be a generator-emitted type and required named arguments must be present"
+    statement: "DD0007: the decision argument must be a generator-emitted type and required named arguments must be present. Generator-emitted is established by two signals together, both required: the type carries System.CodeDom.Compiler.GeneratedCode naming DecisionDriven.Analyzers as the tool, and its declaring syntax tree has the synthetic path Roslyn gives generator output. Neither a comment header nor a marker attribute of our own is a provenance signal, because both are text anyone can write; a compiler input is not"
   - key: NoPragmaOrSuppressMessage
     statement: "DD0008: pragma and SuppressMessage for DD/product rules are errors and .editorconfig downgrades below a rule tier are errors; DesignDecision on the symbol is the only exception path"
 ---
