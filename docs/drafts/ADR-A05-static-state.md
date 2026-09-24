@@ -4,9 +4,15 @@
 **Date:** 2026-09-22
 **Deciders:** Emil
 
+> **Amended 2026-09-24.** The first consumer was named throughout this draft; this
+> repository names no consumer (`CLAUDE.md`). Sentences that were about this package now
+> say "the first consumer", and sentences that were only about that consumer's own code
+> are deleted. Where this narrative and `docs/decisions/static-state.md` disagree, the
+> decision file governs.
+
 ## Context
 
-Low coupling in Varve forbids shared mutable state between packages and static registries. Static registries are also the usual way a lower layer discovers a higher one without a reference, which defeats ADR-A04.
+Low coupling, as the first consumer states it, forbids shared mutable state between packages and static registries. Static registries are also the usual way a lower layer discovers a higher one without a reference, which defeats ADR-A04.
 
 ## Decision
 

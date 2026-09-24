@@ -4,9 +4,15 @@
 **Date:** 2026-09-22
 **Deciders:** Emil
 
+> **Amended 2026-09-24.** The first consumer was named throughout this draft; this
+> repository names no consumer (`CLAUDE.md`). Sentences that were about this package now
+> say "the first consumer", and sentences that were only about that consumer's own code
+> are deleted. Where this narrative and `docs/decisions/rule-tiers.md` disagree, the
+> decision file governs.
+
 ## Context
 
-The Varve project rule is that an architecture or code rule exists only if it is enforced by a Roslyn analyzer that fails the build. Applied without qualification this produces two failure modes: heuristics promoted to build errors that fire false positives, which trains people to suppress; and whole-graph properties (instability, afferent coupling) that an analyzer cannot compute because it sees one compilation at a time.
+The rule the first consumer brought to this is that an architecture or code rule exists only if it is enforced by a Roslyn analyzer that fails the build. Applied without qualification this produces two failure modes: heuristics promoted to build errors that fire false positives, which trains people to suppress; and whole-graph properties (instability, afferent coupling) that an analyzer cannot compute because it sees one compilation at a time.
 
 ## Decision
 
@@ -21,7 +27,7 @@ The deliverable for a new rule, in order of importance: the analyzer, its tests 
 ## Alternatives considered
 
 - All rules at error severity. Rejected: heuristics at error severity make suppression routine and destroy the signal of the mechanical rules.
-- Rules as documentation with review-time enforcement. Rejected by the existing Varve rule.
+- Rules as documentation with review-time enforcement. Rejected by the rule above.
 - Architecture tests (ArchUnitNET-style) instead of analyzers. Rejected as the primary mechanism because they run after the build, need a test project referencing every package, and cannot fail an individual project's compile. Retained for tier 3.
 
 ## Consequences

@@ -4,9 +4,15 @@
 **Date:** 2026-09-22
 **Deciders:** Emil
 
+> **Amended 2026-09-24.** The first consumer was named throughout this draft; this
+> repository names no consumer (`CLAUDE.md`). Sentences that were about this package now
+> say "the first consumer", and sentences that were only about that consumer's own code
+> are deleted. Where this narrative and `docs/decisions/stable-dependency-rules.md` disagree, the
+> decision file governs.
+
 ## Context
 
-The stable dependencies principle in Varve is stated as a layered DAG: a project references only projects in strictly lower layers, contracts live in the lowest layer that can define them, and a lower layer never learns of a higher one through callbacks, service location or `InternalsVisibleTo`. Two of these are already enforced (VARVE0001, VARVE0002); they generalise, and the third is not yet enforced.
+The stable dependencies principle, as the first consumer states it, is a layered DAG: a project references only projects in strictly lower layers, contracts live in the lowest layer that can define them, and a lower layer never learns of a higher one through callbacks, service location or `InternalsVisibleTo`. Two of these the first consumer already enforces with its own rules; they generalise, and the third is not yet enforced.
 
 ## Decision
 
@@ -25,6 +31,6 @@ The callback loophole ("delegate typed to a higher-layer type") needs no rule: n
 
 ## Consequences
 
-- Retires VARVE0001/VARVE0002 (ADR-A02).
-- Every Varve project gets `ArchFamily` and `ArchLayer` in its project file; `Directory.Build.props` sets the family once.
-- Hosts (`Varve.Server`, CLI) declare `ArchCompositionRoot=true`; nothing else does.
+- Retires the first consumer's own two rules (ADR-A02).
+- Every project in a family gets `ArchFamily` and `ArchLayer` in its project file; `Directory.Build.props` sets the family once.
+- Hosts (a server, a CLI) declare `ArchCompositionRoot=true`; nothing else does.

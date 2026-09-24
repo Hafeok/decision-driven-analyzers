@@ -4,9 +4,15 @@
 **Date:** 2026-09-22
 **Deciders:** Emil
 
+> **Amended 2026-09-24.** The first consumer was named throughout this draft; this
+> repository names no consumer (`CLAUDE.md`). Sentences that were about this package now
+> say "the first consumer", and sentences that were only about that consumer's own code
+> are deleted. Where this narrative and `docs/decisions/names-and-namespaces.md` disagree, the
+> decision file governs.
+
 ## Context
 
-High cohesion in Varve means one package, one reason to change. `Common`, `Core`, `Utils`, `Helpers` and `Abstractions` packages are where the second reason to change accumulates. Cohesion metrics (LCOM family) are too noisy to gate a build and penalise span-based code by construction, so the only honest cohesion gate is on names and package shape.
+High cohesion, as the first consumer states it, means one package, one reason to change. `Common`, `Core`, `Utils`, `Helpers` and `Abstractions` packages are where the second reason to change accumulates. Cohesion metrics (LCOM family) are too noisy to gate a build and penalise span-based code by construction, so the only honest cohesion gate is on names and package shape.
 
 ## Decision
 

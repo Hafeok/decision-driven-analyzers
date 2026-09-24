@@ -4,13 +4,19 @@
 **Date:** 2026-09-22
 **Deciders:** Emil
 
+> **Amended 2026-09-24.** The first consumer was named throughout this draft; this
+> repository names no consumer (`CLAUDE.md`). Sentences that were about this package now
+> say "the first consumer", and sentences that were only about that consumer's own code
+> are deleted. Where this narrative and `docs/decisions/diagnostic-messages.md` disagree, the
+> decision file governs.
+
 ## Context
 
 The value of adopting the analyzers is that they expose implicit decisions. That value is lost if the diagnostic says only what is wrong: a human or an agent reading `dotnet build` output sees the id and the message, nothing else (descriptions and help links are IDE-only), and the shortest path to green is to add the attribute the rule mentions. The message is the one channel that reaches both readers at the point of violation, so it must carry the review question, not just the finding.
 
 ## Decision
 
-Every DD and VARVE diagnostic message follows one template:
+Every DD and product-prefix diagnostic message follows one template:
 
 ```
 <what was found> in <where>. Decide: <design-change path> | <documented-exception path>. <guard>

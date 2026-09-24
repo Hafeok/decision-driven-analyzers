@@ -4,6 +4,12 @@
 **Date:** 2026-09-22
 **Deciders:** Emil
 
+> **Amended 2026-09-24.** The first consumer was named throughout this draft; this
+> repository names no consumer (`CLAUDE.md`). Sentences that were about this package now
+> say "the first consumer", and sentences that were only about that consumer's own code
+> are deleted. Where this narrative and `docs/decisions/primitive-free-surfaces.md` disagree, the
+> decision file governs.
+
 ## Context
 
 The defect class being guarded against is `Read(long position, ulong graphId)`: two silently swappable primitives standing in for two distinct domain concepts. Applied to every public method in every package the rule breaks the parse/format boundary (`Iri.Parse(ReadOnlySpan<char>)`) and the hot paths, which are spans by design. Applied to the model and contract surfaces it forces the model: `Position`, `TermId`, `Iri`, `CommitTimestamp`.
@@ -27,5 +33,5 @@ Scope: public members (parameters and return types) of types in `[DomainModel]` 
 
 ## Consequences
 
-- `Varve.Rdf`, `Varve.Iri`, `Varve.Xsd` and the store contract namespaces are declared `[DomainModel]`; the parser and index-scan internals are not.
+- The model and contract namespaces are declared `[DomainModel]`; parsing and scanning internals are not.
 - Existing signatures with `long position`, `string iri` or `ulong id` on contract surfaces become errors on adoption; the fix is the wrapper type the ADR set zero id-scheme ADR already implies.
