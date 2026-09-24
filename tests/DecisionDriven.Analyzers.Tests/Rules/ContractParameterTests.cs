@@ -73,13 +73,50 @@ public sealed class ContractParameterTests
             extra: "namespace Consumer { " + ContractSource.Contract + " public interface IClock { } }"));
     }
 
-    [Fact]
-    public void A_BCL_interface_parameter_is_not_reported()
+    [Theory]
+    [InlineData("System.Collections.Generic.IEnumerable<int> values")]
+    [InlineData("System.Collections.Generic.IReadOnlyList<int> values")]
+    [InlineData("System.IO.Stream stream")]
+    [InlineData("System.IO.Pipelines.PipeReader reader")]
+    public void A_framework_interface_or_abstract_class_parameter_is_not_reported(string parameter)
     {
-        // The framework's interfaces are how it spells data. Reading the ADR's "interfaces are
-        // errors" clause over its "types from the allowed vocabulary" clause would report every
-        // sequence parameter in every contract.
-        Assert.Empty(Run("void Read(System.Collections.Generic.IEnumerable<int> values);"));
+        // DD0010 is what makes the framework part of the vocabulary, and these are data-shaped.
+        // The ad-hoc service parameters this rule is for are never framework types.
+        Assert.Empty(Run("void Read(" + parameter + ");"));
+    }
+
+    [Fact]
+    public void A_service_provider_parameter_is_reported()
+    {
+        // The one framework type that is a collaborator. A contract taking one is service location
+        // with the resolution moved to its callers, where DD0003 cannot see it: DD0003 reads calls,
+        // and there is no call in this assembly to read.
+        Diagnostic diagnostic = Assert.Single(Run("void Read(System.IServiceProvider services);"));
+
+        Assert.Equal("DD0011", diagnostic.Id);
+        Assert.Contains("is 'System.IServiceProvider', a service provider", diagnostic.GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_type_deriving_from_the_service_provider_interface_is_reported()
+    {
+        // A keyed or scoped provider is the same parameter with a longer name.
+        Diagnostic diagnostic = Assert.Single(Run(
+            "void Read(global::Consumer.IScopedServices services);",
+            extra: "namespace Consumer { public interface IScopedServices : System.IServiceProvider { } }"));
+
+        Assert.Contains("'Consumer.IScopedServices', a service provider", diagnostic.GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_contract_marked_service_provider_is_still_reported()
+    {
+        // Marking it a contract says somebody decided to expose it. It does not say a contract may
+        // take one as a parameter, which is the thing this finding is about.
+        Assert.Single(Run(
+            "void Read(global::Consumer.IScopedServices services);",
+            extra: "namespace Consumer { " + ContractSource.Contract
+                + " public interface IScopedServices : System.IServiceProvider { } }"));
     }
 
     [Fact]

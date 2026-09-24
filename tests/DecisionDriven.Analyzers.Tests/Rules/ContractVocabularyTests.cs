@@ -64,6 +64,18 @@ public sealed class ContractVocabularyTests
             "is declared in this assembly outside any [DomainModel] namespace",
             diagnostic.GetMessage(),
             StringComparison.Ordinal);
+
+        // The design-change path names the namespace to declare, rather than saying "declare
+        // [DomainModel]" and leaving the reader to work out on what.
+        Assert.Contains(
+            "[assembly: DomainModel(\"Consumer.Scratch\", typeof(<Set>.<Key>))]",
+            diagnostic.GetMessage(),
+            StringComparison.Ordinal);
+
+        Assert.Contains(
+            "mark 'Consumer.Scratch.Thing' itself [Contract(",
+            diagnostic.GetMessage(),
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -141,11 +153,10 @@ public sealed class ContractVocabularyTests
         Assert.Equal(
             "the return type of contract member 'IQuadSource.Read' names 'Sample.Layer1.Extras.Scratch', "
             + "which comes from 'Sample.Layer1.Extras', which is not in ArchContractTypeAssemblies. "
-            + "Decide: use a type the contract may already name, or add 'Sample.Layer1.Extras' to "
-            + "ArchContractTypeAssemblies in a decision that says why every consumer of this contract "
-            + "now depends on it "
-            + "| mark it [DesignDecision(typeof(<Set>.<Key>), Scope = ExceptionScope.<Scope>)] "
-            + "citing the accepted decision that says so. "
+            + "Decide: use a type this contract may already name, or take what it needs into this "
+            + "assembly's [DomainModel] namespaces "
+            + "| add 'Sample.Layer1.Extras' to ArchContractTypeAssemblies, in a decision that says why "
+            + "every consumer of this contract now depends on 'Sample.Layer1.Extras'. "
             + "Do not add the attribute without a decision that answers this; if the reason is only that "
             + "the code already looked like this, take the design change.",
             diagnostic.GetMessage());

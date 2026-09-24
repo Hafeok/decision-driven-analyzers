@@ -128,10 +128,19 @@ internal static class Descriptors
             + "whoever made it. There is no member count at which that becomes true: a one-member "
             + "interface a package exposes is as much a decision as a twenty-member one.");
 
+    /// <summary>
+    /// The one rule whose second path is not <see cref="ExceptionPath"/>.
+    /// </summary>
+    /// <remarks>
+    /// Both of DD0010's answers are configuration rather than a citation: say which namespaces are
+    /// the model, or say which assemblies a contract may name. The message supplies the actual
+    /// namespace and the actual assembly, because "declare [DomainModel]" without saying on what is
+    /// the kind of advice that gets read twice and acted on once.
+    /// </remarks>
     internal static readonly DiagnosticDescriptor ContractVocabulary = Rule(
         DiagnosticIds.ContractVocabulary,
         "Contract signature names a type from an undecided package",
-        "{0}. Decide: {1} | " + ExceptionPath + ". " + Guard,
+        "{0}. Decide: {1} | {2}. " + Guard,
         "A type on a contract signature is a dependency every implementer and every caller takes "
             + "on. Nobody agreed to it by agreeing to the contract, and nothing in the reference "
             + "graph shows it as the coupling it is.");

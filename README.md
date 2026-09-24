@@ -49,6 +49,16 @@ the whole mechanism.
 
 ## Quick start
 
+**Declare `[DomainModel]` before adding `[Contract]`.** A contract may name the framework, the
+assemblies in `ArchContractTypeAssemblies`, other contracts, and this assembly's declared model —
+and nothing else. An assembly that has not said which of its namespaces are the model has answered
+that question for none of them, so the first `[Contract]` you add reports every type in its
+signatures at once (DD0010). One assembly-level line ahead of time is the difference:
+
+```csharp
+[assembly: DomainModel("Consumer.Model", typeof(CatalogShape.ModelNamespace))]
+```
+
 ```xml
 <ItemGroup>
   <PackageReference Include="DecisionDriven.Analyzers" Version="0.1.0-*" PrivateAssets="all" />

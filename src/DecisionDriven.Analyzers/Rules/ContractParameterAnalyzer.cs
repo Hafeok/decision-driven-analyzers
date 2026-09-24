@@ -19,16 +19,23 @@ namespace DecisionDriven.Analyzers.Rules;
 /// the same move with the type name taken off.
 /// </para>
 /// <para>
-/// A BCL interface is not a collaborator. <c>IEnumerable&lt;T&gt;</c> and its relatives are how the
-/// framework spells data, and the ADR's own list allows a type from the allowed vocabulary before
-/// it disallows interfaces - reading the second clause over the first would report every sequence
-/// parameter in every contract. The line is drawn where the ADR draws it in prose: collaborators
-/// are the things a consumer would otherwise have injected.
+/// A BCL interface is not a collaborator. <c>IEnumerable&lt;T&gt;</c>, <c>IReadOnlyList&lt;T&gt;</c>,
+/// <c>Stream</c> and <c>PipeReader</c> are data-shaped, and DD0010 is what makes the framework part
+/// of the vocabulary. The ad-hoc service parameters this rule is for are never framework types.
+/// </para>
+/// <para>
+/// One framework type is the exception, in the other direction. A contract taking an
+/// <c>IServiceProvider</c> is service location with the resolution moved to the caller, and DD0003
+/// cannot see it: DD0003 reads calls, and here there is no call in this assembly to read. Anything
+/// implementing <c>IServiceProvider</c> counts, since a keyed or scoped provider is the same
+/// parameter with a longer name.
 /// </para>
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class ContractParameterAnalyzer : DiagnosticAnalyzer
 {
+    private const string ServiceProvider = "System.IServiceProvider";
+
     /// <inheritdoc/>
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
         ImmutableArray.Create(Descriptors.ContractParameter);
@@ -49,12 +56,13 @@ public sealed class ContractParameterAnalyzer : DiagnosticAnalyzer
             }
 
             ContractVocabulary vocabulary = ContractVocabulary.Read(start.Compilation, options);
+            INamedTypeSymbol? serviceProvider = start.Compilation.GetTypeByMetadataName(ServiceProvider);
 
-            start.RegisterSymbolAction(symbol => Analyze(symbol, vocabulary), SymbolKind.NamedType);
+            start.RegisterSymbolAction(symbol => Analyze(symbol, vocabulary, serviceProvider), SymbolKind.NamedType);
         });
     }
 
-    private static void Analyze(SymbolAnalysisContext context, ContractVocabulary vocabulary)
+    private static void Analyze(SymbolAnalysisContext context, ContractVocabulary vocabulary, INamedTypeSymbol? serviceProvider)
     {
         INamedTypeSymbol type = (INamedTypeSymbol)context.Symbol;
 
@@ -80,6 +88,20 @@ public sealed class ContractParameterAnalyzer : DiagnosticAnalyzer
                     part,
                     $"parameter '{parameter.Name}' of contract member '{type.Name}.{part.Member}' is 'object'",
                     "give it the type of the data it actually is; if it is genuinely any type, make the member generic");
+                continue;
+            }
+
+            if (IsServiceProvider(declared, serviceProvider))
+            {
+                Report(
+                    context,
+                    part,
+                    $"parameter '{parameter.Name}' of contract member '{type.Name}.{part.Member}' is "
+                        + $"'{declared.ToDisplayString(Display.Format)}', a service provider",
+                    "name the services the member actually needs, as parameters or as constructor "
+                        + "dependencies of the implementing type; a contract that takes a provider is "
+                        + "service location with the resolution moved to its callers, where DD0003 "
+                        + "cannot see it");
                 continue;
             }
 
@@ -129,6 +151,37 @@ public sealed class ContractParameterAnalyzer : DiagnosticAnalyzer
 
         // The framework's interfaces are how it spells data. See the remarks on the class.
         return !vocabulary.IsFramework(type);
+    }
+
+    /// <summary>
+    /// <c>IServiceProvider</c> itself, or anything implementing it.
+    /// </summary>
+    /// <remarks>
+    /// The one framework type that is a collaborator however it is spelled. A keyed or scoped
+    /// provider is the same parameter with a longer name, so the check is on the interface rather
+    /// than on one type's identity.
+    /// </remarks>
+    private static bool IsServiceProvider(ITypeSymbol type, INamedTypeSymbol? serviceProvider)
+    {
+        if (serviceProvider is null)
+        {
+            return false;
+        }
+
+        if (SymbolEqualityComparer.Default.Equals(type, serviceProvider))
+        {
+            return true;
+        }
+
+        foreach (INamedTypeSymbol implemented in type.AllInterfaces)
+        {
+            if (SymbolEqualityComparer.Default.Equals(implemented, serviceProvider))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static ITypeSymbol Unwrap(ITypeSymbol type) =>
