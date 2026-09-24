@@ -25,3 +25,6 @@ DD0013 | DecisionDriven | Error | Naked primitive on a model or contract surface
 DD0014 | DecisionDriven | Error | Wrapper around one primitive is not a readonly struct with value equality, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0014.md)
 DD0015 | DecisionDriven | Error | Implicit conversion between a model type and a primitive, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0015.md)
 DD0016 | DecisionDriven | Warning | Flag argument on a model or contract member, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0016.md)
+DD0017 | DecisionDriven | Warning | Type switch over a hierarchy nothing closed, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0017.md)
+DD0018 | DecisionDriven | Error | Placeholder body in non-test code, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0018.md)
+DD0019 | DecisionDriven | Error | Model type can be changed by its caller, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0019.md)

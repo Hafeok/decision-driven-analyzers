@@ -125,9 +125,9 @@ The N-Triples path is implemented and has no producer yet: a file tagged
 | [DD0014](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0014.md) | 1 | A wrapper around one primitive is a readonly struct with value equality | shipped |
 | [DD0015](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0015.md) | 1 | No implicit conversions to or from a banned primitive | shipped |
 | [DD0016](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0016.md) | 2 | A `bool` parameter on a contract is a warning; prefer an enum | shipped |
-| DD0017 | 2 | A type switch over an open hierarchy is a warning | planned |
-| DD0018 | 1 | No `NotImplementedException` outside tests | planned |
-| DD0019 | 1 | Public domain model types are immutable | planned |
+| [DD0017](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0017.md) | 2 | A type switch over an open hierarchy is a warning | shipped |
+| [DD0018](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0018.md) | 1 | No `NotImplementedException` outside tests | shipped |
+| [DD0019](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0019.md) | 1 | Public domain model types are immutable | shipped |
 | [DDBUILD0001](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DDBUILD0001.md) | 1 | The Roslyn pin matches the floor the analyzers declare | shipped |
 | [DDBUILD0002](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DDBUILD0002.md) | 1 | The package carries its code-fixes assembly | shipped |
 | [DDGEN0001-0004](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/ledger-input.md) | — | The decision input is well formed | shipped |

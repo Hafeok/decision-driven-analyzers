@@ -1,0 +1,213 @@
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Threading;
+using Microsoft.CodeAnalysis;
+
+namespace DecisionDriven.Analyzers.Rules;
+
+/// <summary>
+/// What a set of subtypes has in common, and whether anything closed it.
+/// </summary>
+/// <remarks>
+/// <c>Hierarchies.ClosedHierarchiesAreSealed</c>. A hierarchy is closed when nobody outside can add
+/// to it, and C# has two ways of saying that: a constructor nobody outside can call, and a file-local
+/// type nobody outside the file can see. Everything else is a convention, which is the thing DD0017
+/// exists because conventions do not hold.
+/// </remarks>
+internal sealed class Hierarchies
+{
+    private readonly Compilation compilation;
+    private readonly ConcurrentDictionary<INamedTypeSymbol, bool> closed =
+        new ConcurrentDictionary<INamedTypeSymbol, bool>(SymbolEqualityComparer.Default);
+
+    private List<INamedTypeSymbol>? declared;
+
+    internal Hierarchies(Compilation compilation)
+    {
+        this.compilation = compilation;
+    }
+
+    /// <summary>
+    /// The nearest base class every tested type shares, or null when the only one is object.
+    /// </summary>
+    /// <remarks>
+    /// Interfaces are deliberately not considered. An interface is open by construction - anybody
+    /// can implement one - so every switch over interfaces would report, and the rule would be
+    /// saying "do not switch on interfaces" rather than what it means.
+    /// </remarks>
+    internal INamedTypeSymbol? CommonBase(List<INamedTypeSymbol> types)
+    {
+        INamedTypeSymbol? common = null;
+
+        foreach (INamedTypeSymbol type in types)
+        {
+            if (common is null)
+            {
+                common = type;
+                continue;
+            }
+
+            common = Nearest(common, type);
+
+            if (common is null || common.SpecialType == SpecialType.System_Object)
+            {
+                return null;
+            }
+        }
+
+        // The base has to be a base: two arms testing one type, or a type and itself, is not a
+        // claim about a set of subtypes.
+        return common is null || common.SpecialType == SpecialType.System_Object || Same(common, types)
+            ? null
+            : common;
+    }
+
+    /// <summary>True when nothing outside this assembly can add a subtype.</summary>
+    internal bool IsClosed(INamedTypeSymbol type, CancellationToken cancellationToken) =>
+        closed.GetOrAdd(type, t => Compute(t, cancellationToken));
+
+    private bool Compute(INamedTypeSymbol type, CancellationToken cancellationToken)
+    {
+        if (type.IsSealed || type.IsFileLocal)
+        {
+            return true;
+        }
+
+        bool anyConstructor = false;
+        bool derivableOutside = false;
+        bool allPrivate = true;
+
+        foreach (IMethodSymbol constructor in type.InstanceConstructors)
+        {
+            anyConstructor = true;
+
+            if (constructor.DeclaredAccessibility is Accessibility.Public or Accessibility.Protected
+                or Accessibility.ProtectedOrInternal)
+            {
+                derivableOutside = true;
+            }
+
+            if (constructor.DeclaredAccessibility != Accessibility.Private)
+            {
+                allPrivate = false;
+            }
+        }
+
+        if (!anyConstructor)
+        {
+            return false;
+        }
+
+        // A private constructor closes it outright: only nested types can call one, and they are in
+        // this file.
+        if (allPrivate)
+        {
+            return true;
+        }
+
+        if (derivableOutside)
+        {
+            return false;
+        }
+
+        // An internal or private-protected constructor closes it only as far as this assembly, so
+        // the remaining question is whether this assembly has left a leaf open.
+        return AllDerivedAreSealed(type, cancellationToken);
+    }
+
+    private bool AllDerivedAreSealed(INamedTypeSymbol type, CancellationToken cancellationToken)
+    {
+        foreach (INamedTypeSymbol candidate in Declared(cancellationToken))
+        {
+            if (SymbolEqualityComparer.Default.Equals(candidate, type))
+            {
+                continue;
+            }
+
+            if (DerivesFrom(candidate, type) && !candidate.IsSealed)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>Every named type this assembly declares, walked once.</summary>
+    private List<INamedTypeSymbol> Declared(CancellationToken cancellationToken)
+    {
+        if (declared is not null)
+        {
+            return declared;
+        }
+
+        List<INamedTypeSymbol> found = new List<INamedTypeSymbol>();
+        Stack<INamespaceOrTypeSymbol> pending = new Stack<INamespaceOrTypeSymbol>();
+        pending.Push(compilation.Assembly.GlobalNamespace);
+
+        while (pending.Count > 0)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            INamespaceOrTypeSymbol current = pending.Pop();
+
+            foreach (ISymbol member in current.GetMembers())
+            {
+                switch (member)
+                {
+                    case INamespaceSymbol child:
+                        pending.Push(child);
+                        break;
+
+                    case INamedTypeSymbol type:
+                        found.Add(type);
+                        pending.Push(type);
+                        break;
+                }
+            }
+        }
+
+        return declared = found;
+    }
+
+    private static bool DerivesFrom(INamedTypeSymbol type, INamedTypeSymbol baseType)
+    {
+        for (INamedTypeSymbol? current = type.BaseType; current is not null; current = current.BaseType)
+        {
+            if (SymbolEqualityComparer.Default.Equals(current.OriginalDefinition, baseType.OriginalDefinition))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static INamedTypeSymbol? Nearest(INamedTypeSymbol left, INamedTypeSymbol right)
+    {
+        for (INamedTypeSymbol? candidate = left; candidate is not null; candidate = candidate.BaseType)
+        {
+            for (INamedTypeSymbol? other = right; other is not null; other = other.BaseType)
+            {
+                if (SymbolEqualityComparer.Default.Equals(candidate.OriginalDefinition, other.OriginalDefinition))
+                {
+                    return candidate;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static bool Same(INamedTypeSymbol common, List<INamedTypeSymbol> types)
+    {
+        foreach (INamedTypeSymbol type in types)
+        {
+            if (SymbolEqualityComparer.Default.Equals(common, type))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+}

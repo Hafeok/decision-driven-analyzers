@@ -64,6 +64,18 @@ nothing to deprecate.
 - **`DD0016`** (tier 2, **warning**) - a `bool` parameter on a contract or public model member.
   `out`/`ref` bools, delegates returning `bool` and `bool` returns are not flags. The first tier-2
   rule, with its false-positive story written before the analyzer.
+- **`DD0017`** (tier 2, **warning**) - a `switch` testing two or more subtypes of a base nothing
+  closed. Closed means a `private` or `file` constructor, or an `internal` one with every derived
+  type in the compilation sealed. Framework hierarchies are excluded by default. A throwing discard
+  arm still warns: it moves the failure from the build to a user, which is the defect rather than a
+  defence against it.
+- **`DD0018`** - `NotImplementedException` anywhere in a non-test assembly. Its second path is not
+  `[DesignDecision]`: a deliberate stub is a `[DesignDecision]`-marked `NotSupportedException`,
+  which DD0012 tracks and the report tool lists.
+- **`DD0019`** - public types in `[DomainModel]` namespaces are immutable: `init` setters only, no
+  non-`readonly` fields, no mutable collection members (arrays included), readonly structs. A sealed
+  `*Builder` in the same namespace is the escape hatch, and DD0010 now keeps builders off contract
+  signatures, which `BuildersAreTheEscapeHatch` requires and ADR-A11 wrongly assumed was already so.
 - **The code-fixes assembly.** `DecisionDriven.Analyzers.CodeFixes`, packed alongside the analyzers
   in `analyzers/dotnet/cs`: the documented-exception placeholder for every DD rule, which does not
   compile by design, and the design-change fix for `DD0002`. Apply them from a terminal with

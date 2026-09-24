@@ -58,6 +58,15 @@ internal static class DiagnosticIds
     /// <summary>A bool parameter standing in for an enum.</summary>
     internal const string FlagArgument = "DD0016";
 
+    /// <summary>A runtime-type switch over a hierarchy nothing closed.</summary>
+    internal const string OpenHierarchySwitch = "DD0017";
+
+    /// <summary>A placeholder body left in non-test code.</summary>
+    internal const string NotImplemented = "DD0018";
+
+    /// <summary>A model type a caller can change.</summary>
+    internal const string MutableModel = "DD0019";
+
     /// <summary>
     /// Every id family this package ships, longest first.
     /// </summary>

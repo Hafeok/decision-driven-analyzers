@@ -64,7 +64,7 @@ internal sealed class ContractVocabulary
             return null;
         }
 
-        if (IsBcl(type))
+        if (IsFramework(type))
         {
             return null;
         }
@@ -79,9 +79,18 @@ internal sealed class ContractVocabulary
             return null;
         }
 
-        if (domainModel.Contains(type))
+        // ImmutableModel.BuildersAreTheEscapeHatch: a builder lives in a [DomainModel] namespace
+        // by that same decision, so the namespace alone would let it onto a contract - and the
+        // decision says it may not appear on one. ADR-A11 claims this rule already prevented it;
+        // it did not, and this is what makes the claim true.
+        if (domainModel.Contains(type) && !MutableModelAnalyzer.IsBuilder(type))
         {
             return null;
+        }
+
+        if (MutableModelAnalyzer.IsBuilder(type))
+        {
+            return "is a builder, which is mutable by design and belongs to the code assembling a value";
         }
 
         string where = type.ContainingAssembly is { } owner
@@ -93,38 +102,7 @@ internal sealed class ContractVocabulary
         return where;
     }
 
-    /// <summary>
-    /// The framework, by assembly name.
-    /// </summary>
-    /// <remarks>
-    /// There is no symbol that means "the BCL": it is spread over System.Runtime,
-    /// System.Collections, System.Memory and a few dozen more, and which one a type lands in is a
-    /// detail of how the framework was factored, not something a consumer chose. The core library
-    /// is matched by identity and the rest by name, which is the same test the compiler's own
-    /// tooling uses when it has to draw this line.
-    /// </remarks>
-    internal bool IsFramework(ITypeSymbol type) => IsBcl(type);
-
-    private bool IsBcl(ITypeSymbol type)
-    {
-        if (type.ContainingAssembly is not { } assembly)
-        {
-            return false;
-        }
-
-        if (SymbolEqualityComparer.Default.Equals(
-                assembly,
-                compilation.GetSpecialType(SpecialType.System_Object).ContainingAssembly))
-        {
-            return true;
-        }
-
-        string name = assembly.Name;
-
-        return name.Equals("System", StringComparison.Ordinal)
-            || name.StartsWith("System.", StringComparison.Ordinal)
-            || name.Equals("mscorlib", StringComparison.Ordinal)
-            || name.Equals("netstandard", StringComparison.Ordinal);
-    }
+    /// <summary>The framework, which DD0010 counts as vocabulary and DD0011 counts as data.</summary>
+    internal bool IsFramework(ITypeSymbol type) => Framework.Owns(type, compilation);
 
 }

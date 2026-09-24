@@ -201,6 +201,43 @@ internal static class Descriptors
         DiagnosticSeverity.Warning);
 
     /// <summary>
+    /// Tier 2 (<c>RuleTiers.ThreeTiers</c>), like DD0016: it reads a switch and is trying to see
+    /// every subtype that will ever exist. Its false-positive story is in the doc page.
+    /// </summary>
+    internal static readonly DiagnosticDescriptor OpenHierarchySwitch = Rule(
+        DiagnosticIds.OpenHierarchySwitch,
+        "Type switch over a hierarchy nothing closed",
+        "{0}. Decide: {1} | " + ExceptionPath + ". " + Guard,
+        "A switch over subtypes is a claim that the list is complete. When the base is open the "
+            + "claim is not checked by anything, and the next subtype gets whatever the last arm "
+            + "does - which is the defect, whether that arm returns a default or throws.",
+        DiagnosticSeverity.Warning);
+
+    /// <summary>
+    /// The second rule whose second path is not <see cref="ExceptionPath"/>. A citation on a
+    /// <c>NotImplementedException</c> would make the placeholder permanent and invisible; the
+    /// answer is a different exception, which DD0012 then tracks.
+    /// </summary>
+    internal static readonly DiagnosticDescriptor NotImplemented = Rule(
+        DiagnosticIds.NotImplemented,
+        "Placeholder body in non-test code",
+        "{0}. Decide: {1} | if it is a deliberate stub, make it a NotSupportedException marked "
+            + "[DesignDecision(typeof(<Set>.<Key>), Scope = ExceptionScope.<Scope>)], which DD0012 "
+            + "tracks and the report tool lists. "
+            + "Do not leave it as it is; a placeholder nobody can find is a placeholder that ships.",
+        "NotImplementedException is the one exception type that means nothing about the domain and "
+            + "everything about the schedule. It compiles, it passes review, and the only way to "
+            + "find it later is to grep for it.");
+
+    internal static readonly DiagnosticDescriptor MutableModel = Rule(
+        DiagnosticIds.MutableModel,
+        "Model type can be changed by its caller",
+        "{0}. Decide: {1} | " + ExceptionPath + ". " + Guard,
+        "A value handed out by a pinned read is only trustworthy if the caller cannot change it. "
+            + "A settable property, a mutable field or an exposed list means every holder of the "
+            + "value shares one, and the snapshot was never a snapshot.");
+
+    /// <summary>
     /// Every descriptor this package ships, so DD0008 can read their declared tiers.
     /// </summary>
     /// <remarks>
@@ -223,7 +260,10 @@ internal static class Descriptors
         NakedPrimitive,
         WrapperShape,
         ImplicitPrimitiveConversion,
-        FlagArgument);
+        FlagArgument,
+        OpenHierarchySwitch,
+        NotImplemented,
+        MutableModel);
 
     /// <summary>
     /// One descriptor, at the severity its tier declares.
