@@ -51,6 +51,7 @@ internal static class RuleHarness
         string? archFamily = null,
         int? archLayer = null,
         bool compositionRoot = false,
+        string? contractTypeAssemblies = null,
         IEnumerable<Referenced>? references = null,
         Dictionary<string, string>? editorConfig = null)
     {
@@ -81,6 +82,11 @@ internal static class RuleHarness
         if (compositionRoot)
         {
             options["build_property.ArchCompositionRoot"] = "true";
+        }
+
+        if (contractTypeAssemblies is not null)
+        {
+            options["build_property.ArchContractTypeAssemblies"] = contractTypeAssemblies;
         }
 
         // .editorconfig options arrive through the same provider as MSBuild properties, without

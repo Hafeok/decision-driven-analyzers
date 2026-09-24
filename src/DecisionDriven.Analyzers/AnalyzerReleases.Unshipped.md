@@ -17,3 +17,7 @@ DD0005 | DecisionDriven | Error | Grab-bag name on an assembly or namespace, [do
 DD0006 | DecisionDriven | Error | Public type outside the assembly's root namespace, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0006.md)
 DD0007 | DecisionDriven | Error | Citation is not a generated decision, or is missing a required argument, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0007.md)
 DD0008 | DecisionDriven | Error | Suppression of a DecisionDriven rule, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0008.md)
+DD0009 | DecisionDriven | Error | Public interface, abstract class or delegate with no cited decision, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0009.md)
+DD0010 | DecisionDriven | Error | Contract signature names a type from an undecided package, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0010.md)
+DD0011 | DecisionDriven | Error | Contract parameter is a collaborator rather than data, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0011.md)
+DD0012 | DecisionDriven | Error | Implemented member throws NotSupportedException, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0012.md)

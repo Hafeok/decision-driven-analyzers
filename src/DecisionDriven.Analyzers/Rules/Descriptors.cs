@@ -120,6 +120,38 @@ internal static class Descriptors
         helpLinkUri: HelpLink + DiagnosticIds.Suppression + ".md",
         customTags: WellKnownDiagnosticTags.NotConfigurable);
 
+    internal static readonly DiagnosticDescriptor ContractDeclaration = Rule(
+        DiagnosticIds.ContractDeclaration,
+        "Public interface, abstract class or delegate with no cited decision",
+        "{0}. Decide: {1} | " + ExceptionPath + ". " + Guard,
+        "A public interface is a promise to everyone who can see it, and the promise outlives "
+            + "whoever made it. There is no member count at which that becomes true: a one-member "
+            + "interface a package exposes is as much a decision as a twenty-member one.");
+
+    internal static readonly DiagnosticDescriptor ContractVocabulary = Rule(
+        DiagnosticIds.ContractVocabulary,
+        "Contract signature names a type from an undecided package",
+        "{0}. Decide: {1} | " + ExceptionPath + ". " + Guard,
+        "A type on a contract signature is a dependency every implementer and every caller takes "
+            + "on. Nobody agreed to it by agreeing to the contract, and nothing in the reference "
+            + "graph shows it as the coupling it is.");
+
+    internal static readonly DiagnosticDescriptor ContractParameter = Rule(
+        DiagnosticIds.ContractParameter,
+        "Contract parameter is a collaborator rather than data",
+        "{0}. Decide: {1} | " + ExceptionPath + ". " + Guard,
+        "A collaborator passed in per call is a dependency the caller has to know about and the "
+            + "compiler cannot place. Collaborators arrive through a constructor, or through a "
+            + "contract that says what they are; parameters are the data a member works on.");
+
+    internal static readonly DiagnosticDescriptor UnhonouredMember = Rule(
+        DiagnosticIds.UnhonouredMember,
+        "Implemented member throws NotSupportedException",
+        "{0}. Decide: {1} | " + ExceptionPath + ". " + Guard,
+        "A member that throws rather than works is an interface sized for somebody else's client. "
+            + "Every caller now has to know which implementations mean it, which is the knowledge "
+            + "the interface existed to remove.");
+
     /// <summary>
     /// Every descriptor this package ships, so DD0008 can read their declared tiers.
     /// </summary>
@@ -135,7 +167,11 @@ internal static class Descriptors
         BannedName,
         RootNamespace,
         DecisionCitation,
-        Suppression);
+        Suppression,
+        ContractDeclaration,
+        ContractVocabulary,
+        ContractParameter,
+        UnhonouredMember);
 
     private static DiagnosticDescriptor Rule(string id, string title, string messageFormat, string description) =>
         new DiagnosticDescriptor(

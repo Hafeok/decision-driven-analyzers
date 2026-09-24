@@ -107,10 +107,10 @@ The N-Triples path is implemented and has no producer yet: a file tagged
 | [DD0006](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0006.md) | 1 | Public types live under the assembly's root namespace | shipped |
 | [DD0007](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0007.md) | 1 | A cited decision is a generated type, and required named arguments are present | shipped |
 | [DD0008](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0008.md) | 1 | No `#pragma warning disable`, `[SuppressMessage]` or severity downgrade for a DD rule | shipped |
-| DD0009 | 1 | Every public interface, abstract class and delegate carries `[Contract]` | planned |
-| DD0010 | 1 | Contract signatures use only the allowed type vocabulary | planned |
-| DD0011 | 1 | Contract parameters are data, not ad-hoc collaborators | planned |
-| DD0012 | 1 | No `NotSupportedException` from an implemented contract member | planned |
+| [DD0009](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0009.md) | 1 | Every public interface, abstract class and delegate carries `[Contract]` | shipped |
+| [DD0010](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0010.md) | 1 | Contract signatures use only the allowed type vocabulary | shipped |
+| [DD0011](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0011.md) | 1 | Contract parameters are data, not ad-hoc collaborators | shipped |
+| [DD0012](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0012.md) | 1 | No `NotSupportedException` from an implemented contract member | shipped |
 | DD0013 | 1 | No naked primitives on model and contract surfaces | planned |
 | DD0014 | 1 | A wrapper around one primitive is a readonly struct with value equality | planned |
 | DD0015 | 1 | No implicit conversions to or from a banned primitive | planned |

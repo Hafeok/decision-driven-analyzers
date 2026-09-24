@@ -34,6 +34,18 @@ internal static class DiagnosticIds
     /// <summary>A suppression of a rule in one of this package's id families.</summary>
     internal const string Suppression = "DD0008";
 
+    /// <summary>A public interface, abstract class or delegate with no cited decision.</summary>
+    internal const string ContractDeclaration = "DD0009";
+
+    /// <summary>A type on a contract signature that comes from nowhere the contract may name.</summary>
+    internal const string ContractVocabulary = "DD0010";
+
+    /// <summary>A collaborator arriving as a contract parameter.</summary>
+    internal const string ContractParameter = "DD0011";
+
+    /// <summary>A member claimed by a contract and not honoured.</summary>
+    internal const string UnhonouredMember = "DD0012";
+
     /// <summary>
     /// Every id family this package ships, longest first.
     /// </summary>

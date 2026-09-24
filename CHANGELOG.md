@@ -39,6 +39,17 @@ nothing to deprecate.
   below a rule's declared tier, for any id in the `DD`, `DDBUILD` or `DDGEN` families. The rule is
   not configurable, so it cannot be silenced by the mechanisms it reports. A product package's own
   prefix is added with `dd_rule_id_prefixes` in `.editorconfig`.
+- **`DD0009`** - every public interface, abstract class and delegate in a layered project carries
+  `[Contract]` citing a decision. No member-count threshold.
+- **`DD0010`** - types on a contract signature come from the BCL, a `[DomainModel]` namespace of the
+  current assembly, an assembly named in `ArchContractTypeAssemblies`, or are themselves
+  `[Contract]`-marked. Generic arguments and array elements are checked like anything else.
+- **`DD0011`** - a contract parameter is data: an interface or abstract-class parameter that no
+  decision declares a contract is an error, as is `object`. Delegates, enums, spans,
+  `CancellationToken`, type parameters and the framework's own interfaces are data.
+- **`DD0012`** - `NotSupportedException` thrown anywhere inside a member that implements or
+  overrides one. Contract rules are scoped to projects with `ArchLayer` declared, excluding
+  composition roots and `*.Tests` assemblies.
 - **The code-fixes assembly.** `DecisionDriven.Analyzers.CodeFixes`, packed alongside the analyzers
   in `analyzers/dotnet/cs`: the documented-exception placeholder for every DD rule, which does not
   compile by design, and the design-change fix for `DD0002`. Apply them from a terminal with
