@@ -4,13 +4,29 @@ name: publish
 # OIDC token and nuget.org hands back an API key that lives for an hour. No key is stored
 # as a repository secret, so there is nothing here to leak or to rotate.
 #
-# The matching policy on nuget.org, under the decision-driven-design organisation, has to
-# say exactly this or the exchange is refused:
+# The matching policy on nuget.org has to say exactly this or the exchange is refused:
 #
 #   Repository Owner   Hafeok
 #   Repository         decision-driven-analyzers
 #   Workflow File      publish.yml          (the file name, not the path)
 #   Environment        nuget                (must match the environment named below)
+#
+# Two identities are involved and they are not the same one. The policy is *owned* by the
+# decision-driven-design organisation, which is what makes the organisation the owner of
+# the published packages. The token exchange authenticates as the policy's *creator*: the
+# individual nuget.org account that registered it. The `user` input below is that account,
+# never the organisation - authenticating as the organisation fails with
+#
+#   HTTP 401: No matching trust policy owned by user 'decision-driven-design' was found
+#
+# which reads as a missing policy and is really a wrong username.
+#
+# It comes from the NUGET_USER repository variable rather than being written here as a
+# literal. A literal would be more reviewable, on the same grounds as the branch rulesets
+# in GOVERNANCE, and that is the better end state; it is a variable because the creator's
+# account is a person's identity rather than a property of this code, and nobody should
+# have to guess it into a commit. It is a variable and not a secret: a nuget.org profile
+# name is public.
 #
 # A policy on a repository that has never published starts out active for seven days only;
 # the first successful publish is what makes it permanent.
@@ -59,6 +75,19 @@ jobs:
           echo 'Re-run with the confirmation field set to "publish".'
           exit 1
 
+      - name: Refuse to publish without a policy creator
+        if: vars.NUGET_USER == ''
+        run: |
+          echo "The NUGET_USER repository variable is not set."
+          echo
+          echo "It is the nuget.org username of the account that CREATED the trusted"
+          echo "publishing policy - not decision-driven-design, which OWNS it. Using the"
+          echo "organisation fails the token exchange with 'No matching trust policy owned"
+          echo "by user ...', which reads as a missing policy and is really a wrong name."
+          echo
+          echo "Set it under Settings > Secrets and variables > Actions > Variables."
+          exit 1
+
       - name: Check out
         uses: actions/checkout@v7
         with:
@@ -88,13 +117,15 @@ jobs:
         run: ls -l artifacts/packages
 
       - name: Authenticate to NuGet
-        # Exchanges the OIDC token for a temporary API key. The trusted publishing policy
-        # on the decision-driven-design organisation names this repository and workflow;
-        # a run from anywhere else gets nothing.
+        # Exchanges the OIDC token for a temporary API key. The policy is owned by the
+        # decision-driven-design organisation, which is what makes the organisation own the
+        # published packages; the exchange authenticates as the individual who created it.
+        # See the note at the top of this file - this is where getting the two confused
+        # produces a 401 that looks like a missing policy.
         uses: NuGet/login@v1
         id: login
         with:
-          user: decision-driven-design
+          user: ${{ vars.NUGET_USER }}
 
       - name: Push
         run: |
