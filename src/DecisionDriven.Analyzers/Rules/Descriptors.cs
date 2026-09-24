@@ -161,6 +161,45 @@ internal static class Descriptors
             + "Every caller now has to know which implementations mean it, which is the knowledge "
             + "the interface existed to remove.");
 
+    internal static readonly DiagnosticDescriptor NakedPrimitive = Rule(
+        DiagnosticIds.NakedPrimitive,
+        "Naked primitive on a model or contract surface",
+        "{0}. Decide: {1} | " + ExceptionPath + ". " + Guard,
+        "Two primitives of the same type standing for two different things are two arguments the "
+            + "compiler will let a caller swap. The wrapper type is where the difference between "
+            + "them is written down, and a surface made of primitives is a surface that never "
+            + "wrote it down.");
+
+    internal static readonly DiagnosticDescriptor WrapperShape = Rule(
+        DiagnosticIds.WrapperShape,
+        "Wrapper around one primitive is not a readonly struct with value equality",
+        "{0}. Decide: {1} | " + ExceptionPath + ". " + Guard,
+        "A wrapper exists to be as cheap as the primitive it replaces and to compare like it. A "
+            + "class allocates on every one; a mutable struct is a value that changes behind its "
+            + "holder's back; one without value equality compares by nothing anybody meant.");
+
+    internal static readonly DiagnosticDescriptor ImplicitPrimitiveConversion = Rule(
+        DiagnosticIds.ImplicitPrimitiveConversion,
+        "Implicit conversion between a model type and a primitive",
+        "{0}. Decide: {1} | " + ExceptionPath + ". " + Guard,
+        "An implicit conversion puts the swappable argument back while leaving the signature "
+            + "looking like it was fixed: the type says Position and the caller may still pass a "
+            + "long, or pass a Position where a long was meant.");
+
+    /// <summary>
+    /// The one tier-2 rule shipped so far (<c>RuleTiers.ThreeTiers</c>): a warning, because it
+    /// reads a declaration and is trying to see a call site it cannot reach. Its false-positive
+    /// story is in the doc page and was written before the analyzer was.
+    /// </summary>
+    internal static readonly DiagnosticDescriptor FlagArgument = Rule(
+        DiagnosticIds.FlagArgument,
+        "Flag argument on a model or contract member",
+        "{0}. Decide: {1} | " + ExceptionPath + ". " + Guard,
+        "A bool parameter reads as 'true' at the call site and as its name only in the declaration. "
+            + "The second one is worse: two of them are silently swappable, which is the defect "
+            + "DD0013 exists to stop.",
+        DiagnosticSeverity.Warning);
+
     /// <summary>
     /// Every descriptor this package ships, so DD0008 can read their declared tiers.
     /// </summary>
@@ -180,16 +219,32 @@ internal static class Descriptors
         ContractDeclaration,
         ContractVocabulary,
         ContractParameter,
-        UnhonouredMember);
+        UnhonouredMember,
+        NakedPrimitive,
+        WrapperShape,
+        ImplicitPrimitiveConversion,
+        FlagArgument);
 
-    private static DiagnosticDescriptor Rule(string id, string title, string messageFormat, string description) =>
+    /// <summary>
+    /// One descriptor, at the severity its tier declares.
+    /// </summary>
+    /// <remarks>
+    /// Tier 1 (<c>RuleTiers.ThreeTiers</c>) is mechanical, decidable inside one compilation, and an
+    /// error; that is the default because it is what most of these are. A tier-2 rule passes
+    /// <see cref="DiagnosticSeverity.Warning"/> and owes a written false-positive story.
+    /// </remarks>
+    private static DiagnosticDescriptor Rule(
+        string id,
+        string title,
+        string messageFormat,
+        string description,
+        DiagnosticSeverity severity = DiagnosticSeverity.Error) =>
         new DiagnosticDescriptor(
             id: id,
             title: title,
             messageFormat: messageFormat,
             category: Category,
-            // Tier 1 (RuleTiers.ThreeTiers): mechanical, decidable inside one compilation, error.
-            defaultSeverity: DiagnosticSeverity.Error,
+            defaultSeverity: severity,
             isEnabledByDefault: true,
             description: description,
             helpLinkUri: HelpLink + id + ".md");

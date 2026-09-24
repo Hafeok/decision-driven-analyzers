@@ -21,3 +21,7 @@ DD0009 | DecisionDriven | Error | Public interface, abstract class or delegate w
 DD0010 | DecisionDriven | Error | Contract signature names a type from an undecided package, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0010.md)
 DD0011 | DecisionDriven | Error | Contract parameter is a collaborator rather than data, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0011.md)
 DD0012 | DecisionDriven | Error | Implemented member throws NotSupportedException, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0012.md)
+DD0013 | DecisionDriven | Error | Naked primitive on a model or contract surface, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0013.md)
+DD0014 | DecisionDriven | Error | Wrapper around one primitive is not a readonly struct with value equality, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0014.md)
+DD0015 | DecisionDriven | Error | Implicit conversion between a model type and a primitive, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0015.md)
+DD0016 | DecisionDriven | Warning | Flag argument on a model or contract member, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0016.md)

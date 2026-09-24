@@ -17,13 +17,20 @@ internal static class ContractSignature
     /// <summary>One place a type appears on a contract.</summary>
     internal readonly struct Part
     {
-        internal Part(ITypeSymbol type, string description, string member, Location location, IParameterSymbol? parameter)
+        internal Part(
+            ITypeSymbol type,
+            string description,
+            string member,
+            Location location,
+            IParameterSymbol? parameter,
+            ISymbol owner)
         {
             Type = type;
             Description = description;
             Member = member;
             Location = location;
             Parameter = parameter;
+            Owner = owner;
         }
 
         /// <summary>The type written there.</summary>
@@ -39,6 +46,14 @@ internal static class ContractSignature
 
         /// <summary>Set when this part is a parameter, which is all DD0011 looks at.</summary>
         internal IParameterSymbol? Parameter { get; }
+
+        /// <summary>The member this position belongs to, for the rules that read its attributes.</summary>
+        internal ISymbol Owner { get; }
+
+        /// <summary>True when somebody outside the assembly can reach the owning member.</summary>
+        internal bool IsExternallyVisible =>
+            Owner.DeclaredAccessibility is Accessibility.Public or Accessibility.Protected
+                or Accessibility.ProtectedOrInternal or Accessibility.NotApplicable;
     }
 
     /// <summary>Every position on <paramref name="type"/>'s public surface where a type is named.</summary>
@@ -48,7 +63,7 @@ internal static class ContractSignature
         {
             if (type.DelegateInvokeMethod is { } invoke)
             {
-                foreach (Part part in FromMethod(invoke, type.Name))
+                foreach (Part part in FromMethod(invoke, type.Name, type))
                 {
                     yield return part;
                 }
@@ -68,7 +83,8 @@ internal static class ContractSignature
 
             switch (member)
             {
-                case IMethodSymbol method when method.MethodKind is MethodKind.Ordinary or MethodKind.Constructor:
+                case IMethodSymbol method when method.MethodKind
+                    is MethodKind.Ordinary or MethodKind.Constructor or MethodKind.Conversion or MethodKind.UserDefinedOperator:
                     foreach (Part part in FromMethod(method, method.Name))
                     {
                         yield return part;
@@ -79,36 +95,38 @@ internal static class ContractSignature
                 // A property's accessors are methods too, and reporting both the property and its
                 // getter would say the same thing twice about one line of source.
                 case IPropertySymbol property:
-                    yield return new Part(property.Type, "type", property.Name, At(property), null);
+                    yield return new Part(property.Type, "type", property.Name, At(property), null, property);
 
                     foreach (IParameterSymbol indexer in property.Parameters)
                     {
-                        yield return new Part(indexer.Type, $"parameter '{indexer.Name}'", property.Name, At(indexer), indexer);
+                        yield return new Part(indexer.Type, $"parameter '{indexer.Name}'", property.Name, At(indexer), indexer, property);
                     }
 
                     break;
 
                 case IEventSymbol @event:
-                    yield return new Part(@event.Type, "type", @event.Name, At(@event), null);
+                    yield return new Part(@event.Type, "type", @event.Name, At(@event), null, @event);
                     break;
 
                 case IFieldSymbol field:
-                    yield return new Part(field.Type, "type", field.Name, At(field), null);
+                    yield return new Part(field.Type, "type", field.Name, At(field), null, field);
                     break;
             }
         }
     }
 
-    private static IEnumerable<Part> FromMethod(IMethodSymbol method, string memberName)
+    private static IEnumerable<Part> FromMethod(IMethodSymbol method, string memberName, ISymbol? owner = null)
     {
+        ISymbol carrier = owner ?? method;
+
         if (!method.ReturnsVoid)
         {
-            yield return new Part(method.ReturnType, "return type", memberName, At(method), null);
+            yield return new Part(method.ReturnType, "return type", memberName, At(method), null, carrier);
         }
 
         foreach (IParameterSymbol parameter in method.Parameters)
         {
-            yield return new Part(parameter.Type, $"parameter '{parameter.Name}'", memberName, At(parameter), parameter);
+            yield return new Part(parameter.Type, $"parameter '{parameter.Name}'", memberName, At(parameter), parameter, carrier);
         }
     }
 

@@ -22,13 +22,13 @@ internal sealed class ContractVocabulary
 {
     private readonly Compilation compilation;
     private readonly HashSet<string> listedAssemblies;
-    private readonly List<string> domainModelPrefixes;
+    private readonly DomainModelNamespaces domainModel;
 
-    private ContractVocabulary(Compilation compilation, HashSet<string> listedAssemblies, List<string> domainModelPrefixes)
+    private ContractVocabulary(Compilation compilation, HashSet<string> listedAssemblies, DomainModelNamespaces domainModel)
     {
         this.compilation = compilation;
         this.listedAssemblies = listedAssemblies;
-        this.domainModelPrefixes = domainModelPrefixes;
+        this.domainModel = domainModel;
     }
 
     internal static ContractVocabulary Read(Compilation compilation, ArchOptions options)
@@ -46,19 +46,7 @@ internal sealed class ContractVocabulary
             }
         }
 
-        List<string> prefixes = new List<string>();
-
-        foreach (AttributeData attribute in Markers.All(compilation.Assembly, Markers.DomainModel))
-        {
-            if (attribute.ConstructorArguments.Length > 0
-                && attribute.ConstructorArguments[0].Value is string prefix
-                && prefix.Length > 0)
-            {
-                prefixes.Add(prefix);
-            }
-        }
-
-        return new ContractVocabulary(compilation, listed, prefixes);
+        return new ContractVocabulary(compilation, listed, DomainModelNamespaces.Read(compilation));
     }
 
     /// <summary>True when <paramref name="type"/> may appear on a contract signature.</summary>
@@ -91,7 +79,7 @@ internal sealed class ContractVocabulary
             return null;
         }
 
-        if (IsDomainModelOfThisAssembly(type))
+        if (domainModel.Contains(type))
         {
             return null;
         }
@@ -139,31 +127,4 @@ internal sealed class ContractVocabulary
             || name.Equals("netstandard", StringComparison.Ordinal);
     }
 
-    private bool IsDomainModelOfThisAssembly(ITypeSymbol type)
-    {
-        if (type.ContainingAssembly is not { } assembly
-            || !SymbolEqualityComparer.Default.Equals(assembly, compilation.Assembly))
-        {
-            return false;
-        }
-
-        string? containing = type.ContainingNamespace?.ToDisplayString();
-        if (containing is not { Length: > 0 })
-        {
-            return false;
-        }
-
-        foreach (string prefix in domainModelPrefixes)
-        {
-            if (containing.Equals(prefix, StringComparison.Ordinal)
-                || (containing.StartsWith(prefix, StringComparison.Ordinal)
-                    && containing.Length > prefix.Length
-                    && containing[prefix.Length] == '.'))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
 }

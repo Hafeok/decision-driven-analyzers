@@ -46,6 +46,18 @@ internal static class DiagnosticIds
     /// <summary>A member claimed by a contract and not honoured.</summary>
     internal const string UnhonouredMember = "DD0012";
 
+    /// <summary>A naked primitive on a model or contract surface.</summary>
+    internal const string NakedPrimitive = "DD0013";
+
+    /// <summary>A wrapper around one primitive that is not a readonly struct with value equality.</summary>
+    internal const string WrapperShape = "DD0014";
+
+    /// <summary>An implicit conversion between a model type and a primitive.</summary>
+    internal const string ImplicitPrimitiveConversion = "DD0015";
+
+    /// <summary>A bool parameter standing in for an enum.</summary>
+    internal const string FlagArgument = "DD0016";
+
     /// <summary>
     /// Every id family this package ships, longest first.
     /// </summary>

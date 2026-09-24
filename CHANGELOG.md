@@ -50,6 +50,19 @@ nothing to deprecate.
 - **`DD0012`** - `NotSupportedException` thrown anywhere inside a member that implements or
   overrides one. Contract rules are scoped to projects with `ArchLayer` declared, excluding
   composition roots and `*.Tests` assemblies.
+- **`DD0013`** - no naked primitives on `[Contract]` members or externally visible members of
+  `[DomainModel]` types. Arrays, tasks and sequences are looked through; spans and memories are not,
+  whatever they hold. `bool`, enums and type parameters are never banned. The parse and format
+  boundary, the wrapper's own constructors and factories, and `[HotPath]` members are exempt, as is
+  a wrapper's own primitive on its own members. List replaceable with `dd_banned_primitive_types`.
+- **`DD0014`** - a `[DomainModel]` type wrapping one primitive is a `readonly record struct`, or a
+  `readonly struct` with value equality. A class, a mutable struct and a struct relying on the
+  default `ValueType.Equals` each get their own sentence.
+- **`DD0015`** - no `implicit operator` to or from a banned primitive on a `[DomainModel]` type.
+  Explicit operators and named accessors are how the conversion stays visible at the call site.
+- **`DD0016`** (tier 2, **warning**) - a `bool` parameter on a contract or public model member.
+  `out`/`ref` bools, delegates returning `bool` and `bool` returns are not flags. The first tier-2
+  rule, with its false-positive story written before the analyzer.
 - **The code-fixes assembly.** `DecisionDriven.Analyzers.CodeFixes`, packed alongside the analyzers
   in `analyzers/dotnet/cs`: the documented-exception placeholder for every DD rule, which does not
   compile by design, and the design-change fix for `DD0002`. Apply them from a terminal with
