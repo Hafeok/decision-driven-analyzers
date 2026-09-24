@@ -105,8 +105,8 @@ The N-Triples path is implemented and has no producer yet: a file tagged
 | [DD0004](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0004.md) | 1 | No mutable static state, including the static registry | shipped |
 | [DD0005](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0005.md) | 1 | No grab-bag name on an assembly or a namespace | shipped |
 | [DD0006](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0006.md) | 1 | Public types live under the assembly's root namespace | shipped |
-| DD0007 | 1 | A cited decision is a generated type, and required named arguments are present | planned |
-| DD0008 | 1 | No `#pragma warning disable` or `[SuppressMessage]` for a DD rule | planned |
+| [DD0007](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0007.md) | 1 | A cited decision is a generated type, and required named arguments are present | shipped |
+| [DD0008](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0008.md) | 1 | No `#pragma warning disable`, `[SuppressMessage]` or severity downgrade for a DD rule | shipped |
 | DD0009 | 1 | Every public interface, abstract class and delegate carries `[Contract]` | planned |
 | DD0010 | 1 | Contract signatures use only the allowed type vocabulary | planned |
 | DD0011 | 1 | Contract parameters are data, not ad-hoc collaborators | planned |

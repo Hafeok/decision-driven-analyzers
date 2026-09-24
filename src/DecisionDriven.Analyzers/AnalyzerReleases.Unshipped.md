@@ -15,3 +15,5 @@ DD0003 | DecisionDriven | Error | Service resolved at runtime outside the compos
 DD0004 | DecisionDriven | Error | Mutable static state, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0004.md)
 DD0005 | DecisionDriven | Error | Grab-bag name on an assembly or namespace, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0005.md)
 DD0006 | DecisionDriven | Error | Public type outside the assembly's root namespace, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0006.md)
+DD0007 | DecisionDriven | Error | Citation is not a generated decision, or is missing a required argument, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0007.md)
+DD0008 | DecisionDriven | Error | Suppression of a DecisionDriven rule, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0008.md)

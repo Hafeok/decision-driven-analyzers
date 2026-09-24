@@ -1,0 +1,337 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Diagnostics;
+
+namespace DecisionDriven.Analyzers.Rules;
+
+/// <summary>
+/// DD0008: a DecisionDriven rule is not silenced, by any of the three ways of silencing one.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <c>DecisionsAsTypes.NoPragmaOrSuppressMessage</c>. Every other rule in the package can be
+/// answered two ways: change the design, or cite a decision that says the violation is intended.
+/// A suppression is a third way, and it is the only one that leaves the code exactly as it was
+/// while making the rule report nothing. That is what this rule is for.
+/// </para>
+/// <para>
+/// It has no exception path of its own, so its descriptor is
+/// <c>NotConfigurable</c>: neither a pragma nor a <c>SuppressMessage</c> nor an .editorconfig entry
+/// reaches it. A rule against suppression that could be suppressed would be a comment.
+/// </para>
+/// <para>
+/// The .editorconfig arm compares the configured severity of every rule the package ships against
+/// the severity its tier declares (<c>RuleTiers.ThreeTiers</c>). Downgrading a tier-1 rule to a
+/// warning is a suppression spread over a repository instead of a line, and changing a rule's tier
+/// is a superseding decision here, not a consumer setting.
+/// </para>
+/// </remarks>
+[DiagnosticAnalyzer(LanguageNames.CSharp)]
+public sealed class SuppressionAnalyzer : DiagnosticAnalyzer
+{
+    private const string SuppressMessageAttribute = "System.Diagnostics.CodeAnalysis.SuppressMessageAttribute";
+
+    /// <summary>Extra id prefixes a product package's own rules use.</summary>
+    /// <remarks>
+    /// <c>TwoPackages.RuleIdPrefixDD</c> leaves a product's prefix to the product, and this package
+    /// cannot know it. <c>TwoPackages.ConfigurationViaMsBuildProperties</c> allows .editorconfig
+    /// options, which is where this one is read from: <c>dd_rule_id_prefixes = ACME, CONTOSO</c>.
+    /// </remarks>
+    private const string PrefixesOption = "dd_rule_id_prefixes";
+
+    private const string SeverityPrefix = "dotnet_diagnostic.";
+    private const string SeveritySuffix = ".severity";
+
+    /// <inheritdoc/>
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
+        ImmutableArray.Create(Descriptors.Suppression);
+
+    /// <inheritdoc/>
+    public override void Initialize(AnalysisContext context)
+    {
+        context.EnableConcurrentExecution();
+
+        // Generated code is analysed too. A generator that emits a pragma disabling a DD rule has
+        // silenced it just as thoroughly as a hand-written one, and the fix is the same: the
+        // generator stops emitting it.
+        context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.Analyze);
+
+        context.RegisterCompilationStartAction(start =>
+        {
+            string[] prefixes = Prefixes(start.Options.AnalyzerConfigOptionsProvider.GlobalOptions);
+
+            start.RegisterSyntaxNodeAction(
+                node => AnalyzePragma(node, prefixes),
+                SyntaxKind.PragmaWarningDirectiveTrivia);
+
+            INamedTypeSymbol? suppressMessage = start.Compilation.GetTypeByMetadataName(SuppressMessageAttribute);
+            if (suppressMessage is not null)
+            {
+                start.RegisterSyntaxNodeAction(
+                    node => AnalyzeSuppressMessage(node, suppressMessage, prefixes),
+                    SyntaxKind.Attribute);
+            }
+        });
+
+        // Outside the compilation-start action: it reads .editorconfig, not the compilation, and a
+        // repository that downgrades a rule in a project with no citations in it has still
+        // downgraded it.
+        context.RegisterCompilationAction(AnalyzeSeverities);
+    }
+
+    /// <summary><c>#pragma warning disable DD0001</c> and its restore.</summary>
+    /// <remarks>
+    /// Reported on the id token rather than the whole directive. That is precise, and it is also
+    /// before the position where a disable takes effect, which is the end of the directive - a
+    /// diagnostic reported past that point would be swallowed by the very pragma it is about, if the
+    /// descriptor were not NotConfigurable. It is, and this is the belt to that's braces.
+    /// </remarks>
+    private static void AnalyzePragma(SyntaxNodeAnalysisContext context, string[] prefixes)
+    {
+        PragmaWarningDirectiveTriviaSyntax directive = (PragmaWarningDirectiveTriviaSyntax)context.Node;
+
+        bool disabling = directive.DisableOrRestoreKeyword.IsKind(SyntaxKind.DisableKeyword);
+
+        foreach (ExpressionSyntax code in directive.ErrorCodes)
+        {
+            context.CancellationToken.ThrowIfCancellationRequested();
+
+            string id = code.ToString().Trim();
+            if (Family(id, prefixes) is not { } family)
+            {
+                continue;
+            }
+
+            // A restore is reported too: it is half of a pair, and the pair is the suppression.
+            // Reporting only the disable would leave "restore" as a way to write one that reads as
+            // an undo to anyone skimming.
+            string finding = disabling
+                ? $"#pragma warning disable silences {id}, a {family} rule"
+                : $"#pragma warning restore names {id}, a {family} rule, so something disabled it";
+
+            Report(
+                context.ReportDiagnostic,
+                code.GetLocation(),
+                finding,
+                $"delete the pragma and answer {id} where it reports: change the design, or mark the "
+                    + "symbol [DesignDecision(typeof(<Set>.<Key>), Scope = ExceptionScope.<Scope>)] "
+                    + "citing an accepted decision");
+        }
+    }
+
+    /// <summary><c>[SuppressMessage("DecisionDriven", "DD0001:…")]</c>, wherever it is applied.</summary>
+    private static void AnalyzeSuppressMessage(
+        SyntaxNodeAnalysisContext context,
+        INamedTypeSymbol suppressMessage,
+        string[] prefixes)
+    {
+        AttributeSyntax attribute = (AttributeSyntax)context.Node;
+
+        if (context.SemanticModel.GetSymbolInfo(attribute, context.CancellationToken).Symbol
+            is not IMethodSymbol { ContainingType: { } attributeType }
+            || !SymbolEqualityComparer.Default.Equals(attributeType, suppressMessage))
+        {
+            return;
+        }
+
+        // SuppressMessage(string category, string checkId): the id is the second argument, and it
+        // carries the title after a colon.
+        AttributeArgumentSyntax? checkId = Positional(attribute, 1);
+        if (checkId is null)
+        {
+            return;
+        }
+
+        if (context.SemanticModel.GetConstantValue(checkId.Expression, context.CancellationToken)
+            is not { HasValue: true, Value: string value })
+        {
+            return;
+        }
+
+        string id = IdOf(value);
+        if (Family(id, prefixes) is not { } family)
+        {
+            return;
+        }
+
+        Report(
+            context.ReportDiagnostic,
+            checkId.GetLocation(),
+            $"[SuppressMessage] silences {id}, a {family} rule",
+            $"delete the attribute and answer {id} where it reports: change the design, or mark the "
+                + "symbol [DesignDecision(typeof(<Set>.<Key>), Scope = ExceptionScope.<Scope>)] "
+                + "citing an accepted decision");
+    }
+
+    /// <summary>An .editorconfig severity below the one the rule's tier declares.</summary>
+    private static void AnalyzeSeverities(CompilationAnalysisContext context)
+    {
+        AnalyzerConfigOptionsProvider provider = context.Options.AnalyzerConfigOptionsProvider;
+
+        List<AnalyzerConfigOptions> scopes = new List<AnalyzerConfigOptions> { provider.GlobalOptions };
+        foreach (SyntaxTree tree in context.Compilation.SyntaxTrees)
+        {
+            scopes.Add(provider.GetOptions(tree));
+        }
+
+        foreach (DiagnosticDescriptor descriptor in Descriptors.All)
+        {
+            context.CancellationToken.ThrowIfCancellationRequested();
+
+            // DD0008 is NotConfigurable, so an entry for it does nothing at all and reporting one
+            // would be reporting a line that has no effect.
+            if (descriptor.CustomTags.Contains(WellKnownDiagnosticTags.NotConfigurable))
+            {
+                continue;
+            }
+
+            int declared = Rank(descriptor.DefaultSeverity);
+            int lowest = declared;
+            string? configured = null;
+
+            foreach (AnalyzerConfigOptions options in scopes)
+            {
+                if (!options.TryGetValue(SeverityPrefix + descriptor.Id + SeveritySuffix, out string? value))
+                {
+                    continue;
+                }
+
+                int rank = Rank(value);
+                if (rank >= 0 && rank < lowest)
+                {
+                    lowest = rank;
+                    configured = value.Trim();
+                }
+            }
+
+            if (configured is null)
+            {
+                continue;
+            }
+
+            Report(
+                context.ReportDiagnostic,
+                Location.None,
+                $".editorconfig sets {descriptor.Id} to '{configured}', below the '{Name(descriptor.DefaultSeverity)}' its tier declares",
+                $"remove the entry and answer {descriptor.Id} where it reports, or raise it back to '{Name(descriptor.DefaultSeverity)}'");
+        }
+    }
+
+    private static void Report(Action<Diagnostic> report, Location location, string finding, string designChange) =>
+        report(Diagnostic.Create(Descriptors.Suppression, location, finding, designChange));
+
+    /// <summary>The id family <paramref name="id"/> belongs to, or null when it belongs to none.</summary>
+    private static string? Family(string id, string[] prefixes)
+    {
+        foreach (string prefix in prefixes)
+        {
+            if (id.Length > prefix.Length
+                && id.StartsWith(prefix, StringComparison.Ordinal)
+                && IsDigits(id, prefix.Length))
+            {
+                return prefix;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsDigits(string id, int start)
+    {
+        for (int i = start; i < id.Length; i++)
+        {
+            if (id[i] < '0' || id[i] > '9')
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>The id out of a SuppressMessage checkId, which is <c>DD0001:Some title</c>.</summary>
+    private static string IdOf(string checkId)
+    {
+        int colon = checkId.IndexOf(':');
+        return (colon < 0 ? checkId : checkId.Substring(0, colon)).Trim();
+    }
+
+    private static string[] Prefixes(AnalyzerConfigOptions options)
+    {
+        if (!options.TryGetValue(PrefixesOption, out string? value) || value is not { Length: > 0 })
+        {
+            return DiagnosticIds.IdFamilies;
+        }
+
+        List<string> prefixes = new List<string>(DiagnosticIds.IdFamilies);
+
+        foreach (string part in value.Split(','))
+        {
+            string trimmed = part.Trim();
+            if (trimmed.Length > 0 && !prefixes.Contains(trimmed))
+            {
+                prefixes.Add(trimmed);
+            }
+        }
+
+        // Longest first, so DD never claims an id belonging to a longer family that starts with it.
+        prefixes.Sort((left, right) => right.Length.CompareTo(left.Length));
+        return prefixes.ToArray();
+    }
+
+    /// <summary>Severity as an order, so "below the declared tier" is a comparison.</summary>
+    private static int Rank(string value) => value.Trim().ToLowerInvariant() switch
+    {
+        "none" => 0,
+        "silent" => 1,
+        "suggestion" => 2,
+        "warning" => 3,
+        "error" => 4,
+
+        // "default" means the tier's own severity, which is never a downgrade.
+        _ => -1,
+    };
+
+    private static int Rank(DiagnosticSeverity severity) => severity switch
+    {
+        DiagnosticSeverity.Hidden => 1,
+        DiagnosticSeverity.Info => 2,
+        DiagnosticSeverity.Warning => 3,
+        _ => 4,
+    };
+
+    private static string Name(DiagnosticSeverity severity) => severity switch
+    {
+        DiagnosticSeverity.Hidden => "silent",
+        DiagnosticSeverity.Info => "suggestion",
+        DiagnosticSeverity.Warning => "warning",
+        _ => "error",
+    };
+
+    private static AttributeArgumentSyntax? Positional(AttributeSyntax attribute, int position)
+    {
+        int seen = 0;
+
+        foreach (AttributeArgumentSyntax argument in attribute.ArgumentList?.Arguments ?? default)
+        {
+            if (argument.NameEquals is not null || argument.NameColon is not null)
+            {
+                continue;
+            }
+
+            if (seen == position)
+            {
+                return argument;
+            }
+
+            seen++;
+        }
+
+        return null;
+    }
+}

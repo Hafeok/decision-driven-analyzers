@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 
 namespace DecisionDriven.Analyzers.Rules;
@@ -24,6 +25,9 @@ internal static class Descriptors
 {
     /// <summary>Every DD rule reports under this category.</summary>
     internal const string Category = "DecisionDriven";
+
+    /// <summary>Where a rule's doc page lives.</summary>
+    private const string HelpLink = "https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/";
 
     /// <summary>
     /// The sentence that ends every message.
@@ -85,6 +89,54 @@ internal static class Descriptors
         "An assembly with one root namespace equal to its name is one package with one name. Public "
             + "types outside it are a second package hiding in the first.");
 
+    internal static readonly DiagnosticDescriptor DecisionCitation = Rule(
+        DiagnosticIds.DecisionCitation,
+        "Citation is not a generated decision, or is missing a required argument",
+        "{0}. Decide: {1} | file the decision in the ledger, export it, and cite the type the "
+            + "generator emits for it. " + Guard,
+        "The whole point of a Type argument is that the citation is checked by the compiler. A "
+            + "hand-written class of the same shape, or a missing Role or Scope, puts the citation "
+            + "back where a string citation was: it parses, and it says nothing.");
+
+    /// <summary>
+    /// DD0008 is <see cref="WellKnownDiagnosticTags.NotConfigurable"/>, which is what makes it true
+    /// rather than merely stated: a rule that reports suppressions and could itself be suppressed by
+    /// one would be a rule with a hole exactly its own size. It also cannot be downgraded in
+    /// .editorconfig, which is the third thing it reports.
+    /// </summary>
+    internal static readonly DiagnosticDescriptor Suppression = new DiagnosticDescriptor(
+        id: DiagnosticIds.Suppression,
+        title: "Suppression of a DecisionDriven rule",
+        messageFormat: "{0}. Decide: {1} | change the rule itself, by superseding the decision that "
+            + "set its tier in DecisionDriven.Analyzers. Do not reach for a suppression to get to "
+            + "green; if the reason is only that the code already looked like this, take the design "
+            + "change.",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A suppression is the one edit that makes a rule report nothing while the code "
+            + "it was about stays exactly as it was. [DesignDecision] costs a filed decision and "
+            + "leaves a citation behind; a pragma costs one line and leaves nothing.",
+        helpLinkUri: HelpLink + DiagnosticIds.Suppression + ".md",
+        customTags: WellKnownDiagnosticTags.NotConfigurable);
+
+    /// <summary>
+    /// Every descriptor this package ships, so DD0008 can read their declared tiers.
+    /// </summary>
+    /// <remarks>
+    /// A rule added without being added here is a rule whose .editorconfig severity nobody checks,
+    /// which is why the test that this list matches SupportedDiagnostics across the assembly exists.
+    /// </remarks>
+    internal static readonly ImmutableArray<DiagnosticDescriptor> All = ImmutableArray.Create(
+        LayerReference,
+        InternalsVisibleTo,
+        ServiceLocation,
+        MutableStaticState,
+        BannedName,
+        RootNamespace,
+        DecisionCitation,
+        Suppression);
+
     private static DiagnosticDescriptor Rule(string id, string title, string messageFormat, string description) =>
         new DiagnosticDescriptor(
             id: id,
@@ -95,5 +147,5 @@ internal static class Descriptors
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true,
             description: description,
-            helpLinkUri: "https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/" + id + ".md");
+            helpLinkUri: HelpLink + id + ".md");
 }

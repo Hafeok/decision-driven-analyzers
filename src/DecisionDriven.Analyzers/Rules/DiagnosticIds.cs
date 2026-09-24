@@ -27,4 +27,22 @@ internal static class DiagnosticIds
 
     /// <summary>A public type outside the assembly's root namespace.</summary>
     internal const string RootNamespace = "DD0006";
+
+    /// <summary>A citation that is not a generated decision type, or is missing a required argument.</summary>
+    internal const string DecisionCitation = "DD0007";
+
+    /// <summary>A suppression of a rule in one of this package's id families.</summary>
+    internal const string Suppression = "DD0008";
+
+    /// <summary>
+    /// Every id family this package ships, longest first.
+    /// </summary>
+    /// <remarks>
+    /// <c>RuleTiers.IdFamilies</c>: DD for Roslyn analyzers, DDBUILD for build-target checks, DDGEN
+    /// for generator diagnostics. Longest first because DD is a prefix of the other two, and a
+    /// membership test that matched DD first would report the family wrong in the message. A
+    /// consumer's own product prefix is not in this list and is not knowable here; DD0008 takes it
+    /// from <c>dd_rule_id_prefixes</c>.
+    /// </remarks>
+    internal static readonly string[] IdFamilies = { "DDBUILD", "DDGEN", "DD" };
 }

@@ -33,6 +33,12 @@ nothing to deprecate.
 - **`DD0004`** - no mutable static state, including the static registry.
 - **`DD0005`** - no grab-bag name on an assembly or a namespace.
 - **`DD0006`** - public types live under the assembly's root namespace.
+- **`DD0007`** - a cited decision is a type the generator emitted from the ledger, not a
+  hand-written one of the same shape, and `Role` and `Scope` are present where they are required.
+- **`DD0008`** - no `#pragma warning disable`, `[SuppressMessage]` or `.editorconfig` severity
+  below a rule's declared tier, for any id in the `DD`, `DDBUILD` or `DDGEN` families. The rule is
+  not configurable, so it cannot be silenced by the mechanisms it reports. A product package's own
+  prefix is added with `dd_rule_id_prefixes` in `.editorconfig`.
 - **The code-fixes assembly.** `DecisionDriven.Analyzers.CodeFixes`, packed alongside the analyzers
   in `analyzers/dotnet/cs`: the documented-exception placeholder for every DD rule, which does not
   compile by design, and the design-change fix for `DD0002`. Apply them from a terminal with

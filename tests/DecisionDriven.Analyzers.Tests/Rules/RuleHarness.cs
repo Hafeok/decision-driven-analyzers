@@ -117,6 +117,47 @@ internal static class RuleHarness
     }
 
     /// <summary>
+    /// Runs a rule over a compilation somebody else built - in practice, one the generator has
+    /// already run over.
+    /// </summary>
+    /// <remarks>
+    /// DD0007 is about the difference between a type the generator emitted and a type that merely
+    /// looks like one, so its tests have to start from a real generator run. Building the
+    /// compilation by hand here would test the analyzer against the harness's idea of generated
+    /// code rather than against the generator's.
+    /// </remarks>
+    internal static ImmutableArray<Diagnostic> RunOn(
+        DiagnosticAnalyzer analyzer,
+        Compilation compilation,
+        Dictionary<string, string>? analyzerConfig = null,
+        bool allowCompileErrors = false)
+    {
+        CompilationWithAnalyzers withAnalyzers = compilation.WithAnalyzers(
+            ImmutableArray.Create(analyzer),
+            new AnalyzerOptions(
+                ImmutableArray<AdditionalText>.Empty,
+                new GlobalOptionsProvider(analyzerConfig ?? new Dictionary<string, string>(StringComparer.Ordinal))));
+
+        // One case is about a citation the compiler rejects on its own, so that test opts out of
+        // the guard rather than the guard being dropped for every other one.
+        ImmutableArray<Diagnostic> compileErrors = compilation.GetDiagnostics()
+            .Where(d => d.Severity == DiagnosticSeverity.Error)
+            .ToImmutableArray();
+
+        if (!allowCompileErrors && !compileErrors.IsEmpty)
+        {
+            throw new InvalidOperationException(
+                "The test source did not compile:" + Environment.NewLine
+                + string.Join(Environment.NewLine, compileErrors.Select(d => d.ToString())));
+        }
+
+        return withAnalyzers
+            .GetAnalyzerDiagnosticsAsync(CancellationToken.None)
+            .GetAwaiter()
+            .GetResult();
+    }
+
+    /// <summary>
     /// Compiles a referenced project the way a build would, so its <c>[ArchLayer]</c> is in metadata.
     /// </summary>
     internal static MetadataReference BuildReference(Referenced reference) => Build(reference);

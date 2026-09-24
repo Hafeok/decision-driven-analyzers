@@ -1,0 +1,197 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using DecisionDriven.Analyzers.Rules;
+using Microsoft.CodeAnalysis;
+using Xunit;
+
+namespace DecisionDriven.Analyzers.Tests.Rules;
+
+/// <summary>
+/// DD0008: a DecisionDriven rule is not silenced, by any of the three ways of silencing one.
+/// </summary>
+public sealed class SuppressionTests
+{
+    [Fact]
+    public void A_pragma_disabling_a_DD_rule_is_reported()
+    {
+        Diagnostic diagnostic = Assert.Single(Run(
+            "#pragma warning disable DD0001" + Environment.NewLine
+            + "namespace Consumer { public sealed class Thing { } }"));
+
+        Assert.Equal("DD0008", diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+    }
+
+    [Fact]
+    public void A_pragma_restoring_a_DD_rule_is_reported()
+    {
+        // Half of a pair, and the pair is the suppression. Reporting only the disable would leave
+        // "restore" reading as an undo to anyone skimming a diff.
+        Diagnostic diagnostic = Assert.Single(Run(
+            "namespace Consumer { public sealed class Thing { } }" + Environment.NewLine
+            + "#pragma warning restore DD0001"));
+
+        Assert.Equal("DD0008", diagnostic.Id);
+        Assert.Contains("so something disabled it", diagnostic.GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_pragma_naming_a_compiler_warning_is_not_reported()
+    {
+        Assert.Empty(Run(
+            "#pragma warning disable CS0168" + Environment.NewLine
+            + "namespace Consumer { public sealed class Thing { } }"));
+    }
+
+    [Theory]
+    [InlineData("DDBUILD0001", "DDBUILD")]
+    [InlineData("DDGEN0001", "DDGEN")]
+    [InlineData("DD0004", "DD")]
+    public void Every_id_family_this_package_ships_is_covered(string id, string family)
+    {
+        // RuleTiers.IdFamilies. DD is a prefix of the other two, so a membership test that matched
+        // it first would name the family wrong in the message even while reporting the right line.
+        Diagnostic diagnostic = Assert.Single(Run(
+            "#pragma warning disable " + id + Environment.NewLine
+            + "namespace Consumer { public sealed class Thing { } }"));
+
+        Assert.Contains("a " + family + " rule", diagnostic.GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_product_prefix_named_in_editorconfig_is_covered()
+    {
+        // TwoPackages.RuleIdPrefixDD leaves a product's prefix to the product, and this package
+        // cannot know it. TwoPackages.ConfigurationViaMsBuildProperties allows .editorconfig
+        // options, which is where it is read from.
+        string source = "#pragma warning disable ACME0001" + Environment.NewLine
+            + "namespace Consumer { public sealed class Thing { } }";
+
+        Assert.Empty(Run(source));
+
+        Diagnostic diagnostic = Assert.Single(Run(
+            source,
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["dd_rule_id_prefixes"] = "ACME, CONTOSO" }));
+
+        Assert.Contains("a ACME rule", diagnostic.GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_pragma_does_silence_an_ordinary_rule()
+    {
+        // The control for the test below. Without it, "DD0008 survives its own pragma" would pass
+        // just as well on a harness that never applied pragmas at all, and would prove nothing.
+        string source = "namespace Consumer { public sealed class Thing { public static int Counter; } }";
+
+        Assert.Single(RuleHarness.Run(new StaticStateAnalyzer(), source, assemblyName: "Consumer"));
+
+        Assert.Empty(RuleHarness.Run(
+            new StaticStateAnalyzer(),
+            "#pragma warning disable DD0004" + Environment.NewLine + source,
+            assemblyName: "Consumer"));
+    }
+
+    [Fact]
+    public void A_pragma_disabling_DD0008_itself_is_reported()
+    {
+        // The rule would be a comment otherwise. Its descriptor is NotConfigurable, so neither this
+        // pragma nor any other reaches it - and the test above shows the pragma would have worked.
+        Diagnostic diagnostic = Assert.Single(Run(
+            "#pragma warning disable DD0008" + Environment.NewLine
+            + "namespace Consumer { public sealed class Thing { } }"));
+
+        Assert.Equal("DD0008", diagnostic.Id);
+    }
+
+    [Fact]
+    public void A_SuppressMessage_naming_a_DD_rule_is_reported()
+    {
+        Diagnostic diagnostic = Assert.Single(Run(
+            "namespace Consumer { public sealed class Thing { "
+            + "[System.Diagnostics.CodeAnalysis.SuppressMessage(\"DecisionDriven\", \"DD0004:Mutable static state\")] "
+            + "public static int Counter; } }"));
+
+        Assert.Equal("DD0008", diagnostic.Id);
+        Assert.Contains("[SuppressMessage] silences DD0004", diagnostic.GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_SuppressMessage_naming_another_analyzer_is_not_reported()
+    {
+        Assert.Empty(Run(
+            "namespace Consumer { public sealed class Thing { "
+            + "[System.Diagnostics.CodeAnalysis.SuppressMessage(\"Style\", \"IDE0044:Add readonly modifier\")] "
+            + "public static int Counter; } }"));
+    }
+
+    [Fact]
+    public void An_editorconfig_severity_below_the_declared_tier_is_reported()
+    {
+        Diagnostic diagnostic = Assert.Single(Run(
+            Empty,
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["dotnet_diagnostic.DD0001.severity"] = "warning",
+            }));
+
+        Assert.Equal("DD0008", diagnostic.Id);
+        Assert.Contains("below the 'error' its tier declares", diagnostic.GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("error")]
+    [InlineData("default")]
+    public void An_editorconfig_severity_that_is_not_a_downgrade_is_not_reported(string severity)
+    {
+        Assert.Empty(Run(
+            Empty,
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["dotnet_diagnostic.DD0001.severity"] = severity,
+            }));
+    }
+
+    [Fact]
+    public void An_editorconfig_entry_for_DD0008_is_not_reported()
+    {
+        // It has no effect: the descriptor is NotConfigurable. Reporting a line that changes
+        // nothing would send somebody to delete the one entry that was already harmless.
+        Assert.Empty(Run(
+            Empty,
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["dotnet_diagnostic.DD0008.severity"] = "none",
+            }));
+    }
+
+    [Fact]
+    public void A_clean_file_is_not_reported()
+    {
+        Assert.Empty(Run(Empty));
+    }
+
+    [Fact]
+    public void The_message_is_exactly_this()
+    {
+        // DiagnosticMessages.ExactMessageTested.
+        Diagnostic diagnostic = Assert.Single(Run(
+            "#pragma warning disable DD0004" + Environment.NewLine
+            + "namespace Consumer { public sealed class Thing { } }"));
+
+        Assert.Equal(
+            "#pragma warning disable silences DD0004, a DD rule. "
+            + "Decide: delete the pragma and answer DD0004 where it reports: change the design, or "
+            + "mark the symbol [DesignDecision(typeof(<Set>.<Key>), Scope = ExceptionScope.<Scope>)] "
+            + "citing an accepted decision "
+            + "| change the rule itself, by superseding the decision that set its tier in "
+            + "DecisionDriven.Analyzers. Do not reach for a suppression to get to green; if the "
+            + "reason is only that the code already looked like this, take the design change.",
+            diagnostic.GetMessage());
+    }
+
+    private const string Empty = "namespace Consumer { public sealed class Thing { } }";
+
+    private static ImmutableArray<Diagnostic> Run(string source, Dictionary<string, string>? editorConfig = null) =>
+        RuleHarness.Run(new SuppressionAnalyzer(), source, assemblyName: "Consumer", editorConfig: editorConfig);
+}
