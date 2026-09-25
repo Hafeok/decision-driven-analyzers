@@ -16,6 +16,13 @@
 
   <ItemGroup>
     <PackageReference Include="xunit.v3" />
+
+    <!--
+      The fixtures are compiled for real, with portable PDBs, because the report reads built
+      assemblies and nothing else: a test that handed it metadata some other way would be testing
+      a different tool. The compiler is the pinned Roslyn floor, as for the analyzer tests.
+    -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
   </ItemGroup>
 
   <ItemGroup>

@@ -76,6 +76,34 @@ These are the places where the generator's behaviour is waiting on the format ra
    (`DecisionsAsTypes.VersionLevelKeyCarriedAcrossSupersession`). Until it does, the interim front
    matter is the only input that has one.
 
+## What the report writes back
+
+`DecisionDriven.Report` is the second read model over the ledger, and the only thing here that
+writes to it: the citation projection is N-Triples for decision-cli to ingest
+(`WholeGraphReport.CitationProjectionAsLedgerEntities`). It reads the ledger with the same two readers
+the generator uses, linked into the tool, so the two cannot disagree about what the ledger says.
+Four things it writes are this repository's assumptions until the format settles them:
+
+1. **A citation's IRI is `urn:citation:` and a SHA-256** of its symbol, attribute and decision id.
+   Stable across runs, so the same citation is the same node every time the report runs; a blank
+   node would be a new citation on every ingest.
+2. **`ledger:attribute` and `ledger:exceptionScope` are plain literals** holding the SKOS notation
+   (`"Contract"`, `"Pool"`), not IRIs into a concept scheme, because the scheme's IRIs are not in the
+   vocabulary yet.
+3. **An interim version is a SHA-256 of the decision's own entry**: namespace, set, key and
+   statement, joined by newlines. The front-matter reader synthesises one fixed id per decision
+   (`urn:interim:<ns>/<key>`), which would make every citation cite the tip forever. Hashing the
+   entry makes "cites a version that is no longer the tip" mean what it will mean with the export:
+   the decision's content changed after the code cited it. Acceptance is not part of the hash; it
+   is not content.
+4. **A citation that cannot be dated gets no `ledger:citesVersion` and no `prov:wasGeneratedBy`**,
+   rather than a guess. The Markdown summary lists those separately.
+
+`prov:wasGeneratedBy` names the introducing commit as `urn:git:sha1:` or `urn:git:sha256:` by the
+repository's object format, and the commit is typed `ledger:Commit` and `prov:Activity`
+(`WholeGraphReport.LedgerCommitRequired`). Both types are asserted because the vocabulary names both
+and the format has not yet said whether one entails the other.
+
 ## The interim form
 
 Until `decision export --format ntriples` exists, a markdown set file carries the same model

@@ -39,6 +39,23 @@
   </PropertyGroup>
 
   <!--
+    The ledger model and its two readers, linked rather than copied or referenced.
+    DecisionsAsTypes.LedgerIsSourceGeneratorIsReadModel makes the generator one read model over
+    the ledger; the citation projection is another, and two read models of one ledger have to
+    agree about what the ledger says. One copy of the reader is how they do. These five files
+    depend on nothing but the BCL - the generator's diagnostics, which need Roslyn, are not
+    linked - and referencing the analyzer assembly instead would put a compiler extension on a
+    console tool's load path.
+  -->
+  <ItemGroup>
+    <Compile Include="../DecisionDriven.Analyzers/Ledger/DecisionKey.cs" Link="Ledger/DecisionKey.cs" />
+    <Compile Include="../DecisionDriven.Analyzers/Ledger/FrontMatterReader.cs" Link="Ledger/FrontMatterReader.cs" />
+    <Compile Include="../DecisionDriven.Analyzers/Ledger/Identifiers.cs" Link="Ledger/Identifiers.cs" />
+    <Compile Include="../DecisionDriven.Analyzers/Ledger/LedgerModel.cs" Link="Ledger/LedgerModel.cs" />
+    <Compile Include="../DecisionDriven.Analyzers/Ledger/NTriplesReader.cs" Link="Ledger/NTriplesReader.cs" />
+  </ItemGroup>
+
+  <!--
     The SDK's trimming, AOT and single-file analyzers, from
     BuildTimeDependencies.OffTheShelfBeforeOwnRule. They cost nothing here and they are
     the reason this project will not quietly grow a reflection dependency.

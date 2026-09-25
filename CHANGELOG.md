@@ -88,6 +88,14 @@ nothing to deprecate.
   - **DD0008** reported a `#pragma` inside an inactive `#if` branch, which suppresses nothing.
   - **DD0017** warned on an `internal` base with every leaf sealed, which nobody outside the
     assembly can derive from.
+- **`DecisionDriven.Report`**, the whole-graph report, as a .NET tool. Reads built assemblies as
+  metadata, never loading them, plus the repository's git history and ledger. Per layered assembly:
+  Ca, Ce, instability, abstractness and distance from the main sequence, marking an assembly less
+  stable than one above it. Per `[Contract]` interface: members, implementers, and what each caller
+  uses. Per `[DomainModel]` type: LCOM4. And the citation projection: one `ledger:Citation` per
+  citing symbol as N-Triples, dated by the commit that introduced it and tied to the decision's tip
+  as the ledger stood then, with a Markdown summary of uncited decisions, citations of a version
+  that is no longer the tip, and decisions newly cited since a ref. Report-only; nothing gates.
 - **The code-fixes assembly.** `DecisionDriven.Analyzers.CodeFixes`, packed alongside the analyzers
   in `analyzers/dotnet/cs`: the documented-exception placeholder for every DD rule, which does not
   compile by design, and the design-change fix for `DD0002`. Apply them from a terminal with

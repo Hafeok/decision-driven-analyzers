@@ -171,12 +171,55 @@ jobs:
           echo "Testing DecisionDriven.Analyzers $version"
           samples/Consumer/check-violations.sh "$version"
 
-      - name: Upload the samples logs
+      - name: Report on the samples with the packaged tool
+        # WholeGraphReport.WholeGraphMetricsAreCiTool, with the tool installed from this run's
+        # nupkg the way a consumer installs it - the same argument as the step above, for the other
+        # package. The samples are rebuilt conforming first: the violating builds above leave some
+        # outputs built with the define and some without.
+        #
+        # Report-only (WholeGraphReport.NothingGatesUntilBaselineDecision): the step fails only if
+        # the tool cannot install or cannot produce a report, never on what the report says.
+        run: |
+          nupkg="$(ls artifacts/packages/DecisionDriven.Report.*.nupkg | head -n 1)"
+          version="$(basename "$nupkg" .nupkg)"
+          version="${version#DecisionDriven.Report.}"
+
+          analyzers="$(ls artifacts/packages/DecisionDriven.Analyzers.*.nupkg | grep -v '\.symbols\.nupkg$' | head -n 1)"
+          analyzers="$(basename "$analyzers" .nupkg)"
+          analyzers="${analyzers#DecisionDriven.Analyzers.}"
+
+          dotnet build samples/Consumer/Consumer.slnx --configuration Release -nologo \
+            -p:DdAnalyzersPackageVersion="$analyzers" \
+            -p:RestorePackagesPath="$PWD/artifacts/samples-packages"
+
+          dotnet tool install DecisionDriven.Report \
+            --version "$version" \
+            --add-source artifacts/packages \
+            --tool-path artifacts/tools
+
+          args=()
+          for project in Sample.Layer0 Sample.Layer1 Sample.Layer2 Sample.Host; do
+            args+=(--assembly "samples/Consumer/$project/bin/Release/net10.0/$project.dll")
+          done
+
+          # What changed relative to: the pull request's base, or the commit this push replaced.
+          # A brand-new branch has no previous commit (all zeros), and then there is no "since".
+          since="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [ -n "$since" ] && git cat-file -e "$since^{commit}" 2>/dev/null; then
+            args+=(--since "$since")
+          fi
+
+          artifacts/tools/decisiondriven-report "${args[@]}" --out artifacts/report
+          cat artifacts/report/report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the samples logs and report
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: samples-logs
-          path: artifacts/samples-logs
+          path: |
+            artifacts/samples-logs
+            artifacts/report
           if-no-files-found: ignore
 
   format:

@@ -137,7 +137,13 @@ diagnostics.
 
 Whole-graph metrics — instability, abstractness, contract divergence, LCOM4 — are not rules. They
 belong to `DecisionDriven.Report`, and nothing gates on them until a decision names a threshold and
-the baseline it was measured against.
+the baseline it was measured against. See
+[`docs/report.md`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/report.md).
+
+```
+dotnet tool install --global DecisionDriven.Report --prerelease
+decisiondriven-report --assembly <bin-dir> --since origin/main
+```
 
 ## Diagnostics
 
