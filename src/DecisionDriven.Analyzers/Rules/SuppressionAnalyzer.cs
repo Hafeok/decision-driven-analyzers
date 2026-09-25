@@ -56,10 +56,12 @@ public sealed class SuppressionAnalyzer : DiagnosticAnalyzer
     {
         context.EnableConcurrentExecution();
 
-        // Generated code is analysed too. A generator that emits a pragma disabling a DD rule has
-        // silenced it just as thoroughly as a hand-written one, and the fix is the same: the
-        // generator stops emitting it.
-        context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.Analyze);
+        // Generated code is analysed and reported too. A generator that emits a pragma disabling a
+        // DD rule has silenced it just as thoroughly as a hand-written one, and the fix is the
+        // same: the generator stops emitting it. Both flags: Analyze alone runs the callbacks on
+        // generated code and then drops what they report there.
+        context.ConfigureGeneratedCodeAnalysis(
+            GeneratedCodeAnalysisFlags.Analyze | GeneratedCodeAnalysisFlags.ReportDiagnostics);
 
         context.RegisterCompilationStartAction(start =>
         {
