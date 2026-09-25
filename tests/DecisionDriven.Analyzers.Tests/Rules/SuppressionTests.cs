@@ -37,6 +37,29 @@ public sealed class SuppressionTests
     }
 
     [Fact]
+    public void A_pragma_in_an_inactive_branch_is_not_reported()
+    {
+        // It suppresses nothing in this compilation. The build that defines the symbol activates
+        // it, and that build reports it - the next test.
+        Assert.Empty(Run(
+            "#if SOMETHING_NOT_DEFINED" + Environment.NewLine
+            + "#pragma warning disable DD0001" + Environment.NewLine
+            + "#endif" + Environment.NewLine
+            + "namespace Consumer { public sealed class Thing { } }"));
+    }
+
+    [Fact]
+    public void A_pragma_in_an_active_branch_is_reported()
+    {
+        Assert.Single(Run(
+            "#define SOMETHING" + Environment.NewLine
+            + "#if SOMETHING" + Environment.NewLine
+            + "#pragma warning disable DD0001" + Environment.NewLine
+            + "#endif" + Environment.NewLine
+            + "namespace Consumer { public sealed class Thing { } }"));
+    }
+
+    [Fact]
     public void A_pragma_naming_a_compiler_warning_is_not_reported()
     {
         Assert.Empty(Run(

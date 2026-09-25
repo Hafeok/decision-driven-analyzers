@@ -95,6 +95,15 @@ public sealed class SuppressionAnalyzer : DiagnosticAnalyzer
     {
         PragmaWarningDirectiveTriviaSyntax directive = (PragmaWarningDirectiveTriviaSyntax)context.Node;
 
+        // A pragma inside an inactive #if branch is still parsed - the compiler has to track the
+        // nesting - but it suppresses nothing in this compilation. The build that defines the
+        // symbol activates it, and that build reports it. Found by the samples job: the violating
+        // DD0008 sample sits behind #if DD_SAMPLE_VIOLATIONS, and the conforming build reported it.
+        if (!directive.IsActive)
+        {
+            return;
+        }
+
         bool disabling = directive.DisableOrRestoreKeyword.IsKind(SyntaxKind.DisableKeyword);
 
         foreach (ExpressionSyntax code in directive.ErrorCodes)
