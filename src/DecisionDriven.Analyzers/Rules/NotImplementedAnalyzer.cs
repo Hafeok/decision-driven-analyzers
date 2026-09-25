@@ -26,6 +26,7 @@ namespace DecisionDriven.Analyzers.Rules;
 public sealed class NotImplementedAnalyzer : DiagnosticAnalyzer
 {
     private const string NotImplemented = "System.NotImplementedException";
+    private const string TestAssemblySuffix = ".Tests";
 
     /// <inheritdoc/>
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
@@ -39,11 +40,13 @@ public sealed class NotImplementedAnalyzer : DiagnosticAnalyzer
 
         context.RegisterCompilationStartAction(start =>
         {
-            ArchOptions options = ArchOptions.Read(start.Options.AnalyzerConfigOptionsProvider.GlobalOptions);
-
-            // ContractScope excludes test assemblies, which is what ADR-A10's "non-test code"
-            // means: a test that asserts a member throws has to be able to write the throw.
-            if (!ContractScope.Applies(start.Compilation, options))
+            // Everywhere except tests, and not gated on ArchLayer like the contract rules are. This
+            // rule is about the code rather than the contract surface: a placeholder is a
+            // placeholder in whichever project it sits, and a host or a project that never
+            // declared a layer is where one is most likely to survive. A test that asserts a
+            // member throws has to be able to write the throw, which is what "non-test code" in
+            // Hierarchies.NoNotImplementedException means.
+            if ((start.Compilation.AssemblyName ?? string.Empty).EndsWith(TestAssemblySuffix, System.StringComparison.Ordinal))
             {
                 return;
             }

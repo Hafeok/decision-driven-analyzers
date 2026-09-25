@@ -173,6 +173,27 @@ public sealed class HierarchyTests
     }
 
     [Fact]
+    public void A_not_implemented_exception_in_a_project_with_no_declared_layer_is_reported()
+    {
+        // Unlike the contract rules this one is not gated on ArchLayer. A project that never
+        // declared a layer is where a placeholder is most likely to survive.
+        Assert.Single(Placeholder(
+            "public sealed class Thing { public int Read() => throw new System.NotImplementedException(); }",
+            archLayer: null));
+    }
+
+    [Fact]
+    public void A_not_implemented_exception_in_a_composition_root_is_reported()
+    {
+        Assert.Single(RuleHarness.Run(
+            new NotImplementedAnalyzer(),
+            ContractSource.File("namespace Consumer { public sealed class Thing { public int Read() => throw new System.NotImplementedException(); } }"),
+            assemblyName: "Consumer",
+            archLayer: 3,
+            compositionRoot: true));
+    }
+
+    [Fact]
     public void A_not_supported_exception_is_not_this_rules_finding()
     {
         // That is the shape a deliberate stub takes, and DD0012 is what tracks it.
@@ -211,10 +232,10 @@ public sealed class HierarchyTests
             assemblyName: "Consumer",
             archLayer: 1);
 
-    private static ImmutableArray<Diagnostic> Placeholder(string body, string assemblyName = "Consumer") =>
+    private static ImmutableArray<Diagnostic> Placeholder(string body, string assemblyName = "Consumer", int? archLayer = 1) =>
         RuleHarness.Run(
             new NotImplementedAnalyzer(),
             ContractSource.File("namespace Consumer { " + body + " }"),
             assemblyName: assemblyName,
-            archLayer: 1);
+            archLayer: archLayer);
 }

@@ -69,7 +69,8 @@ nothing to deprecate.
   type in the compilation sealed. Framework hierarchies are excluded by default. A throwing discard
   arm still warns: it moves the failure from the build to a user, which is the defect rather than a
   defence against it.
-- **`DD0018`** - `NotImplementedException` anywhere in a non-test assembly. Its second path is not
+- **`DD0018`** - `NotImplementedException` anywhere in a non-test assembly, whether or not the
+  project has declared a layer: unlike the contract rules it is about the code, not the surface. Its second path is not
   `[DesignDecision]`: a deliberate stub is a `[DesignDecision]`-marked `NotSupportedException`,
   which DD0012 tracks and the report tool lists.
 - **`DD0019`** - public types in `[DomainModel]` namespaces are immutable: `init` setters only, no
