@@ -2,13 +2,35 @@
 
   <!--
     A sample is only useful if it is built the way a consumer would build it. This file
-    imports the repository's settings, then imports the package's own props exactly as the
-    nupkg's build/ folder would be imported into a consuming project.
+    imports the repository's settings, then - in project mode - imports the package's own
+    props exactly as the nupkg's build/ folder would be imported into a consuming project.
+
+    Two modes, chosen by one property:
+
+      DdAnalyzersPackageVersion unset   project mode. The samples reference the analyzer
+                                        project and import its props and targets from the
+                                        working tree. This is what `dotnet build
+                                        DecisionDriven.slnx` does, so the solution builds
+                                        without a pack first.
+
+      DdAnalyzersPackageVersion=<ver>   package mode. The samples take DecisionDriven.Analyzers
+                                        as a PackageReference from artifacts/packages, and
+                                        NuGet imports the package's build/ assets the way it
+                                        does for any consumer. This is what the samples job in
+                                        CI does, against the nupkg the build job produced.
+
+    Project mode proves the rules. Only package mode proves the package.
   -->
 
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
-  <Import Project="$(MSBuildThisFileDirectory)../../src/DecisionDriven.Analyzers.Package/DecisionDriven.Analyzers.props" />
+  <PropertyGroup>
+    <DdAnalyzersFromPackage Condition="'$(DdAnalyzersPackageVersion)' != ''">true</DdAnalyzersFromPackage>
+    <DdAnalyzersFromPackage Condition="'$(DdAnalyzersFromPackage)' == ''">false</DdAnalyzersFromPackage>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)../../src/DecisionDriven.Analyzers.Package/DecisionDriven.Analyzers.props"
+          Condition="'$(DdAnalyzersFromPackage)' != 'true'" />
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -29,15 +51,26 @@
   </PropertyGroup>
 
   <!--
-    Wired now, asserts nothing yet.
+    The violating samples. Each file under a project's Violations/ folder is wrapped in
+    #if DD_SAMPLE_VIOLATIONS and breaks exactly one rule, so that the CI job can build with
+    the define and assert that every expected id is reported exactly once - see
+    samples/Consumer/violations.expected and check-violations.sh.
 
-    CI builds these projects a second time with -p:DD_SAMPLE_VIOLATIONS=true. Today that
-    define is a no-op and the second build is the same build. It is here so that the
-    session which writes the first rules only has to add code under the define and the
-    expected diagnostics to the workflow - the plumbing is already proven to work.
+    The violating samples cite this repository's own decisions, because a [Contract] or a
+    [DomainModel] has to cite a real generated decision or it is DD0007's finding instead of
+    the one the file is for. Every decision here is unaccepted until the maintainer accepts
+    it (DecisionsAsTypes.UnacceptedEmitsWarningObsolete), so each of those citations is
+    CS0618 - and under warnings-as-errors, a compile error that would be counted alongside
+    the ids the build is meant to prove.
+
+    CS0618 is the compiler, not a DD rule, so this is not what DD0008 is about. It is
+    silenced here, under the define only, because the samples are a branch build by nature:
+    release code cannot cite an unaccepted decision, and that is the design working. The
+    conforming build cites nothing and keeps CS0618 as an error.
   -->
   <PropertyGroup Condition="'$(DD_SAMPLE_VIOLATIONS)' == 'true'">
     <DefineConstants>$(DefineConstants);DD_SAMPLE_VIOLATIONS</DefineConstants>
+    <NoWarn>$(NoWarn);CS0618</NoWarn>
   </PropertyGroup>
 
 </Project>

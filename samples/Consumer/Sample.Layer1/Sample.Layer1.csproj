@@ -4,6 +4,15 @@
     <ArchLayer>1</ArchLayer>
   </PropertyGroup>
 
+  <!--
+    DD0001, under DD_SAMPLE_VIOLATIONS. The one rule whose violation lives in a project file
+    rather than a source file, because it is about references: moved down to layer 0, this
+    project's reference to Sample.Layer0 points sideways instead of down.
+  -->
+  <PropertyGroup Condition="'$(DD_SAMPLE_VIOLATIONS)' == 'true'">
+    <ArchLayer>0</ArchLayer>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="../Sample.Layer0/Sample.Layer0.csproj" />
   </ItemGroup>

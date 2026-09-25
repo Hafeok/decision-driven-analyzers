@@ -4,4 +4,18 @@
     <ArchLayer>0</ArchLayer>
   </PropertyGroup>
 
+  <!--
+    DDGEN0001, under DD_SAMPLE_VIOLATIONS: a ledger file with two decisions claiming one key.
+    Added here and nowhere else, so the generator reports it once rather than once per sample
+    project. The generator is the one in the package, which is what makes this evidence that it
+    loads.
+  -->
+  <ItemGroup Condition="'$(DD_SAMPLE_VIOLATIONS)' == 'true'">
+    <AdditionalFiles Include="Violations/DDGEN0001.md" DdLedger="decision-set" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Violations/**" />
+  </ItemGroup>
+
 </Project>

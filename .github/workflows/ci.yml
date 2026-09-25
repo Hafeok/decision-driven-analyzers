@@ -132,6 +132,9 @@ jobs:
   samples:
     name: samples
     runs-on: ubuntu-latest
+    # The packages the build job uploaded: the same bytes publish.yml would push. Packing again here
+    # would test a package, not the package.
+    needs: build
 
     steps:
       - name: Check out
@@ -144,22 +147,37 @@ jobs:
         with:
           global-json-file: global.json
 
-      - name: Build the samples
-        # Implements RuleTiers.SamplesJobIsTheFalsePositiveCheck. The samples conform, so a
-        # diagnostic on any of them is a false positive, and warnings are errors here. When
-        # this job fails, the rule is wrong until shown otherwise - the sample is only
-        # suspect once the rule has been cleared.
-        #
-        # Every sample project, not just the ones Sample.Host reaches: Sample.Layer1.Tests
-        # is nobody's dependency and would otherwise never be compiled with the analyzers
-        # loaded, which is the only reason it exists.
-        run: dotnet build samples/Consumer/Consumer.slnx --configuration Release
+      - name: Download the packages this run built
+        uses: actions/download-artifact@v7
+        with:
+          name: packages
+          path: artifacts/packages
 
-      - name: Build the samples with the violating code enabled
-        # DD_SAMPLE_VIOLATIONS is a no-op define today. It is wired now so that the session
-        # which writes the first rules adds the violating samples and the expected
-        # diagnostics, and does not also have to invent the plumbing.
-        run: dotnet build samples/Consumer/Consumer.slnx --configuration Release -p:DD_SAMPLE_VIOLATIONS=true
+      - name: Build the samples against the package
+        # Implements RuleTiers.SamplesJobIsTheFalsePositiveCheck, against the artifact that ships
+        # rather than the working tree. Every test before this one constructs the analyzers in
+        # memory; this is the only check that the nupkg - its analyzer and code-fix assemblies, its
+        # build/ props and targets, the generator inside it - loads in a consuming build and fires.
+        #
+        # The conforming build must be silent, and a diagnostic there is a false positive in the
+        # rule until shown otherwise. The violating build must report every id in
+        # samples/Consumer/violations.expected exactly once and nothing else; a missing id is a
+        # packaging defect until shown otherwise, because the same rule passes its in-memory tests.
+        # The script says which, and is the same command a contributor runs locally.
+        run: |
+          nupkg="$(ls artifacts/packages/DecisionDriven.Analyzers.*.nupkg | grep -v '\.symbols\.nupkg$' | head -n 1)"
+          version="$(basename "$nupkg" .nupkg)"
+          version="${version#DecisionDriven.Analyzers.}"
+          echo "Testing DecisionDriven.Analyzers $version"
+          samples/Consumer/check-violations.sh "$version"
+
+      - name: Upload the samples logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: samples-logs
+          path: artifacts/samples-logs
+          if-no-files-found: ignore
 
   format:
     name: format

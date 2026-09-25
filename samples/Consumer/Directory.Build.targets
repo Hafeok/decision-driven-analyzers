@@ -3,14 +3,15 @@
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
 
   <!--
-    TwoPackages.GenericPackageOwnRepository says a consumer references a published
-    package, never a project. These samples are not a consumer: they are this repository
-    testing itself, and they have to see the analyzers as they are in the working tree
-    rather than as they were at the last release. OutputItemType="Analyzer" with
-    ReferenceOutputAssembly="false" is the project-reference spelling of what the nupkg
-    does - the assembly is loaded by the compiler and is not on the compile path.
+    Project mode.
+
+    TwoPackages.GenericPackageOwnRepository says a consumer references a published package,
+    never a project. In this mode the samples are not a consumer: they are this repository
+    testing its rules against the working tree. OutputItemType="Analyzer" with
+    ReferenceOutputAssembly="false" is the project-reference spelling of what the nupkg does -
+    the assembly is loaded by the compiler and is not on the compile path.
   -->
-  <ItemGroup>
+  <ItemGroup Condition="'$(DdAnalyzersFromPackage)' != 'true'">
     <ProjectReference Include="$(MSBuildThisFileDirectory)../../src/DecisionDriven.Analyzers/DecisionDriven.Analyzers.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
@@ -20,6 +21,29 @@
     Imported last, the way the nupkg's build/ targets are imported after a consuming
     project's body: this is what puts docs/decisions/ into AdditionalFiles.
   -->
-  <Import Project="$(MSBuildThisFileDirectory)../../src/DecisionDriven.Analyzers.Package/DecisionDriven.Analyzers.targets" />
+  <Import Project="$(MSBuildThisFileDirectory)../../src/DecisionDriven.Analyzers.Package/DecisionDriven.Analyzers.targets"
+          Condition="'$(DdAnalyzersFromPackage)' != 'true'" />
+
+  <!--
+    Package mode.
+
+    Exactly what the README tells a consumer to write, PrivateAssets included. Nothing from the
+    working tree is imported: the analyzer and code-fix assemblies, the generator and the
+    build/ props and targets all come out of the nupkg, which is the point.
+
+    The feed is this repository's artifacts/packages, added to the configured sources rather
+    than replacing them so that the samples' other packages still restore. That leaves the
+    possibility of a package with the same id and version coming from somewhere else, so CI
+    checks the restored package is byte-identical to the one the build job produced instead
+    of assuming it.
+  -->
+  <PropertyGroup Condition="'$(DdAnalyzersFromPackage)' == 'true'">
+    <RestoreAdditionalProjectSources>$(MSBuildThisFileDirectory)../../artifacts/packages</RestoreAdditionalProjectSources>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(DdAnalyzersFromPackage)' == 'true'">
+    <PackageVersion Include="DecisionDriven.Analyzers" Version="$(DdAnalyzersPackageVersion)" />
+    <PackageReference Include="DecisionDriven.Analyzers" PrivateAssets="all" />
+  </ItemGroup>
 
 </Project>

@@ -77,6 +77,17 @@ nothing to deprecate.
   non-`readonly` fields, no mutable collection members (arrays included), readonly structs. A sealed
   `*Builder` in the same namespace is the escape hatch, and DD0010 now keeps builders off contract
   signatures, which `BuildersAreTheEscapeHatch` requires and ADR-A11 wrongly assumed was already so.
+- **The samples job tests the package.** `samples/Consumer` builds against the `DecisionDriven.Analyzers`
+  nupkg the build job produced, and a violating sample per rule must report each of DD0001-DD0019
+  and DDGEN0001 exactly once, with the conforming build silent. It found three defects the in-memory
+  tests could not:
+  - **DD0007** rejected every citation of a real decision in every consumer. A real build roots
+    generator output in the compiler's output directory; the provenance check matched from the
+    start of the path, which only an in-memory driver produces. It now anchors on the directory this
+    compilation's generator run used, which is also a tighter check than the path shape.
+  - **DD0008** reported a `#pragma` inside an inactive `#if` branch, which suppresses nothing.
+  - **DD0017** warned on an `internal` base with every leaf sealed, which nobody outside the
+    assembly can derive from.
 - **The code-fixes assembly.** `DecisionDriven.Analyzers.CodeFixes`, packed alongside the analyzers
   in `analyzers/dotnet/cs`: the documented-exception placeholder for every DD rule, which does not
   compile by design, and the design-change fix for `DD0002`. Apply them from a terminal with
