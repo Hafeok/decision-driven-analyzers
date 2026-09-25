@@ -6,7 +6,7 @@
 | **Tier** | 1 (error) |
 | **Severity** | error (an MSBuild error; the build does not produce a package) |
 | **Motivating decision** | `BuildTimeDependencies.RoslynPinEnforcedByBuild` |
-| **Introduced in** | unreleased |
+| **Introduced in** | 0.1.0-alpha.0.21 |
 
 ## Principle
 

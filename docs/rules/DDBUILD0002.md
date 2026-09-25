@@ -6,7 +6,7 @@
 | **Tier** | 1 (error) |
 | **Severity** | error (an MSBuild error; no package is produced) |
 | **Motivating decision** | `TwoPackages.CodeFixesShipInSeparateAssembly` |
-| **Introduced in** | unreleased |
+| **Introduced in** | 0.1.0-alpha.0.21 |
 
 ## Principle
 

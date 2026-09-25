@@ -197,8 +197,10 @@ expressed in the interim form.
 
 ## Status
 
-**Pre-release. Nothing is published yet.** Versions are `0.x` and the public surface may change
-without ceremony until `1.0`.
+**Pre-release.** Prereleases are published to nuget.org under the `decision-driven-design`
+organisation; see the [changelog](https://github.com/Hafeok/decision-driven-analyzers/blob/main/CHANGELOG.md)
+for what each one carries. Versions are `0.x` and the public surface may change without ceremony
+until `1.0`.
 
 Every decision in this repository's own `docs/decisions/` is **unaccepted**, and will stay that way
 until a human with the authority accepts it in the ledger — that is the point of the mechanism, not

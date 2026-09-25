@@ -11,28 +11,19 @@ consumer that builds with warnings as errors, and are recorded as such.
 
 ## [Unreleased]
 
-The first prerelease. Nothing has been published before this, so everything is new and there is
-nothing to deprecate.
+The second prerelease: the remaining thirteen rules, the evidence that the package works as a
+package, and the whole-graph report.
+
+**Breaking for a consumer that builds with warnings as errors.** Thirteen rules are new. DD0007 to
+DD0015, DD0018 and DD0019 are errors; DD0016 and DD0017 are tier-2 warnings, which warnings as
+errors makes errors too. Adopting this version in a project with `ArchLayer` declared will report
+every public interface without `[Contract]` (DD0009), and every contract signature naming a type of
+its own assembly outside a `[DomainModel]` namespace (DD0010): declare `[DomainModel]` before adding
+`[Contract]`, which the README's quick start now says first. DD0018 runs in every non-test project
+whether or not it declares a layer.
 
 ### Added
 
-- **The decision ledger source generator.** Reads the decisions a repository has filed and emits
-  one static class per set with one nested type per decision, so a citation is a type reference the
-  compiler checks. Emits the marker attributes `Contract`, `DomainModel`, `HotPath`,
-  `DesignDecision` and `ArchLayer`, and the closed `ExceptionScope` enum, into each consuming
-  compilation. A decision with no unrevoked acceptance of its tip version is obsolete as a warning;
-  a revoked decision with no successor is obsolete as an error; supersession is neither.
-- **The interim decision format.** A markdown set file with YAML front matter carrying `set`,
-  `namespace`, and decisions with `key`, `statement`, `accepted-by`, `accepted-at` and `revoked-at`.
-  This is the form used until `decision-cli` can export the ledger, and it is deleted once it can.
-  The N-Triples reader for that export is implemented and has no producer yet.
-- **`DD0001`** - a reference within a family points strictly downward, read from the referenced
-  assembly's metadata so package references are checked like project references.
-- **`DD0002`** - every `InternalsVisibleTo` target is a test assembly.
-- **`DD0003`** - services are resolved only in the composition root.
-- **`DD0004`** - no mutable static state, including the static registry.
-- **`DD0005`** - no grab-bag name on an assembly or a namespace.
-- **`DD0006`** - public types live under the assembly's root namespace.
 - **`DD0007`** - a cited decision is a type the generator emitted from the ledger, not a
   hand-written one of the same shape, and `Role` and `Scope` are present where they are required.
 - **`DD0008`** - no `#pragma warning disable`, `[SuppressMessage]` or `.editorconfig` severity
@@ -80,7 +71,7 @@ nothing to deprecate.
 - **The samples job tests the package.** `samples/Consumer` builds against the `DecisionDriven.Analyzers`
   nupkg the build job produced, and a violating sample per rule must report each of DD0001-DD0019
   and DDGEN0001 exactly once, with the conforming build silent. It found three defects the in-memory
-  tests could not:
+  tests could not, all fixed before this release, in rules new in it - so none of them shipped:
   - **DD0007** rejected every citation of a real decision in every consumer. A real build roots
     generator output in the compiler's output directory; the provenance check matched from the
     start of the path, which only an in-memory driver produces. It now anchors on the directory this
@@ -96,17 +87,52 @@ nothing to deprecate.
   citing symbol as N-Triples, dated by the commit that introduced it and tied to the decision's tip
   as the ledger stood then, with a Markdown summary of uncited decisions, citations of a version
   that is no longer the tip, and decisions newly cited since a ref. Report-only; nothing gates.
+
+### Changed
+
+- **The generator marks what it emits.** Every set and decision type now carries
+  `[System.CodeDom.Compiler.GeneratedCode("DecisionDriven.Analyzers", "<version>")]`, which is half
+  of how DD0007 tells a generated decision from a hand-written one.
+- **`DecisionDriven.Report` produces a report.** With no arguments it still prints its version, as
+  `0.1.0-alpha.0.21` did; given `--assembly` it now writes `report.md` and `citations.nt`.
+- **The rule pages say how to apply their fixes**, or that a rule has none and why, for every rule.
+
+
+## [0.1.0-alpha.0.21] - 2026-09-24
+
+The first prerelease. Nothing had been published before it.
+
+### Added
+
+- **The decision ledger source generator.** Reads the decisions a repository has filed and emits
+  one static class per set with one nested type per decision, so a citation is a type reference the
+  compiler checks. Emits the marker attributes `Contract`, `DomainModel`, `HotPath`,
+  `DesignDecision` and `ArchLayer`, and the closed `ExceptionScope` enum, into each consuming
+  compilation. A decision with no unrevoked acceptance of its tip version is obsolete as a warning;
+  a revoked decision with no successor is obsolete as an error; supersession is neither.
+- **The interim decision format.** A markdown set file with YAML front matter carrying `set`,
+  `namespace`, and decisions with `key`, `statement`, `accepted-by`, `accepted-at` and `revoked-at`.
+  This is the form used until `decision-cli` can export the ledger, and it is deleted once it can.
+  The N-Triples reader for that export is implemented and has no producer yet.
+- **`DD0001`** - a reference within a family points strictly downward, read from the referenced
+  assembly's metadata so package references are checked like project references.
+- **`DD0002`** - every `InternalsVisibleTo` target is a test assembly.
+- **`DD0003`** - services are resolved only in the composition root.
+- **`DD0004`** - no mutable static state, including the static registry.
+- **`DD0005`** - no grab-bag name on an assembly or a namespace.
+- **`DD0006`** - public types live under the assembly's root namespace.
 - **The code-fixes assembly.** `DecisionDriven.Analyzers.CodeFixes`, packed alongside the analyzers
-  in `analyzers/dotnet/cs`: the documented-exception placeholder for every DD rule, which does not
-  compile by design, and the design-change fix for `DD0002`. Apply them from a terminal with
+  in `analyzers/dotnet/cs`: the documented-exception placeholder, which does not compile by design,
+  for `DD0002` and `DD0003`, and the design-change fix for `DD0002`. (This entry first said the
+  placeholder covered every DD rule. It never did: it is registered for DD0001 to DD0003, and DD0001
+  reports on the compilation, where there is no declaration to put it on.) Apply them from a terminal with
   `dotnet format analyzers --diagnostics <id>`.
 - **`DDBUILD0001`** - the Roslyn pin matches the floor the analyzers declare, so a dependency bump
   cannot quietly drop support for the oldest SDK in the band.
 - **`DDBUILD0002`** - no package is produced without its code-fixes assembly.
 - **`DDGEN0001`-`DDGEN0004`** - the decision input is well formed: no duplicate key in a namespace,
   no key that is not an identifier, no key changed between versions, no unparseable export line.
-- `DecisionDriven.Report`, a .NET tool, reporting its version. The whole-graph metrics it exists for
-  are not implemented yet.
+- `DecisionDriven.Report`, a .NET tool, reporting its version.
 
 ### Notes for consumers
 
@@ -114,4 +140,5 @@ Every decision in this repository's own `docs/decisions/` is unaccepted, which i
 working rather than an oversight: citing one produces `CS0618` on every citation, so they are usable
 on a branch and will not ship under `TreatWarningsAsErrors`.
 
-[Unreleased]: https://github.com/Hafeok/decision-driven-analyzers/commits/main
+[Unreleased]: https://github.com/Hafeok/decision-driven-analyzers/compare/acb256b8378b848fac5d16bf1d285959b81e2e38...main
+[0.1.0-alpha.0.21]: https://github.com/Hafeok/decision-driven-analyzers/tree/acb256b8378b848fac5d16bf1d285959b81e2e38
