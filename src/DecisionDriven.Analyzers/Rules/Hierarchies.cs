@@ -105,7 +105,11 @@ internal sealed class Hierarchies
             return true;
         }
 
-        if (derivableOutside)
+        // A public constructor only opens the hierarchy to somebody who can name the type. An
+        // internal base with an implicit public constructor is not derivable outside the assembly,
+        // which is the half of ADR-A10's closed condition this was missing: it warned on an
+        // internal base with every leaf sealed.
+        if (derivableOutside && IsExternallyVisible(type))
         {
             return false;
         }
@@ -167,6 +171,20 @@ internal sealed class Hierarchies
         }
 
         return declared = found;
+    }
+
+    private static bool IsExternallyVisible(INamedTypeSymbol type)
+    {
+        for (INamedTypeSymbol? current = type; current is not null; current = current.ContainingType)
+        {
+            if (current.DeclaredAccessibility is not (Accessibility.Public or Accessibility.Protected
+                or Accessibility.ProtectedOrInternal))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static bool DerivesFrom(INamedTypeSymbol type, INamedTypeSymbol baseType)

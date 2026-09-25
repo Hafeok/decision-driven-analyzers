@@ -74,6 +74,31 @@ public sealed class HierarchyTests
     }
 
     [Fact]
+    public void An_internal_base_with_sealed_leaves_is_closed()
+    {
+        // Nobody outside the assembly can derive from a type they cannot name, whatever its
+        // constructor says. ADR-A10: closed when "the base is not public-derivable outside the
+        // assembly" and every derived type in the compilation is sealed.
+        Assert.Empty(Switch(
+            "internal abstract class Node { } "
+            + "internal sealed class Add : Node { } "
+            + "internal sealed class Mul : Node { } "
+            + "internal static class Eval { internal static int Of(Node n) => "
+            + "n switch { Add => 1, Mul => 2, _ => 0 }; }"));
+    }
+
+    [Fact]
+    public void An_internal_base_with_an_unsealed_leaf_is_not_closed()
+    {
+        Assert.Single(Switch(
+            "internal abstract class Node { } "
+            + "internal sealed class Add : Node { } "
+            + "internal class Mul : Node { } "
+            + "internal static class Eval { internal static int Of(Node n) => "
+            + "n switch { Add => 1, Mul => 2, _ => 0 }; }"));
+    }
+
+    [Fact]
     public void An_internal_constructor_with_an_unsealed_leaf_is_not_closed()
     {
         Assert.Single(Switch(
