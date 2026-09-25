@@ -13,6 +13,10 @@ consumer that builds with warnings as errors, and are recorded as such.
 
 ### Changed
 
+- **The generated-code exemption is a decision.** Every rule but DD0008 has always skipped
+  generated code; `RuleTiers.GeneratedCodeIsExempt` now says so, with DD0008 as the stated
+  exception, and a test holds every analyzer in the package to it.
+
 - **A published package is the tested package.** Publishing used to rebuild and repack from the
   tag, and a tag push published without waiting for CI; `0.1.0-preview.2` was pushed while CI on
   its commit was still running, as bytes the samples job never saw. The publish run now runs the
