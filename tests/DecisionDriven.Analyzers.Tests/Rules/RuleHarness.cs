@@ -132,17 +132,21 @@ internal static class RuleHarness
     /// compilation by hand here would test the analyzer against the harness's idea of generated
     /// code rather than against the generator's.
     /// </remarks>
+    /// <param name="fileOptions">
+    /// .editorconfig options by tree path, as a section covering that file would supply them.
+    /// </param>
     internal static ImmutableArray<Diagnostic> RunOn(
         DiagnosticAnalyzer analyzer,
         Compilation compilation,
         Dictionary<string, string>? analyzerConfig = null,
-        bool allowCompileErrors = false)
+        bool allowCompileErrors = false,
+        Dictionary<string, Dictionary<string, string>>? fileOptions = null)
     {
         CompilationWithAnalyzers withAnalyzers = compilation.WithAnalyzers(
             ImmutableArray.Create(analyzer),
             new AnalyzerOptions(
                 ImmutableArray<AdditionalText>.Empty,
-                new GlobalOptionsProvider(analyzerConfig ?? new Dictionary<string, string>(StringComparer.Ordinal))));
+                new GlobalOptionsProvider(analyzerConfig ?? new Dictionary<string, string>(StringComparer.Ordinal), fileOptions)));
 
         // One case is about a citation the compiler rejects on its own, so that test opts out of
         // the guard rather than the guard being dropped for every other one.
@@ -231,14 +235,22 @@ internal static class RuleHarness
 
     private sealed class GlobalOptionsProvider : AnalyzerConfigOptionsProvider
     {
-        internal GlobalOptionsProvider(Dictionary<string, string> values)
+        private readonly Dictionary<string, Dictionary<string, string>>? fileOptions;
+
+        internal GlobalOptionsProvider(
+            Dictionary<string, string> values,
+            Dictionary<string, Dictionary<string, string>>? fileOptions = null)
         {
             GlobalOptions = new Options(values);
+            this.fileOptions = fileOptions;
         }
 
         public override AnalyzerConfigOptions GlobalOptions { get; }
 
-        public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) => new Options(new Dictionary<string, string>(StringComparer.Ordinal));
+        public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) =>
+            new Options(fileOptions is not null && fileOptions.TryGetValue(tree.FilePath, out Dictionary<string, string>? values)
+                ? values
+                : new Dictionary<string, string>(StringComparer.Ordinal));
 
         public override AnalyzerConfigOptions GetOptions(AdditionalText textFile) => new Options(new Dictionary<string, string>(StringComparer.Ordinal));
 
