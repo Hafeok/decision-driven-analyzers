@@ -11,8 +11,44 @@ consumer that builds with warnings as errors, and are recorded as such.
 
 ## [Unreleased]
 
-The second prerelease: the remaining thirteen rules, the evidence that the package works as a
-package, and the whole-graph report.
+The third prerelease: the evidence that the package works as a package, the three defects that
+evidence found in `0.1.0-preview.1`, and the whole-graph report. No rule is added and no severity
+is raised.
+
+### Added
+
+- **The samples job tests the package.** `samples/Consumer` builds against the `DecisionDriven.Analyzers`
+  nupkg the build job produced, and a violating sample per rule must report each of DD0001-DD0019
+  and DDGEN0001 exactly once, with the conforming build silent. It found three defects the in-memory
+  tests could not, all in rules new in `0.1.0-preview.1` and all shipped in it; they are under
+  *Fixed* below.
+- **`DecisionDriven.Report`**, the whole-graph report, as a .NET tool. Reads built assemblies as
+  metadata, never loading them, plus the repository's git history and ledger. Per layered assembly:
+  Ca, Ce, instability, abstractness and distance from the main sequence, marking an assembly less
+  stable than one above it. Per `[Contract]` interface: members, implementers, and what each caller
+  uses. Per `[DomainModel]` type: LCOM4. And the citation projection: one `ledger:Citation` per
+  citing symbol as N-Triples, dated by the commit that introduced it and tied to the decision's tip
+  as the ledger stood then, with a Markdown summary of uncited decisions, citations of a version
+  that is no longer the tip, and decisions newly cited since a ref. Report-only; nothing gates.
+
+### Changed
+
+- **`DecisionDriven.Report` produces a report.** With no arguments it still prints its version, as
+  earlier versions did; given `--assembly` it now writes `report.md` and `citations.nt`.
+
+### Fixed
+
+- **`DD0007`** rejected every citation of a real decision in every consumer. A real build roots
+  generator output in the compiler's output directory; the provenance check matched from the
+  start of the path, which only an in-memory driver produces. It now anchors on the directory this
+  compilation's generator run used, which is also a tighter check than the path shape.
+- **`DD0008`** reported a `#pragma` inside an inactive `#if` branch, which suppresses nothing.
+- **`DD0017`** warned on an `internal` base with every leaf sealed, which nobody outside the
+  assembly can derive from.
+
+## [0.1.0-preview.1] - 2026-09-25
+
+The second prerelease: the remaining thirteen rules.
 
 **Breaking for a consumer that builds with warnings as errors.** Thirteen rules are new. DD0007 to
 DD0015, DD0018 and DD0019 are errors; DD0016 and DD0017 are tier-2 warnings, which warnings as
@@ -21,6 +57,13 @@ every public interface without `[Contract]` (DD0009), and every contract signatu
 its own assembly outside a `[DomainModel]` namespace (DD0010): declare `[DomainModel]` before adding
 `[Contract]`, which the README's quick start now says first. DD0018 runs in every non-test project
 whether or not it declares a layer.
+
+**Known defects.** This version was tagged before the samples job existed, and carries the three
+defects that job then found, fixed in the next prerelease. The first one makes it unusable for a
+consumer that cites any decision: **DD0007** reports every citation of a real decision in a real
+build, and it is an error that DD0008 does not allow to be suppressed. **DD0008** also reports a
+`#pragma` inside an inactive `#if` branch, and **DD0017** warns on an `internal` base whose leaves
+are all sealed. Skip this version.
 
 ### Added
 
@@ -68,35 +111,13 @@ whether or not it declares a layer.
   non-`readonly` fields, no mutable collection members (arrays included), readonly structs. A sealed
   `*Builder` in the same namespace is the escape hatch, and DD0010 now keeps builders off contract
   signatures, which `BuildersAreTheEscapeHatch` requires and ADR-A11 wrongly assumed was already so.
-- **The samples job tests the package.** `samples/Consumer` builds against the `DecisionDriven.Analyzers`
-  nupkg the build job produced, and a violating sample per rule must report each of DD0001-DD0019
-  and DDGEN0001 exactly once, with the conforming build silent. It found three defects the in-memory
-  tests could not, all fixed before this release, in rules new in it - so none of them shipped:
-  - **DD0007** rejected every citation of a real decision in every consumer. A real build roots
-    generator output in the compiler's output directory; the provenance check matched from the
-    start of the path, which only an in-memory driver produces. It now anchors on the directory this
-    compilation's generator run used, which is also a tighter check than the path shape.
-  - **DD0008** reported a `#pragma` inside an inactive `#if` branch, which suppresses nothing.
-  - **DD0017** warned on an `internal` base with every leaf sealed, which nobody outside the
-    assembly can derive from.
-- **`DecisionDriven.Report`**, the whole-graph report, as a .NET tool. Reads built assemblies as
-  metadata, never loading them, plus the repository's git history and ledger. Per layered assembly:
-  Ca, Ce, instability, abstractness and distance from the main sequence, marking an assembly less
-  stable than one above it. Per `[Contract]` interface: members, implementers, and what each caller
-  uses. Per `[DomainModel]` type: LCOM4. And the citation projection: one `ledger:Citation` per
-  citing symbol as N-Triples, dated by the commit that introduced it and tied to the decision's tip
-  as the ledger stood then, with a Markdown summary of uncited decisions, citations of a version
-  that is no longer the tip, and decisions newly cited since a ref. Report-only; nothing gates.
 
 ### Changed
 
 - **The generator marks what it emits.** Every set and decision type now carries
   `[System.CodeDom.Compiler.GeneratedCode("DecisionDriven.Analyzers", "<version>")]`, which is half
   of how DD0007 tells a generated decision from a hand-written one.
-- **`DecisionDriven.Report` produces a report.** With no arguments it still prints its version, as
-  `0.1.0-alpha.0.21` did; given `--assembly` it now writes `report.md` and `citations.nt`.
 - **The rule pages say how to apply their fixes**, or that a rule has none and why, for every rule.
-
 
 ## [0.1.0-alpha.0.21] - 2026-09-24
 
@@ -140,5 +161,6 @@ Every decision in this repository's own `docs/decisions/` is unaccepted, which i
 working rather than an oversight: citing one produces `CS0618` on every citation, so they are usable
 on a branch and will not ship under `TreatWarningsAsErrors`.
 
-[Unreleased]: https://github.com/Hafeok/decision-driven-analyzers/compare/acb256b8378b848fac5d16bf1d285959b81e2e38...main
+[Unreleased]: https://github.com/Hafeok/decision-driven-analyzers/compare/v0.1.0-preview.1...main
+[0.1.0-preview.1]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.1
 [0.1.0-alpha.0.21]: https://github.com/Hafeok/decision-driven-analyzers/tree/acb256b8378b848fac5d16bf1d285959b81e2e38
