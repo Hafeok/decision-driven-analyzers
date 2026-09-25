@@ -11,6 +11,8 @@ consumer that builds with warnings as errors, and are recorded as such.
 
 ## [Unreleased]
 
+## [0.1.0-preview.2] - 2026-09-25
+
 The third prerelease: the evidence that the package works as a package, the three defects that
 evidence found in `0.1.0-preview.1`, and the whole-graph report. No rule is added and no severity
 is raised.
@@ -161,6 +163,7 @@ Every decision in this repository's own `docs/decisions/` is unaccepted, which i
 working rather than an oversight: citing one produces `CS0618` on every citation, so they are usable
 on a branch and will not ship under `TreatWarningsAsErrors`.
 
-[Unreleased]: https://github.com/Hafeok/decision-driven-analyzers/compare/v0.1.0-preview.1...main
+[Unreleased]: https://github.com/Hafeok/decision-driven-analyzers/compare/v0.1.0-preview.2...main
+[0.1.0-preview.2]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.2
 [0.1.0-preview.1]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.1
 [0.1.0-alpha.0.21]: https://github.com/Hafeok/decision-driven-analyzers/tree/acb256b8378b848fac5d16bf1d285959b81e2e38
