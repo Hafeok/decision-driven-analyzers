@@ -18,13 +18,15 @@ namespace DecisionDriven.Analyzers.Rules;
 /// <para>
 /// Two signals, both required. The type carries
 /// <c>[System.CodeDom.Compiler.GeneratedCode("DecisionDriven.Analyzers", …)]</c>, and its declaring
-/// tree has the synthetic path Roslyn gives generator output. The attribute alone is text anyone
-/// can type; the path alone would accept a file that no longer claims to be generated. Together the
-/// only way past them is to forge a compiler input, which is the right place for the edge this rule
-/// cannot decide to sit - well outside anything a source file can do.
+/// tree is in the directory this compilation's generator run put its output in - the same
+/// directory as the generated <c>ContractAttribute</c>. The attribute alone is text anyone can
+/// type; a path of the right shape alone is two directories anyone can create. The directory the
+/// generator actually used, in this compilation, is neither: getting past it means writing into the
+/// compiler's output directory and compiling from there, which is the right place for the edge this
+/// rule cannot decide to sit.
 /// </para>
 /// </remarks>
-internal static class GeneratedDecisions
+internal sealed class GeneratedDecisions
 {
     /// <summary>The namespace every emitted decision type lives under.</summary>
     internal const string LedgerNamespacePrefix = "DecisionDriven.Ledger.";
@@ -47,8 +49,16 @@ internal static class GeneratedDecisions
         NotADecision,
     }
 
+    private readonly string? outputDirectory;
+
+    /// <summary>Reads, once per compilation, where this generator run put its output.</summary>
+    internal GeneratedDecisions(Compilation compilation)
+    {
+        outputDirectory = GeneratorIdentity.OutputDirectory(compilation);
+    }
+
     /// <summary>Classifies the type a citation names.</summary>
-    internal static Verdict Classify(INamedTypeSymbol? type)
+    internal Verdict Classify(INamedTypeSymbol? type)
     {
         if (type is null || !HasDecisionShape(type))
         {
@@ -69,9 +79,18 @@ internal static class GeneratedDecisions
             return Verdict.HandWritten;
         }
 
+        // No generator run in this compilation means nothing in it can have come out of one.
+        if (outputDirectory is null)
+        {
+            return Verdict.HandWritten;
+        }
+
         foreach (SyntaxReference reference in type.DeclaringSyntaxReferences)
         {
-            if (!GeneratorIdentity.IsGeneratedTreePath(reference.SyntaxTree.FilePath))
+            string path = reference.SyntaxTree.FilePath;
+
+            if (!GeneratorIdentity.IsGeneratedTreePath(path)
+                || !string.Equals(GeneratorIdentity.DirectoryOf(path), outputDirectory, StringComparison.Ordinal))
             {
                 return Verdict.HandWritten;
             }

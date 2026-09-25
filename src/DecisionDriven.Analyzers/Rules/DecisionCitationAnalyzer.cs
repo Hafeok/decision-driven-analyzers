@@ -60,9 +60,10 @@ public sealed class DecisionCitationAnalyzer : DiagnosticAnalyzer
             }
 
             AssemblyNamespaces namespaces = new AssemblyNamespaces(start.Compilation);
+            GeneratedDecisions decisions = new GeneratedDecisions(start.Compilation);
 
             start.RegisterSyntaxNodeAction(
-                node => Analyze(node, citations, namespaces),
+                node => Analyze(node, citations, namespaces, decisions),
                 SyntaxKind.Attribute);
         });
     }
@@ -70,7 +71,8 @@ public sealed class DecisionCitationAnalyzer : DiagnosticAnalyzer
     private static void Analyze(
         SyntaxNodeAnalysisContext context,
         Citations citations,
-        AssemblyNamespaces namespaces)
+        AssemblyNamespaces namespaces,
+        GeneratedDecisions decisions)
     {
         AttributeSyntax attribute = (AttributeSyntax)context.Node;
 
@@ -92,7 +94,7 @@ public sealed class DecisionCitationAnalyzer : DiagnosticAnalyzer
         // One attribute, one report. An attribute that cites nothing real is wrong for that
         // reason; a second diagnostic about a missing Role on it would be noise, and fixing the
         // citation is what brings the rest into view.
-        if (!CheckDecisionArgument(context, kind.Value, arguments))
+        if (!CheckDecisionArgument(context, kind.Value, arguments, decisions))
         {
             return;
         }
@@ -110,7 +112,8 @@ public sealed class DecisionCitationAnalyzer : DiagnosticAnalyzer
     private static bool CheckDecisionArgument(
         SyntaxNodeAnalysisContext context,
         Citation kind,
-        SeparatedSyntaxList<AttributeArgumentSyntax> arguments)
+        SeparatedSyntaxList<AttributeArgumentSyntax> arguments,
+        GeneratedDecisions decisions)
     {
         // DomainModel takes the namespace prefix first, so the decision is the second argument.
         int position = kind == Citation.DomainModel ? 1 : 0;
@@ -142,7 +145,7 @@ public sealed class DecisionCitationAnalyzer : DiagnosticAnalyzer
             return false;
         }
 
-        GeneratedDecisions.Verdict verdict = GeneratedDecisions.Classify(cited as INamedTypeSymbol);
+        GeneratedDecisions.Verdict verdict = decisions.Classify(cited as INamedTypeSymbol);
 
         if (verdict == GeneratedDecisions.Verdict.Generated)
         {

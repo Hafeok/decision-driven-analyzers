@@ -69,6 +69,36 @@ public sealed class DecisionCitationTests
     }
 
     [Fact]
+    public void A_citation_is_accepted_when_the_generator_output_is_rooted_the_way_a_real_build_roots_it()
+    {
+        // The compiler roots generated trees in its output directory. The in-memory driver roots
+        // them nowhere. This rule once passed every test in the second form and rejected every
+        // real citation in the first; the samples job building against the packed nupkg found it.
+        Assert.Empty(Analyze(Generate(
+            "namespace Consumer { " + Contract(Cited, "\"store read side\"") + " public interface IQuadSource { } }",
+            baseDirectory: RealBuildOutput)));
+    }
+
+    [Fact]
+    public void A_lookalike_in_directories_named_after_the_generator_is_still_reported()
+    {
+        // The forgery a path-shape check lets through: a hand-written file, attribute copied, in two
+        // directories a consumer created with the generator's names. Named .cs rather than .g.cs on
+        // purpose - Roslyn treats *.g.cs as generated and every rule but DD0008 skips generated
+        // code, so a .g.cs forgery would test that skip rather than this check. It is not in the directory this
+        // compilation's generator run actually used, which is what the rule anchors on.
+        Diagnostic diagnostic = Assert.Single(Analyze(Generate(
+            Lookalike(generatedCode: true)
+                + "namespace Consumer { "
+                + Contract("global::DecisionDriven.Ledger.SampleNs.Forged.NotFromTheLedger", "\"store read side\"")
+                + " public interface IQuadSource { } }",
+            baseDirectory: RealBuildOutput,
+            consumerPath: "/src/Consumer/DecisionDriven.Analyzers/DecisionDriven.Analyzers.DecisionLedgerGenerator/Forged.cs")));
+
+        Assert.Contains("did not come out of a generator run", diagnostic.GetMessage(), System.StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_generator_emits_both_signals()
     {
         // The rule reads what the generator writes. If these two drifted apart, every citation in
@@ -227,7 +257,10 @@ public sealed class DecisionCitationTests
 
     private static ImmutableArray<Diagnostic> Run(string source) => Analyze(Generate(source));
 
-    private static GeneratorHarness.Result Generate(string source) =>
+    /// <summary>Where a real build roots generator output: the compiler's output directory.</summary>
+    private const string RealBuildOutput = "/build/Consumer/obj/Release/net10.0";
+
+    private static GeneratorHarness.Result Generate(string source, string? baseDirectory = null, string consumerPath = "") =>
         GeneratorHarness.Run(
             source,
             new List<GeneratorHarness.LedgerFile>
@@ -237,7 +270,9 @@ public sealed class DecisionCitationTests
                     Key,
                     "The store's read side is a contract",
                     acceptedBy: "mailto:someone@example.com")),
-            });
+            },
+            baseDirectory: baseDirectory,
+            consumerPath: consumerPath);
 
     private static ImmutableArray<Diagnostic> Analyze(GeneratorHarness.Result result) =>
         RuleHarness.RunOn(new DecisionCitationAnalyzer(), result.Compilation)

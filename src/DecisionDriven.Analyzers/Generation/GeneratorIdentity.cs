@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using Microsoft.CodeAnalysis;
 
 namespace DecisionDriven.Analyzers.Generation;
 
@@ -38,7 +39,8 @@ internal static class GeneratorIdentity
     internal static readonly string Version = ReadVersion();
 
     /// <summary>
-    /// What Roslyn puts in front of the hint name in a generated tree's path.
+    /// The last two directories of every tree this generator produces: its assembly name, then its
+    /// type's full name.
     /// </summary>
     /// <remarks>
     /// Read from the generator type rather than written out, so a rename of the generator cannot
@@ -49,16 +51,74 @@ internal static class GeneratorIdentity
         + "/" + typeof(DecisionLedgerGenerator).FullName;
 
     /// <summary>
-    /// True when <paramref name="filePath"/> is a path Roslyn synthesised for this generator's
-    /// output.
+    /// True when <paramref name="filePath"/> has the shape Roslyn gives this generator's output:
+    /// <c>[&lt;base&gt;/]&lt;assembly&gt;/&lt;generator type&gt;/&lt;hint&gt;</c>.
     /// </summary>
     /// <remarks>
-    /// The separator is the platform's, so both are normalised before comparing: a consumer
-    /// building on Windows and one building on Linux are citing the same decisions.
+    /// <para>
+    /// The base is empty when a test drives the generator in memory and is the compiler's output
+    /// directory in a real build, so the shape is matched from the end. Matching from the start -
+    /// which is what this did first - passed every in-memory test and rejected every real citation
+    /// in every consumer; the samples job, building against the packed nupkg, is what found it.
+    /// </para>
+    /// <para>
+    /// The shape alone is not provenance: a consumer can create two directories with these names.
+    /// <see cref="OutputDirectory"/> is what anchors it.
+    /// </para>
     /// </remarks>
-    internal static bool IsGeneratedTreePath(string? filePath) =>
-        filePath is { Length: > 0 }
-        && Normalise(filePath).StartsWith(TreePathPrefix + "/", StringComparison.Ordinal);
+    internal static bool IsGeneratedTreePath(string? filePath)
+    {
+        if (filePath is not { Length: > 0 })
+        {
+            return false;
+        }
+
+        string path = Normalise(filePath);
+        string marker = TreePathPrefix + "/";
+        int at = path.LastIndexOf(marker, StringComparison.Ordinal);
+
+        if (at < 0 || (at > 0 && path[at - 1] != '/'))
+        {
+            return false;
+        }
+
+        string hint = path.Substring(at + marker.Length);
+        return hint.Length > 0 && hint.IndexOf('/') < 0;
+    }
+
+    /// <summary>
+    /// The directory this generator's output was placed in for this compilation, or null when the
+    /// generator did not run.
+    /// </summary>
+    /// <remarks>
+    /// Read from where <c>DecisionDriven.ContractAttribute</c> is declared. The generator emits that
+    /// type into every compilation at post-initialization, so wherever it is, that is where this
+    /// run's output went. A hand-written file cannot move it: declaring a second
+    /// <c>ContractAttribute</c> makes the name ambiguous, and an ambiguous name resolves to nothing.
+    /// That is what turns "a path with the right shape" into "a tree from this generator run".
+    /// </remarks>
+    internal static string? OutputDirectory(Compilation compilation)
+    {
+        if (compilation.GetTypeByMetadataName(ContractAttribute) is not { } marker
+            || marker.DeclaringSyntaxReferences.IsEmpty)
+        {
+            return null;
+        }
+
+        string path = marker.DeclaringSyntaxReferences[0].SyntaxTree.FilePath;
+
+        return IsGeneratedTreePath(path) ? DirectoryOf(path) : null;
+    }
+
+    /// <summary>The directory part of a tree path, normalised.</summary>
+    internal static string DirectoryOf(string filePath)
+    {
+        string path = Normalise(filePath);
+        int slash = path.LastIndexOf('/');
+        return slash < 0 ? string.Empty : path.Substring(0, slash);
+    }
+
+    private const string ContractAttribute = "DecisionDriven.ContractAttribute";
 
     private static string Normalise(string path) => path.Replace('\\', '/');
 

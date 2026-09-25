@@ -72,11 +72,24 @@ internal static class GeneratorHarness
         internal string Text { get; }
     }
 
-    internal static Result Run(string consumerSource, IEnumerable<LedgerFile> files, string? archLayer = null, string assemblyName = "Consumer")
+    /// <param name="baseDirectory">
+    /// Where the generator's output is rooted. Null reproduces a test driver, which names generated
+    /// trees relative to nothing; a path reproduces a real build, where the compiler roots them in
+    /// its output directory. The difference is not cosmetic: DD0007 once passed every test in the
+    /// first form and rejected every real citation in the second.
+    /// </param>
+    /// <param name="consumerPath">The consumer file's path, for tests about where a file is.</param>
+    internal static Result Run(
+        string consumerSource,
+        IEnumerable<LedgerFile> files,
+        string? archLayer = null,
+        string assemblyName = "Consumer",
+        string? baseDirectory = null,
+        string consumerPath = "")
     {
         CSharpCompilation compilation = CSharpCompilation.Create(
             assemblyName,
-            new[] { CSharpSyntaxTree.ParseText(consumerSource, new CSharpParseOptions(LanguageVersion.Latest)) },
+            new[] { CSharpSyntaxTree.ParseText(consumerSource, new CSharpParseOptions(LanguageVersion.Latest), consumerPath) },
             ReferenceAssemblies(),
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
 
@@ -95,7 +108,8 @@ internal static class GeneratorHarness
             generators: new[] { new DecisionLedgerGenerator().AsSourceGenerator() },
             additionalTexts: additional,
             parseOptions: new CSharpParseOptions(LanguageVersion.Latest),
-            optionsProvider: options);
+            optionsProvider: options,
+            driverOptions: new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, trackIncrementalGeneratorSteps: false, baseDirectory));
 
         driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out Compilation updated, out ImmutableArray<Diagnostic> diagnostics);
 
