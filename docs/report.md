@@ -53,11 +53,23 @@ lambda is credited to the type that wrote the lambda, not to its compiler-genera
 
 ## Model cohesion
 
-LCOM4 for each type in a `[DomainModel]` namespace: the number of groups its methods fall into, where
-two methods are one group when they touch a common field or one calls the other. A method that
-reaches a property through its getter touches the property's field; accessors themselves are not
-counted, and neither are the members a compiler writes for a record. A type with no methods is data
-and has no row.
+LCOM4 for each type in a `[DomainModel]` namespace. Published variants of LCOM4 differ exactly
+where a C# type has the most members, on accessors, constructors and what the compiler writes, so a
+number from another tool is not this number. This is the definition the report computes:
+
+- **Nodes** are the type's own methods, except constructors, property and event accessors, and
+  members the compiler writes (a record's equality, printing and deconstruction).
+- **Edges** join two nodes when both touch a field the type declares, or when one calls the other.
+- **Accessors are bridges, not nodes.** A method that calls an accessor counts as touching the fields
+  that accessor touches directly: for an auto-property, its backing field.
+- **LCOM4** is the number of connected components. One is a type with one responsibility; two or
+  more is a type whose methods split into groups that share nothing.
+- A type left with no nodes is data and has no row.
+
+Accessors are bridges because, counted as nodes, every property would be its own component, and a
+plain `record Quad(int A, int B)` would score two on exactly the types a `[DomainModel]` namespace is
+full of. Compiler-written members are left out because they touch every field by construction, and
+would join any type into one component.
 
 ## Citations
 

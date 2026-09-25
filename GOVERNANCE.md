@@ -39,6 +39,11 @@ the trunk produces a prerelease version. Tagging is a maintainer act. Publicatio
 from a tag through GitHub Actions with NuGet trusted publishing, so no API key is held as
 a repository secret.
 
+A tag is a request to publish, not a publish (`release-process`). The publish run first runs
+the whole check set in `.github/workflows/build.yml`, the same one every pull request runs,
+and pushes only the packages that run built and tested, once every check has passed and the
+`nuget` environment's approval is given. Nothing in the publish job builds or packs.
+
 ## Branch rulesets on `main`
 
 `main` is protected by two rulesets rather than one. They are separate because they have

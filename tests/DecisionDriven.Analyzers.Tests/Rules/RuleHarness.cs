@@ -213,7 +213,7 @@ internal static class RuleHarness
         + "namespace DecisionDriven { internal sealed class ArchLayerAttribute : global::System.Attribute { "
         + "public ArchLayerAttribute(int layer) { Layer = layer; } public int Layer { get; } } }";
 
-    private static IEnumerable<MetadataReference> PlatformReferences()
+    internal static IEnumerable<MetadataReference> PlatformReferences()
     {
         string trusted = (string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!;
 
