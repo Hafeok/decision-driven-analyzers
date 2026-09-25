@@ -135,6 +135,28 @@ The N-Triples path is implemented and has no producer yet: a file tagged
 Id families: `DD` for Roslyn analyzers, `DDBUILD` for build-target checks, `DDGEN` for generator
 diagnostics.
 
+### Decisions
+
+Every rule, attribute and tool here is a decision in [`docs/decisions/`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions), one set per file,
+all unaccepted (see [Status](#status)).
+
+| Set | Decides |
+| --- | --- |
+| [`rule-tiers`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/rule-tiers.md) | What a rule is, its tier, and what it ships with |
+| [`two-packages`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/two-packages.md) | This package and a product package: ids, configuration, code fixes, development-time only |
+| [`build-time-dependencies`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/build-time-dependencies.md) | The Roslyn pin, the test harness, versions from git tags |
+| [`decisions-as-types`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/decisions-as-types.md) | The ledger as source, the generator as read model, citations as type references |
+| [`diagnostic-messages`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/diagnostic-messages.md) | The finding, `Decide:` with both paths, and the guard sentence |
+| [`stable-dependency-rules`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/stable-dependency-rules.md) | Layers, `InternalsVisibleTo`, service location (DD0001-DD0003) |
+| [`static-state`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/static-state.md) | No mutable static state (DD0004) |
+| [`names-and-namespaces`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/names-and-namespaces.md) | Grab-bag names and root namespaces (DD0005, DD0006) |
+| [`contracts`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/contracts.md) | `[Contract]`, its vocabulary and its parameters (DD0009-DD0012) |
+| [`primitive-free-surfaces`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/primitive-free-surfaces.md) | Wrappers instead of naked primitives, and flag arguments (DD0013-DD0016) |
+| [`hierarchies`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/hierarchies.md) | Closed hierarchies and stubs (DD0017, DD0018) |
+| [`immutable-model`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/immutable-model.md) | An immutable domain model, with builders as the escape hatch (DD0019) |
+| [`whole-graph-report`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/whole-graph-report.md) | What `DecisionDriven.Report` computes, and that none of it gates |
+| [`release-process`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/release-process.md) | A published package is the tested package, and a tag publishes only through the checks |
+
 Whole-graph metrics — instability, abstractness, contract divergence, LCOM4 — are not rules. They
 belong to `DecisionDriven.Report`, and nothing gates on them until a decision names a threshold and
 the baseline it was measured against. See

@@ -28,6 +28,16 @@ name: publish
 #
 # A policy on a repository that has never published starts out active for seven days only;
 # the first successful publish is what makes it permanent.
+#
+# What gets published, and when (docs/decisions/release-process.md):
+#
+#   ReleaseProcess.PublishedBytesAreTestedBytes - the files pushed are the `packages` artifact
+#   build.yml uploaded in this run, after every check in it passed on those files. Nothing here
+#   builds or packs; a repack would produce bytes the samples job never saw.
+#
+#   ReleaseProcess.TagPublishesOnlyThroughGate - a v* tag starts this run, and the push job
+#   waits for the whole of build.yml and then for the `nuget` environment's approval. A tag is
+#   a request to publish, not a publish.
 
 on:
   push:
@@ -51,9 +61,17 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
+  checks:
+    name: checks
+    # The same check set ci.yml runs, on the commit being published, in this run. A green CI
+    # run on the same commit elsewhere is not a substitute: its artifacts are not this run's,
+    # and nothing would stop a tag pushed before that run finished.
+    uses: ./.github/workflows/build.yml
+
   publish:
     name: publish
     runs-on: ubuntu-latest
+    needs: [checks]
 
     environment:
       name: nuget
@@ -73,33 +91,44 @@ jobs:
           echo 'Re-run with the confirmation field set to "publish".'
           exit 1
 
-      - name: Check out
+      - name: Check out global.json
+        # Only to pin the SDK that runs `dotnet nuget push`. No source is checked out, so there
+        # is nothing here that could be built.
         uses: actions/checkout@v7
         with:
-          # MinVer reads the tags to decide whether this is a release or a prerelease.
-          fetch-depth: 0
+          sparse-checkout: global.json
+          sparse-checkout-cone-mode: false
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
 
-      - name: Build
-        run: dotnet build DecisionDriven.slnx --configuration Release
-
-      - name: Test
-        # A tag does not make a red build green. The same tests that gate a pull request
-        # gate a release.
-        run: dotnet test DecisionDriven.slnx --configuration Release --no-build
-
-      - name: Pack
-        # No --no-build: the analyzer project builds the code-fixes project in order to pack it,
-        # and NoBuild forbids invoking Build on a project reference (NETSDK1085). Everything is
-        # already up to date from the step above, so this is incremental rather than a rebuild.
-        run: dotnet pack DecisionDriven.slnx --configuration Release --output artifacts/packages
+      - name: Download the packages the checks tested
+        # ReleaseProcess.PublishedBytesAreTestedBytes: the artifact build.yml's build job uploaded
+        # and its samples job installed, from this run.
+        uses: actions/download-artifact@v7
+        with:
+          name: packages
+          path: artifacts/packages
 
       - name: Report what is about to be published
-        run: ls -l artifacts/packages
+        shell: bash
+        run: |
+          ls -l artifacts/packages
+          sha256sum artifacts/packages/*
+
+          # A tag names the version it publishes. MinVer derived the packages' version from the
+          # same tag, so a mismatch means the artifact is not what the tag asked for.
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            version="${GITHUB_REF_NAME#v}"
+            for package in DecisionDriven.Analyzers DecisionDriven.Report; do
+              if [ ! -f "artifacts/packages/$package.$version.nupkg" ]; then
+                echo "Tag $GITHUB_REF_NAME names $version, and there is no $package.$version.nupkg."
+                exit 1
+              fi
+            done
+          fi
 
       - name: Authenticate to NuGet
         # Exchanges the OIDC token for a temporary API key. The policy is owned by the
@@ -113,17 +142,10 @@ jobs:
           user: hafeok
 
       - name: Push
+        # The run's `packages` artifact is the record of what was published; there is no
+        # separate upload of it.
         run: |
           dotnet nuget push "artifacts/packages/*.nupkg" \
             --source https://api.nuget.org/v3/index.json \
             --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" \
             --skip-duplicate
-
-      - name: Upload the published packages
-        uses: actions/upload-artifact@v7
-        with:
-          name: published-packages
-          path: |
-            artifacts/packages/*.nupkg
-            artifacts/packages/*.snupkg
-          if-no-files-found: error

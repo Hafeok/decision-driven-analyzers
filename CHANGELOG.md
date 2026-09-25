@@ -11,6 +11,14 @@ consumer that builds with warnings as errors, and are recorded as such.
 
 ## [Unreleased]
 
+### Changed
+
+- **A published package is the tested package.** Publishing used to rebuild and repack from the
+  tag, and a tag push published without waiting for CI; `0.1.0-preview.2` was pushed while CI on
+  its commit was still running, as bytes the samples job never saw. The publish run now runs the
+  full check set first and pushes the packages that run built and tested, and only once every check
+  has passed and the `nuget` environment's approval is given (`release-process`).
+
 ## [0.1.0-preview.2] - 2026-09-25
 
 The third prerelease: the evidence that the package works as a package, the three defects that
