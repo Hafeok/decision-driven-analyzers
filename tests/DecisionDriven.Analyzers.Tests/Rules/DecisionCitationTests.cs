@@ -93,7 +93,7 @@ public sealed class DecisionCitationTests
                 + Contract("global::DecisionDriven.Ledger.SampleNs.Forged.NotFromTheLedger", "\"store read side\"")
                 + " public interface IQuadSource { } }",
             baseDirectory: RealBuildOutput,
-            consumerPath: "/src/Consumer/DecisionDriven.Analyzers/DecisionDriven.Analyzers.DecisionLedgerGenerator/Forged.cs")));
+            consumerPath: ForgedFile)));
 
         Assert.Contains("did not come out of a generator run", diagnostic.GetMessage(), System.StringComparison.Ordinal);
     }
@@ -257,8 +257,23 @@ public sealed class DecisionCitationTests
 
     private static ImmutableArray<Diagnostic> Run(string source) => Analyze(Generate(source));
 
-    /// <summary>Where a real build roots generator output: the compiler's output directory.</summary>
-    private const string RealBuildOutput = "/build/Consumer/obj/Release/net10.0";
+    /// <summary>
+    /// Where a real build roots generator output: the compiler's output directory. Built from the
+    /// platform's temp path so it is absolute everywhere - Roslyn rejects a relative base, and on
+    /// Windows "/build/..." is not absolute - and so the Windows leg runs this rule over backslashed
+    /// paths, which is what a real Windows build hands it.
+    /// </summary>
+    private static readonly string RealBuildOutput =
+        System.IO.Path.Combine(System.IO.Path.GetTempPath(), "build", "Consumer", "obj", "Release", "net10.0");
+
+    /// <summary>Two directories named after the generator, somewhere a consumer can create them.</summary>
+    private static readonly string ForgedFile = System.IO.Path.Combine(
+        System.IO.Path.GetTempPath(),
+        "src",
+        "Consumer",
+        "DecisionDriven.Analyzers",
+        "DecisionDriven.Analyzers.DecisionLedgerGenerator",
+        "Forged.cs");
 
     private static GeneratorHarness.Result Generate(string source, string? baseDirectory = null, string consumerPath = "") =>
         GeneratorHarness.Run(
