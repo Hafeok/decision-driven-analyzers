@@ -45,6 +45,13 @@
   -->
   <ItemGroup>
     <CompilerVisibleProperty Include="IntermediateOutputPath" />
+    <!--
+      Where NuGet restored packages to. A package's contentFiles are compiled into the consuming
+      project from here (a test framework's entry-point helpers, for one), and they are the package
+      author's code, not the consumer's: RuleTiers.GeneratedCodeIsExempt counts them with generated
+      code, so DD0008 does not ask the consumer to delete a header in a file they cannot edit.
+    -->
+    <CompilerVisibleProperty Include="NuGetPackageRoot" />
   </ItemGroup>
 
   <!--
