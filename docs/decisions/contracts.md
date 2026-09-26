@@ -6,7 +6,7 @@ decisions:
   - key: ContractsCarryAttribute
     statement: "DD0009: every public interface, abstract class and delegate in a layered project carries Contract citing a decision, with no member-count threshold"
   - key: ContractVocabularyAllowList
-    statement: "DD0010: types on contract signatures come from the BCL, the assembly DomainModel namespaces, ArchContractTypeAssemblies, or are themselves Contract-marked"
+    statement: "DD0010: types on contract signatures come from the BCL, the assembly DomainModel namespaces, ArchContractTypeAssemblies, or are themselves Contract-marked. Only an interface, class or delegate can be Contract-marked; a struct or an enum is data, and the only answer for one of this assembly is a DomainModel namespace"
   - key: DataVersusCollaboratorParameters
     statement: "DD0011: contract parameters are model types, delegates, spans, CancellationToken, enums, type parameters or Contract-marked types; ad-hoc interface parameters and object are errors"
   - key: NoNotSupportedFromContractMember
