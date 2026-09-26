@@ -65,6 +65,13 @@ it; see below.
   The copy constructor is now set aside when deciding closedness
   (`Hierarchies.ClosedHierarchiesAreSealed`, amended; the narrow door it leaves is stated on the
   rule page) ([#54](https://github.com/Hafeok/decision-driven-analyzers/issues/54)).
+- **`DD0013`, `DD0014`, `DD0015`, `DD0016` and `DD0019`** read a model type's visibility from its
+  declaration alone, so `public` members of a `private` nested record, or of an `internal` class, in
+  a `[DomainModel]` namespace were reported as model surface, and DD0019 checked a `public` type
+  nested inside an internal one. A model type is now one that is externally visible: it and every
+  type containing it public (`PrimitiveFreeSurfaces.NoNakedPrimitivesOnModelAndContract` and
+  `ImmutableModel.DomainModelImmutable`, amended)
+  ([#62](https://github.com/Hafeok/decision-driven-analyzers/issues/62)).
 
 ## [0.1.0-preview.2] - 2026-09-25
 

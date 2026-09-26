@@ -134,6 +134,32 @@ public sealed class PrimitiveSurfaceTests
     }
 
     [Fact]
+    public void A_public_member_of_a_private_nested_model_type_is_not_in_scope()
+    {
+        // Public so that the container can reach it; nobody outside can name the type.
+        Assert.Empty(Model(
+            "public sealed class Outer { "
+            + "private readonly record struct Pair(int Left, int Right); "
+            + "private struct Slot { public int Index; public int Length { get; set; } } "
+            + "internal int Sum() => new Pair(1, 2).Left; }"));
+    }
+
+    [Fact]
+    public void A_public_member_of_an_internal_model_type_is_not_in_scope()
+    {
+        Assert.Empty(Model("internal sealed class Product { public string Name => string.Empty; }"));
+    }
+
+    [Fact]
+    public void A_public_member_of_a_public_nested_model_type_is_in_scope()
+    {
+        Diagnostic diagnostic = Assert.Single(Model(
+            "public sealed class Outer { public sealed class Inner { public string Name => string.Empty; } }"));
+
+        Assert.Contains("'Inner.Name'", diagnostic.GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_type_outside_the_model_and_outside_a_contract_is_not_in_scope()
     {
         Assert.Empty(Run("namespace Consumer.Scratch { public sealed class Thing { public long Value => 0; } }"));

@@ -101,6 +101,13 @@ public sealed class ImmutableModelTests
     }
 
     [Fact]
+    public void A_public_type_nested_in_an_internal_one_is_not_checked()
+    {
+        // Declared public, reachable by nobody outside: effective visibility, not the keyword.
+        Assert.Empty(Run("internal sealed class Store { public sealed class Quad { public int Count { get; set; } } }"));
+    }
+
+    [Fact]
     public void The_message_is_exactly_this()
     {
         // DiagnosticMessages.ExactMessageTested.
