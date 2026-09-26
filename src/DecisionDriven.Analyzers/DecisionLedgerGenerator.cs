@@ -145,8 +145,8 @@ public sealed class DecisionLedgerGenerator : IIncrementalGenerator
     }
 
     /// <summary>
-    /// The three things about a key that make a citation meaningful: it is an identifier, it is
-    /// unique in its namespace, and it did not change between versions.
+    /// The four things about a key that make a citation meaningful: it is an identifier, it is
+    /// unique in its namespace, it can be emitted in its set, and it did not change between versions.
     /// </summary>
     private static void Validate(SourceProductionContext context, Dictionary<string, LedgerNamespace> namespaces)
     {
@@ -195,6 +195,18 @@ public sealed class DecisionLedgerGenerator : IIncrementalGenerator
                         key,
                         namespaceName));
                     continue;
+                }
+
+                if (tip.SetId is { Length: > 0 } setId
+                    && DecisionKey.CollidingGeneratedMember(key, setId) is { } member)
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        LedgerDiagnostics.KeyCollidesWithGeneratedMember,
+                        Location.None,
+                        key,
+                        setId,
+                        namespaceName,
+                        member));
                 }
 
                 if (keyOwners.TryGetValue(key, out string? owner))

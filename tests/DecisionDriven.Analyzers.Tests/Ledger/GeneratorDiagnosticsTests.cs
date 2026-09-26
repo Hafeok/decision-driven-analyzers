@@ -162,4 +162,65 @@ public sealed class GeneratorDiagnosticsTests
 
         Assert.Null(result.GeneratedSource("DecisionDriven.Ledger.SampleNs.g.cs"));
     }
+
+    [Theory]
+    [InlineData("catalog-is-read-only", "CatalogIsReadOnly", "CatalogIsReadOnly")]
+    [InlineData("catalog-is-read-only", "SetId", "SetId")]
+    public void A_key_that_collides_with_a_generated_member_is_an_error_and_not_emitted(string setId, string key, string member)
+    {
+        // The shape a real ledger met: a set named for its ADR's title and a decision named for
+        // the same sentence. Before DDGEN0005 this compiled to a nested class named like its
+        // enclosing class, and every consuming project failed with CS0542 inside generated code.
+        string text = TwoDecisions(setId, key, "KeepsTheRestCompiling");
+
+        GeneratorHarness.Result result = GeneratorHarness.Run(Empty, new[] { LedgerInput.AsSet(text) });
+
+        Diagnostic diagnostic = Assert.Single(result.GeneratorDiagnostics.Where(d => d.Id == "DDGEN0005"));
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Contains(member, diagnostic.GetMessage(), StringComparison.Ordinal);
+
+        // The colliding decision is left out and the rest of the set is emitted and compiles.
+        Assert.Empty(result.CompilationDiagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+        string source = Assert.IsType<string>(result.GeneratedSource("DecisionDriven.Ledger.SampleNs.g.cs"));
+        Assert.Contains("public static class KeepsTheRestCompiling", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("public static class " + key + "\n", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_key_that_merely_starts_like_its_set_is_fine()
+    {
+        // Only exact equality collides. A key sharing its set's words is the ordinary case.
+        string text = TwoDecisions("catalog-is-read-only", "CatalogIsReadOnlyForever", "SetIdentity");
+
+        GeneratorHarness.Result result = GeneratorHarness.Run(Empty, new[] { LedgerInput.AsSet(text) });
+
+        Assert.Empty(result.GeneratorDiagnostics.Where(d => d.Id == "DDGEN0005"));
+        Assert.Empty(result.CompilationDiagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+    }
+
+    [Fact]
+    public void The_key_collision_message_is_exact()
+    {
+        string text = TwoDecisions("catalog-is-read-only", "CatalogIsReadOnly", "KeepsTheRestCompiling");
+
+        GeneratorHarness.Result result = GeneratorHarness.Run(Empty, new[] { LedgerInput.AsSet(text) });
+
+        Diagnostic diagnostic = Assert.Single(result.GeneratorDiagnostics.Where(d => d.Id == "DDGEN0005"));
+        Assert.Equal(
+            "Decision key 'CatalogIsReadOnly' in set 'catalog-is-read-only' of ledger namespace 'sample-ns' collides with 'CatalogIsReadOnly', which the generator emits for the set, so the decision cannot be emitted. "
+                + "Decide: rename the key, or move the decision to a set whose class name it does not repeat. "
+                + "A key becomes a type nested in its set's class, and C# allows neither a member named like its enclosing type nor two members of one name.",
+            diagnostic.GetMessage());
+    }
+
+    private static string TwoDecisions(string setId, string firstKey, string secondKey) =>
+        "---" + Environment.NewLine
+        + "set: " + setId + Environment.NewLine
+        + "namespace: " + LedgerInput.Namespace + Environment.NewLine
+        + "decisions:" + Environment.NewLine
+        + "  - key: " + firstKey + Environment.NewLine
+        + "    statement: \"The first.\"" + Environment.NewLine
+        + "  - key: " + secondKey + Environment.NewLine
+        + "    statement: \"The second.\"" + Environment.NewLine
+        + "---" + Environment.NewLine;
 }

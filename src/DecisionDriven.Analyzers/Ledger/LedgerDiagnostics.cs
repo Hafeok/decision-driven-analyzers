@@ -64,6 +64,25 @@ internal static class LedgerDiagnostics
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    /// <summary>A key the generator cannot emit because it would collide with a member it emits.</summary>
+    /// <remarks>
+    /// <c>DecisionsAsTypes.OneTypePerSetNestedTypePerDecision</c> makes a set a static class named by
+    /// PascalCasing its id, carrying a <c>SetId</c> constant, and each key a class nested in it. A key
+    /// equal to the set's class name is a member named like its enclosing type (CS0542), and a key
+    /// equal to <c>SetId</c> is a second member of that name (CS0102). Either fails every consuming
+    /// compilation inside generated code the consumer never wrote, so it is reported here, against the
+    /// ledger, and the decision is not emitted.
+    /// </remarks>
+    internal static readonly DiagnosticDescriptor KeyCollidesWithGeneratedMember = new DiagnosticDescriptor(
+        id: "DDGEN0005",
+        title: "Decision key collides with a member the generator emits",
+        messageFormat: "Decision key '{0}' in set '{1}' of ledger namespace '{2}' collides with '{3}', which the generator emits for the set, so the decision cannot be emitted. "
+            + "Decide: rename the key, or move the decision to a set whose class name it does not repeat. "
+            + "A key becomes a type nested in its set's class, and C# allows neither a member named like its enclosing type nor two members of one name.",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     /// <summary>A line of the N-Triples export that is not a triple.</summary>
     internal static readonly DiagnosticDescriptor UnparseableLine = new DiagnosticDescriptor(
         id: "DDGEN0004",

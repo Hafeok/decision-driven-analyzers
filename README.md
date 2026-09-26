@@ -99,7 +99,8 @@ decisions:
 ```
 
 Set ids are lowercase alphanumerics, dashes and dots. Keys are unique per namespace across all set
-files; a key claimed twice is `DDGEN0001`.
+files; a key claimed twice is `DDGEN0001`. A key may not repeat its set's class name, or be
+`SetId`, which the generated set class already declares (`DDGEN0005`).
 
 The N-Triples path is implemented and has no producer yet: a file tagged
 `DdLedger="ledger-export"` is read as the ledger's export, and nothing emits one today. See
@@ -130,7 +131,7 @@ The N-Triples path is implemented and has no producer yet: a file tagged
 | [DD0019](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0019.md) | 1 | Public domain model types are immutable | shipped |
 | [DDBUILD0001](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DDBUILD0001.md) | 1 | The Roslyn pin matches the floor the analyzers declare | shipped |
 | [DDBUILD0002](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DDBUILD0002.md) | 1 | The package carries its code-fixes assembly | shipped |
-| [DDGEN0001-0004](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/ledger-input.md) | — | The decision input is well formed | shipped |
+| [DDGEN0001-0005](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/ledger-input.md) | — | The decision input is well formed | shipped |
 
 Id families: `DD` for Roslyn analyzers, `DDBUILD` for build-target checks, `DDGEN` for generator
 diagnostics.
