@@ -74,6 +74,45 @@ public sealed class HierarchyTests
     }
 
     [Fact]
+    public void An_abstract_record_with_a_private_protected_constructor_and_sealed_leaves_is_closed()
+    {
+        // The case a consumer met: a query algebra of abstract record bases with private protected
+        // constructors and sealed record leaves. The compiler adds a protected copy constructor to
+        // every non-sealed record and forbids declaring it narrower (CS8878), so before the copy
+        // constructor was set aside this hierarchy could never be closed.
+        Assert.Empty(Switch(
+            "public abstract record Pattern { private protected Pattern() { } } "
+            + "public sealed record Join(Pattern Left, Pattern Right) : Pattern; "
+            + "public sealed record Union(Pattern Left, Pattern Right) : Pattern; "
+            + "public static class Eval { public static int Of(Pattern p) => "
+            + "p switch { Join => 1, Union => 2, _ => 0 }; }"));
+    }
+
+    [Fact]
+    public void An_abstract_record_with_no_declared_constructor_is_still_open()
+    {
+        // Setting the copy constructor aside does not close a record by itself: without a narrower
+        // constructor, the implicit one is protected and anyone can derive.
+        Assert.Single(Switch(
+            "public abstract record Pattern; "
+            + "public sealed record Join(Pattern Left, Pattern Right) : Pattern; "
+            + "public sealed record Union(Pattern Left, Pattern Right) : Pattern; "
+            + "public static class Eval { public static int Of(Pattern p) => "
+            + "p switch { Join => 1, Union => 2, _ => 0 }; }"));
+    }
+
+    [Fact]
+    public void An_abstract_record_with_an_unsealed_record_leaf_is_still_open()
+    {
+        Assert.Single(Switch(
+            "public abstract record Pattern { private protected Pattern() { } } "
+            + "public record Join(Pattern Left, Pattern Right) : Pattern; "
+            + "public sealed record Union(Pattern Left, Pattern Right) : Pattern; "
+            + "public static class Eval { public static int Of(Pattern p) => "
+            + "p switch { Join => 1, Union => 2, _ => 0 }; }"));
+    }
+
+    [Fact]
     public void An_internal_base_with_sealed_leaves_is_closed()
     {
         // Nobody outside the assembly can derive from a type they cannot name, whatever its
