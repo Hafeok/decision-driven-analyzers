@@ -13,8 +13,11 @@ namespace DecisionDriven.Analyzers.Rules;
 /// <para>
 /// <c>RuleTiers.GeneratedCodeIsExempt</c>. A tree is generated when a source generator produced it
 /// in this compilation, when its file is named <c>*.g.cs</c>, <c>*.generated.cs</c> or
-/// <c>*.designer.cs</c>, or when it lies in the project's intermediate output directory, where build
-/// tasks write the files they generate (<c>AssemblyInfo.cs</c>, a test platform's entry point).
+/// <c>*.designer.cs</c>, when it lies in the project's intermediate output directory, where build
+/// tasks write the files they generate (<c>AssemblyInfo.cs</c>, a test platform's entry point), or
+/// when it lies under the NuGet package root, where a package's content files are compiled from.
+/// The last is not generated in the usual sense, but it is the same case: the code is its author's,
+/// not the consumer's, and the consumer cannot edit it.
 /// </para>
 /// <para>
 /// Roslyn's own definition is wider: it also takes an <c>&lt;auto-generated&gt;</c> header,
@@ -36,6 +39,9 @@ internal sealed class GeneratedCode
 
     private const string ProjectDirOption = "build_property.ProjectDir";
 
+    /// <summary>Made visible to the analyzers by the package's props.</summary>
+    private const string NuGetPackageRootOption = "build_property.NuGetPackageRoot";
+
     private static readonly string[] GeneratedNameSuffixes = { ".g.cs", ".generated.cs", ".designer.cs" };
 
     /// <summary>
@@ -47,15 +53,19 @@ internal sealed class GeneratedCode
     /// <summary>The project's intermediate output directory, ending in a slash, or null.</summary>
     private readonly string? intermediateDirectory;
 
-    private GeneratedCode(string? generatorRoot, string? intermediateDirectory)
+    /// <summary>The NuGet package root, ending in a slash, or null when it is not known.</summary>
+    private readonly string? packageRoot;
+
+    private GeneratedCode(string? generatorRoot, string? intermediateDirectory, string? packageRoot)
     {
         this.generatorRoot = generatorRoot;
         this.intermediateDirectory = intermediateDirectory;
+        this.packageRoot = packageRoot;
     }
 
     /// <summary>The definition as it applies to <paramref name="compilation"/>.</summary>
     internal static GeneratedCode For(Compilation compilation, AnalyzerConfigOptions globalOptions) =>
-        new GeneratedCode(GeneratorRoot(compilation), IntermediateDirectory(globalOptions));
+        new GeneratedCode(GeneratorRoot(compilation), IntermediateDirectory(globalOptions), PackageRoot(globalOptions));
 
     /// <summary>True when <paramref name="tree"/> is generated code by this package's definition.</summary>
     internal bool Contains(SyntaxTree tree)
@@ -63,7 +73,10 @@ internal sealed class GeneratedCode
         string path = Normalise(tree.FilePath);
 
         return path.Length > 0
-            && (IsNamedGenerated(path) || IsGeneratorOutput(path) || IsIn(path, intermediateDirectory));
+            && (IsNamedGenerated(path)
+                || IsGeneratorOutput(path)
+                || IsIn(path, intermediateDirectory)
+                || IsIn(path, packageRoot));
     }
 
     /// <summary>True when the file's name marks it as generated.</summary>
@@ -171,6 +184,21 @@ internal sealed class GeneratedCode
         }
 
         return WithSlash(Collapse(path));
+    }
+
+    /// <summary>
+    /// The package root is always absolute. A relative value is not something NuGet writes, and is
+    /// ignored rather than resolved against a guess.
+    /// </summary>
+    private static string? PackageRoot(AnalyzerConfigOptions options)
+    {
+        if (!options.TryGetValue(NuGetPackageRootOption, out string? root) || root is not { Length: > 0 })
+        {
+            return null;
+        }
+
+        string path = Normalise(root.Trim());
+        return IsRooted(path) ? WithSlash(Collapse(path)) : null;
     }
 
     /// <remarks>
