@@ -59,6 +59,12 @@ it; see below.
   with generated code (`RuleTiers.GeneratedCodeIsExempt`, amended), read from `NuGetPackageRoot`,
   which the package makes visible to the analyzers
   ([#50](https://github.com/Hafeok/decision-driven-analyzers/issues/50)).
+- **`DD0017`** could never count an abstract record hierarchy as closed. The compiler gives every
+  non-sealed record a `protected` copy constructor and forbids declaring it narrower, so an abstract
+  record base with a `private protected` constructor and sealed leaves was reported on every switch.
+  The copy constructor is now set aside when deciding closedness
+  (`Hierarchies.ClosedHierarchiesAreSealed`, amended; the narrow door it leaves is stated on the
+  rule page) ([#54](https://github.com/Hafeok/decision-driven-analyzers/issues/54)).
 
 ## [0.1.0-preview.2] - 2026-09-25
 
