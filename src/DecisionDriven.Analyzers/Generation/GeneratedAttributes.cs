@@ -17,6 +17,13 @@ namespace DecisionDriven.Analyzers.Generation;
 /// which is what lets a consumer write <c>[Contract(...)]</c> in the same compilation that generates
 /// the attribute.
 /// </para>
+/// <para>
+/// Every type carries <c>[Microsoft.CodeAnalysis.Embedded]</c>, defined by the generator at
+/// post-initialization. The compiler never imports an embedded type into another compilation, so a
+/// test assembly that sees its library's internals (<c>StableDependencyRules.InternalsVisibleToTestsOnly</c>)
+/// does not see a second copy of each, which was CS0436 on every use. The rules match these types by
+/// full name on the attribute data, which embedding does not change.
+/// </para>
 /// </remarks>
 internal static class GeneratedAttributes
 {
@@ -31,6 +38,7 @@ internal static class GeneratedAttributes
 namespace DecisionDriven
 {
     /// <summary>The layer a whole assembly sits at, from the ArchLayer MSBuild property.</summary>
+    [global::Microsoft.CodeAnalysis.Embedded]
     [global::System.AttributeUsage(global::System.AttributeTargets.Assembly, AllowMultiple = false)]
     internal sealed class ArchLayerAttribute : global::System.Attribute
     {
@@ -43,6 +51,7 @@ namespace DecisionDriven
     }
 
     /// <summary>Marks a type as a contract, citing the decision that made it one.</summary>
+    [global::Microsoft.CodeAnalysis.Embedded]
     [global::System.AttributeUsage(
         global::System.AttributeTargets.Interface | global::System.AttributeTargets.Class | global::System.AttributeTargets.Delegate,
         AllowMultiple = false)]
@@ -60,6 +69,7 @@ namespace DecisionDriven
     }
 
     /// <summary>Declares a namespace prefix of this assembly to be domain model.</summary>
+    [global::Microsoft.CodeAnalysis.Embedded]
     [global::System.AttributeUsage(global::System.AttributeTargets.Assembly, AllowMultiple = true)]
     internal sealed class DomainModelAttribute : global::System.Attribute
     {
@@ -75,6 +85,7 @@ namespace DecisionDriven
     }
 
     /// <summary>Marks code whose cost is measured, citing the decision that says so.</summary>
+    [global::Microsoft.CodeAnalysis.Embedded]
     [global::System.AttributeUsage(
         global::System.AttributeTargets.Method | global::System.AttributeTargets.Property
             | global::System.AttributeTargets.Class | global::System.AttributeTargets.Struct,
@@ -93,6 +104,7 @@ namespace DecisionDriven
     /// The only way to accept a violation of a DD rule. Cites the decision that permits it and says
     /// which kind of exception it is.
     /// </summary>
+    [global::Microsoft.CodeAnalysis.Embedded]
     [global::System.AttributeUsage(global::System.AttributeTargets.All, AllowMultiple = true)]
     internal sealed class DesignDecisionAttribute : global::System.Attribute
     {
@@ -111,6 +123,7 @@ namespace DecisionDriven
     /// reason is a justification nobody reads, and these six mirror a SKOS scheme in the ledger so
     /// the report tool emits the same tokens.
     /// </summary>
+    [global::Microsoft.CodeAnalysis.Embedded]
     internal enum ExceptionScope
     {
         Boundary,

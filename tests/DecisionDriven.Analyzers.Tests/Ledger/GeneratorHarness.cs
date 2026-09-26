@@ -79,18 +79,20 @@ internal static class GeneratorHarness
     /// first form and rejected every real citation in the second.
     /// </param>
     /// <param name="consumerPath">The consumer file's path, for tests about where a file is.</param>
+    /// <param name="references">Further references, for a consumer of another generated assembly.</param>
     internal static Result Run(
         string consumerSource,
         IEnumerable<LedgerFile> files,
         string? archLayer = null,
         string assemblyName = "Consumer",
         string? baseDirectory = null,
-        string consumerPath = "")
+        string consumerPath = "",
+        IEnumerable<MetadataReference>? references = null)
     {
         CSharpCompilation compilation = CSharpCompilation.Create(
             assemblyName,
             new[] { CSharpSyntaxTree.ParseText(consumerSource, new CSharpParseOptions(LanguageVersion.Latest), consumerPath) },
-            ReferenceAssemblies(),
+            references is null ? ReferenceAssemblies() : ReferenceAssemblies().Concat(references),
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
 
         List<AdditionalText> additional = new List<AdditionalText>();

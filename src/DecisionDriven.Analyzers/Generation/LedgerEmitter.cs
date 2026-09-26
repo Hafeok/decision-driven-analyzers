@@ -111,6 +111,9 @@ internal static class LedgerEmitter
     {
         builder.Append("    /// <summary>Decision set <c>").Append(EscapeXml(setId)).Append("</c>.</summary>\n");
         AppendGeneratedCode(builder, "    ");
+        // Embedded, like the attributes: a compilation that sees this one's internals must not see a
+        // second copy of the set, or every citation there is CS0436.
+        builder.Append("    [global::Microsoft.CodeAnalysis.Embedded]\n");
         builder.Append("    internal static class ").Append(Identifiers.ToPascalCase(setId)).Append('\n');
         builder.Append("    {\n");
         builder.Append("        /// <summary>The set id as written in the ledger.</summary>\n");
