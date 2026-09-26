@@ -172,6 +172,32 @@ public sealed class WrapperAndFlagTests
     }
 
     [Fact]
+    public void A_positional_record_marked_with_DesignDecision_is_not_warned_about()
+    {
+        // The primary constructor owns the bool and cannot carry an attribute, so the type does.
+        Assert.Empty(RuleHarness.Run(
+            new FlagArgumentAnalyzer(),
+            File("namespace Consumer.Model { "
+                + "[global::DecisionDriven.DesignDecision(" + ContractSource.Decision
+                + ", Scope = global::DecisionDriven.ExceptionScope.Boundary)] "
+                + "public sealed record Load(string Source, bool Silent); }"),
+            assemblyName: "Consumer",
+            archLayer: 1));
+    }
+
+    [Fact]
+    public void A_positional_record_without_a_citation_is_warned_about()
+    {
+        Diagnostic diagnostic = Assert.Single(RuleHarness.Run(
+            new FlagArgumentAnalyzer(),
+            File("namespace Consumer.Model { public sealed record Load(string Source, bool Silent); }"),
+            assemblyName: "Consumer",
+            archLayer: 1));
+
+        Assert.Contains("'Silent'", diagnostic.GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_flag_argument_message_is_exactly_this()
     {
         // DiagnosticMessages.ExactMessageTested.
