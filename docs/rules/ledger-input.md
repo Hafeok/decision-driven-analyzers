@@ -134,3 +134,9 @@ is a C# identifier. Both are PascalCased: `build-time-dependencies` is `BuildTim
 namespace `ddd-analyzers` gives `DecisionDriven.Ledger.DddAnalyzers`. Decision keys are **not**
 transformed — their syntax already makes them identifiers, and changing one would break the citation
 it exists to carry.
+
+That is why a key must not equal its set's PascalCased id, nor `SetId`: the set is a static class of
+that name declaring a `SetId` constant, and a nested type named like its enclosing type (CS0542) or
+like a sibling member (CS0102) is not valid C#. The generator reports such a key as `DDGEN0005`
+against the ledger, and leaves that decision out so that the rest of the namespace still compiles,
+rather than emitting code the compiler rejects in a file the consumer never wrote.

@@ -39,4 +39,28 @@ internal static class DecisionKey
 
         return true;
     }
+
+    /// <summary>The name of the constant the generator emits in every set's class.</summary>
+    internal const string SetIdMember = "SetId";
+
+    /// <summary>
+    /// The member of the set's generated class a key would collide with, or <see langword="null"/>
+    /// if it collides with none.
+    /// </summary>
+    /// <remarks>
+    /// The set's class is named by <see cref="Identifiers.ToPascalCase"/> of its id and carries
+    /// <see cref="SetIdMember"/>. A nested type named like either is not valid C# (CS0542, CS0102),
+    /// which is <c>DDGEN0005</c>.
+    /// </remarks>
+    internal static string? CollidingGeneratedMember(string key, string setId)
+    {
+        string setClass = Identifiers.ToPascalCase(setId);
+
+        if (key == setClass)
+        {
+            return setClass;
+        }
+
+        return key == SetIdMember ? SetIdMember : null;
+    }
 }

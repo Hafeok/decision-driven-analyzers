@@ -58,6 +58,13 @@ internal static class LedgerEmitter
                 continue;
             }
 
+            // DDGEN0005 has reported it. Emitting it would put a CS0542 or CS0102 inside generated
+            // code, which takes every other type in the file down with it.
+            if (DecisionKey.CollidingGeneratedMember(key, setId) is not null)
+            {
+                continue;
+            }
+
             if (!bySet.TryGetValue(setId, out SortedDictionary<string, Decision>? decisions))
             {
                 decisions = new SortedDictionary<string, Decision>(System.StringComparer.Ordinal);
@@ -107,7 +114,7 @@ internal static class LedgerEmitter
         builder.Append("    internal static class ").Append(Identifiers.ToPascalCase(setId)).Append('\n');
         builder.Append("    {\n");
         builder.Append("        /// <summary>The set id as written in the ledger.</summary>\n");
-        builder.Append("        public const string SetId = \"").Append(EscapeLiteral(setId)).Append("\";\n");
+        builder.Append("        public const string ").Append(DecisionKey.SetIdMember).Append(" = \"").Append(EscapeLiteral(setId)).Append("\";\n");
 
         foreach (KeyValuePair<string, Decision> pair in decisions)
         {
