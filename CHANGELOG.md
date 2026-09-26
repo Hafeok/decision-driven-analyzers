@@ -47,6 +47,12 @@ it; see below.
   ledger and leaves that one decision out, so the rest of the namespace still compiles
   ([#52](https://github.com/Hafeok/decision-driven-analyzers/issues/52)). **Breaking** for a ledger
   that has such a key: the build fails with `DDGEN0005` instead of `CS0542`.
+- **Generated types collided across `InternalsVisibleTo`** (CS0436). Every compilation gets its own
+  `internal` copy of the attributes, `ExceptionScope` and the decision types, so a test assembly that
+  sees its library's internals saw two of each, and the compiler warned on every use, an error under
+  warnings as errors. Every generated type is now `[Microsoft.CodeAnalysis.Embedded]`, which the
+  compiler never imports into another compilation. Rules still match the attributes by full name
+  ([#51](https://github.com/Hafeok/decision-driven-analyzers/issues/51)).
 
 ## [0.1.0-preview.2] - 2026-09-25
 

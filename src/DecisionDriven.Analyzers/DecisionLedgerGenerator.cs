@@ -38,7 +38,12 @@ public sealed class DecisionLedgerGenerator : IIncrementalGenerator
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         context.RegisterPostInitializationOutput(static ctx =>
-            ctx.AddSource(GeneratedAttributes.HintName, SourceText.From(GeneratedAttributes.Text, System.Text.Encoding.UTF8)));
+        {
+            // Every generated type is [Embedded], so no other compilation imports it. The definition
+            // is Roslyn's own, shared with any other generator that asks for it.
+            ctx.AddEmbeddedAttributeDefinition();
+            ctx.AddSource(GeneratedAttributes.HintName, SourceText.From(GeneratedAttributes.Text, System.Text.Encoding.UTF8));
+        });
 
         IncrementalValuesProvider<LedgerInput> ledgerFiles = context.AdditionalTextsProvider
             .Combine(context.AnalyzerConfigOptionsProvider)
