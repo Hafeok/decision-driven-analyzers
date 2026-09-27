@@ -107,6 +107,45 @@ public sealed class PrimitiveSurfaceTests
     }
 
     [Fact]
+    public void A_signature_the_framework_chose_is_not_reported()
+    {
+        // PrimitiveFreeSurfaces.BoundaryMembersExempt, amended. Equals(object), GetHashCode and
+        // ToString belong to object, CompareTo to IComparable<T>; no wrapper can replace the int.
+        Assert.Empty(Model(
+            "public readonly struct Mark : System.IEquatable<Mark>, System.IComparable<Mark> { "
+            + "private readonly byte _kind; "
+            + "public bool Equals(Mark other) => _kind == other._kind; "
+            + "public override bool Equals(object? obj) => obj is Mark other && Equals(other); "
+            + "public override int GetHashCode() => _kind; "
+            + "public override string ToString() => \"mark\"; "
+            + "public int CompareTo(Mark other) => _kind.CompareTo(other._kind); }"));
+    }
+
+    [Fact]
+    public void An_implementation_of_an_interface_declared_here_is_still_reported()
+    {
+        // Here the consumer chose the signature, so the rule still asks.
+        Diagnostic diagnostic = Assert.Single(Run(
+            "namespace Consumer.Scoring { public interface IScored { int Score(); } }"
+            + Environment.NewLine
+            + "namespace Consumer.Model { public sealed class Mark : global::Consumer.Scoring.IScored "
+            + "{ public int Score() => 0; } }"));
+
+        Assert.Contains("'Mark.Score'", diagnostic.GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_override_of_a_member_declared_here_is_still_reported()
+    {
+        ImmutableArray<Diagnostic> diagnostics = Model(
+            "public abstract class Shape { public abstract int Sides(); } "
+            + "public sealed class Square : Shape { public override int Sides() => 4; }");
+
+        Assert.Equal(2, diagnostics.Length);
+        Assert.Contains(diagnostics, d => d.GetMessage().Contains("'Square.Sides'", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void A_hot_path_member_is_not_reported()
     {
         Assert.Empty(Contract("[global::DecisionDriven.HotPath(" + ContractSource.Decision + ")] long Read();"));
