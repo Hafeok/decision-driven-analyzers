@@ -178,7 +178,74 @@ public sealed class NakedPrimitiveAnalyzer : DiagnosticAnalyzer
             return true;
         }
 
-        return Implements(member, type);
+        return Implements(member, type) || IsFrameworkSignature(member, type);
+    }
+
+    /// <summary>
+    /// A member whose signature another assembly chose: an override of a member declared elsewhere,
+    /// or an implementation of a member of an interface declared elsewhere.
+    /// </summary>
+    /// <remarks>
+    /// <c>Equals(object)</c>, <c>GetHashCode()</c>, <c>ToString()</c> and
+    /// <c>IComparable&lt;T&gt;.CompareTo</c> cannot take the wrapper the message offers: the
+    /// signature belongs to <c>object</c> or to the interface, and DD0014 asks for the first two.
+    /// An interface declared in this assembly stays checked, because there the signature was chosen
+    /// here, and the interface's own members are where the rule reports it.
+    /// </remarks>
+    private static bool IsFrameworkSignature(ISymbol member, INamedTypeSymbol type)
+    {
+        IAssemblySymbol? here = type.ContainingAssembly;
+
+        if (Root(member) is { } root && !SymbolEqualityComparer.Default.Equals(root.ContainingAssembly, here))
+        {
+            return true;
+        }
+
+        foreach (INamedTypeSymbol implemented in type.AllInterfaces)
+        {
+            if (SymbolEqualityComparer.Default.Equals(implemented.ContainingAssembly, here))
+            {
+                continue;
+            }
+
+            foreach (ISymbol declared in implemented.GetMembers())
+            {
+                if (type.FindImplementationForInterfaceMember(declared) is { } implementation
+                    && SymbolEqualityComparer.Default.Equals(implementation, member))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>The member an override ultimately overrides, or null when it overrides nothing.</summary>
+    private static ISymbol? Root(ISymbol member)
+    {
+        ISymbol? root = null;
+        ISymbol? current = member;
+
+        while (current is not null)
+        {
+            ISymbol? overridden = current switch
+            {
+                IMethodSymbol { IsOverride: true } method => method.OverriddenMethod,
+                IPropertySymbol { IsOverride: true } property => property.OverriddenProperty,
+                IEventSymbol { IsOverride: true } @event => @event.OverriddenEvent,
+                _ => null,
+            };
+
+            if (overridden is not null)
+            {
+                root = overridden;
+            }
+
+            current = overridden;
+        }
+
+        return root;
     }
 
     /// <summary>A member implementing one of the framework's parse or format interfaces.</summary>
