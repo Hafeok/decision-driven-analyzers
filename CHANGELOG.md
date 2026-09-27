@@ -65,6 +65,13 @@ it; see below.
   The copy constructor is now set aside when deciding closedness
   (`Hierarchies.ClosedHierarchiesAreSealed`, amended; the narrow door it leaves is stated on the
   rule page) ([#54](https://github.com/Hafeok/decision-driven-analyzers/issues/54)).
+- **`DD0013`** reported members whose signature the type does not choose: `Equals(object)`,
+  `GetHashCode()` and `ToString()` overrides, and implementations of framework interfaces such as
+  `IComparable<T>.CompareTo`. A hand-written wrapper following DD0014's value-equality advice was
+  reported for doing so. Overrides of members declared in another assembly, and implementations of
+  interfaces declared in another assembly, are now boundary members
+  (`PrimitiveFreeSurfaces.BoundaryMembersExempt`, amended); the consumer's own interfaces and base
+  classes stay checked ([#59](https://github.com/Hafeok/decision-driven-analyzers/issues/59)).
 - **`DD0013`, `DD0014`, `DD0015`, `DD0016` and `DD0019`** read a model type's visibility from its
   declaration alone, so `public` members of a `private` nested record, or of an `internal` class, in
   a `[DomainModel]` namespace were reported as model surface, and DD0019 checked a `public` type
