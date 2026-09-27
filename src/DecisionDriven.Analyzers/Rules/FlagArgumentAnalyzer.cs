@@ -57,6 +57,14 @@ public sealed class FlagArgumentAnalyzer : DiagnosticAnalyzer
             return;
         }
 
+        // PrimitiveFreeSurfaces.FlagArgumentsWarning, amended: a citation on the type answers for
+        // its members, as it does for DD0013. A positional record's primary constructor cannot
+        // carry an attribute, so without this its bool had no exception path at all.
+        if (Markers.Has(type, Markers.DesignDecision))
+        {
+            return;
+        }
+
         foreach (ContractSignature.Part part in Surfaces.Parts(type, context.CancellationToken))
         {
             context.CancellationToken.ThrowIfCancellationRequested();
