@@ -78,6 +78,47 @@ public sealed class ContractVocabularyTests
             StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("public readonly struct Thing { }")]
+    [InlineData("public readonly record struct Thing(long Value);")]
+    [InlineData("public enum Thing { Stop, Continue }")]
+    public void A_struct_or_enum_is_pointed_at_the_model_and_never_at_Contract(string declaration)
+    {
+        // ContractAttribute applies to interfaces, classes and delegates. Offering it for a struct
+        // or an enum is a path that does not compile.
+        string message = Assert.Single(Run(
+            "global::Consumer.Scratch.Thing Read();",
+            extra: "namespace Consumer.Scratch { " + declaration + " }",
+            domainModel: "Consumer.Model")).GetMessage();
+
+        Assert.DoesNotContain("[Contract(", message, StringComparison.Ordinal);
+        Assert.Contains(
+            "[assembly: DomainModel(\"Consumer.Scratch\", typeof(<Set>.<Key>))]",
+            message,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_message_for_a_struct_of_this_assembly_is_exactly_this()
+    {
+        // DiagnosticMessages.ExactMessageTested.
+        Diagnostic diagnostic = Assert.Single(Run(
+            "void Read(global::Consumer.Scratch.Thing thing);",
+            extra: "namespace Consumer.Scratch { public readonly struct Thing { } }",
+            domainModel: "Consumer.Model"));
+
+        Assert.Equal(
+            "the parameter 'thing' of contract member 'IQuadSource.Read' names 'Consumer.Scratch.Thing', "
+            + "which is declared in this assembly outside any [DomainModel] namespace. "
+            + "Decide: move 'Consumer.Scratch.Thing' into a namespace already declared as model "
+            + "| declare 'Consumer.Scratch' as model with "
+            + "[assembly: DomainModel(\"Consumer.Scratch\", typeof(<Set>.<Key>))]; a struct or an enum is "
+            + "data, and [Contract] does not apply to it. "
+            + "Do not add the attribute without a decision that answers this; if the reason is only that "
+            + "the code already looked like this, take the design change.",
+            diagnostic.GetMessage());
+    }
+
     [Fact]
     public void A_contract_marked_type_is_not_reported()
     {

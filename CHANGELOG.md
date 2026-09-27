@@ -84,6 +84,11 @@ it; see below.
   citation now answers from the member or from its type, as it does for DD0013
   (`PrimitiveFreeSurfaces.FlagArgumentsWarning`, amended)
   ([#64](https://github.com/Hafeok/decision-driven-analyzers/issues/64)).
+- **`DD0010`** offered "mark it itself `[Contract]`" for a struct or an enum of the current assembly,
+  which `ContractAttribute` cannot be applied to (CS0592). For a struct or an enum both paths now
+  point at the model: move it into a namespace already declared, or declare the one it is in
+  (`Contracts.ContractVocabularyAllowList`, amended)
+  ([#63](https://github.com/Hafeok/decision-driven-analyzers/issues/63)).
 
 ## [0.1.0-preview.2] - 2026-09-25
 
