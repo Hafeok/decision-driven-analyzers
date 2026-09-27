@@ -79,6 +79,11 @@ it; see below.
   type containing it public (`PrimitiveFreeSurfaces.NoNakedPrimitivesOnModelAndContract` and
   `ImmutableModel.DomainModelImmutable`, amended)
   ([#62](https://github.com/Hafeok/decision-driven-analyzers/issues/62)).
+- **`DD0016`** honoured `[DesignDecision]` only on the member owning the `bool`, so a positional
+  record's `bool` had no exception path: its primary constructor cannot carry an attribute. The
+  citation now answers from the member or from its type, as it does for DD0013
+  (`PrimitiveFreeSurfaces.FlagArgumentsWarning`, amended)
+  ([#64](https://github.com/Hafeok/decision-driven-analyzers/issues/64)).
 - **`DD0010`** offered "mark it itself `[Contract]`" for a struct or an enum of the current assembly,
   which `ContractAttribute` cannot be applied to (CS0592). For a struct or an enum both paths now
   point at the model: move it into a namespace already declared, or declare the one it is in
