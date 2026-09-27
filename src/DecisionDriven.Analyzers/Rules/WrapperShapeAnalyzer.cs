@@ -53,7 +53,7 @@ public sealed class WrapperShapeAnalyzer : DiagnosticAnalyzer
 
         // A declared model type only. A contract is not a wrapper, and an internal helper that
         // holds an int is how code is built rather than what it says.
-        if (!model.Contains(type) || Markers.Has(type, Markers.DesignDecision))
+        if (!Surfaces.IsModel(type, model) || Markers.Has(type, Markers.DesignDecision))
         {
             return;
         }

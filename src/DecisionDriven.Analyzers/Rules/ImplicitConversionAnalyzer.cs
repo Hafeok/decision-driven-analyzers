@@ -52,7 +52,7 @@ public sealed class ImplicitConversionAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        if (conversion.ContainingType is not { } owner || !model.Contains(owner))
+        if (conversion.ContainingType is not { } owner || !Surfaces.IsModel(owner, model))
         {
             return;
         }

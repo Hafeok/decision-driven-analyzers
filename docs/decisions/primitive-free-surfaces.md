@@ -4,7 +4,7 @@ namespace: ddd-analyzers
 source-draft: ADR-A09
 decisions:
   - key: NoNakedPrimitivesOnModelAndContract
-    statement: "DD0013: string, numerics, Guid, date/time types and object are banned on public DomainModel and Contract surfaces; bool return, spans, CancellationToken, enums and type parameters are not"
+    statement: "DD0013: string, numerics, Guid, date/time types and object are banned on public DomainModel and Contract surfaces; bool return, spans, CancellationToken, enums and type parameters are not. A DomainModel type, here and for DD0014 to DD0016, is one in a declared namespace that is externally visible: it and every type containing it public"
   - key: BannedPrimitiveListIsAdditiveOnly
     statement: "dd_banned_primitive_types_add adds types to the banned list and can never remove one. A list a consumer could shorten would be a suppression path around DD0013 that leaves no citation, which NoPragmaOrSuppressMessage forbids; removing a banned type is a superseding decision in this repository"
   - key: BoundaryMembersExempt
