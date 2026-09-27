@@ -72,6 +72,13 @@ it; see below.
   interfaces declared in another assembly, are now boundary members
   (`PrimitiveFreeSurfaces.BoundaryMembersExempt`, amended); the consumer's own interfaces and base
   classes stay checked ([#59](https://github.com/Hafeok/decision-driven-analyzers/issues/59)).
+- **`DD0013`, `DD0014`, `DD0015`, `DD0016` and `DD0019`** read a model type's visibility from its
+  declaration alone, so `public` members of a `private` nested record, or of an `internal` class, in
+  a `[DomainModel]` namespace were reported as model surface, and DD0019 checked a `public` type
+  nested inside an internal one. A model type is now one that is externally visible: it and every
+  type containing it public (`PrimitiveFreeSurfaces.NoNakedPrimitivesOnModelAndContract` and
+  `ImmutableModel.DomainModelImmutable`, amended)
+  ([#62](https://github.com/Hafeok/decision-driven-analyzers/issues/62)).
 - **`DD0010`** offered "mark it itself `[Contract]`" for a struct or an enum of the current assembly,
   which `ContractAttribute` cannot be applied to (CS0592). For a struct or an enum both paths now
   point at the model: move it into a namespace already declared, or declare the one it is in

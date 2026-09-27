@@ -47,7 +47,11 @@ internal static class ContractScope
             _ => false,
         };
 
-    private static bool IsExternallyVisible(INamedTypeSymbol type)
+    /// <summary>
+    /// True when <paramref name="type"/> and every type containing it are public: effective
+    /// visibility, not the keyword on the declaration.
+    /// </summary>
+    internal static bool IsExternallyVisible(INamedTypeSymbol type)
     {
         for (INamedTypeSymbol? current = type; current is not null; current = current.ContainingType)
         {

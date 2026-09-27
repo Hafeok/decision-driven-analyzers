@@ -78,6 +78,13 @@ public sealed class WrapperAndFlagTests
     }
 
     [Fact]
+    public void A_wrapper_nested_privately_is_not_checked()
+    {
+        // Nobody outside can name it, so it is how the model is built, not part of it.
+        Assert.Empty(Shape("public sealed class Outer { private sealed class Slot { public long Value { get; } } }"));
+    }
+
+    [Fact]
     public void The_wrapper_shape_message_is_exactly_this()
     {
         // DiagnosticMessages.ExactMessageTested.
@@ -159,6 +166,17 @@ public sealed class WrapperAndFlagTests
         Assert.Single(RuleHarness.Run(
             new FlagArgumentAnalyzer(),
             File("namespace Consumer.Model { public sealed class Catalog { public void Read(bool archived) { } } }"),
+            assemblyName: "Consumer",
+            archLayer: 1));
+    }
+
+    [Fact]
+    public void A_bool_parameter_on_a_private_nested_model_type_is_not_warned_about()
+    {
+        Assert.Empty(RuleHarness.Run(
+            new FlagArgumentAnalyzer(),
+            File("namespace Consumer.Model { public sealed class Catalog { "
+                + "private sealed class Page { public void Read(bool archived) { } } } }"),
             assemblyName: "Consumer",
             archLayer: 1));
     }
