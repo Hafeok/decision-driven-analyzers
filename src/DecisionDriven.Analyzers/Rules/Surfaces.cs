@@ -18,7 +18,19 @@ internal static class Surfaces
 {
     /// <summary>True when <paramref name="type"/>'s surface is in scope at all.</summary>
     internal static bool Applies(INamedTypeSymbol type, DomainModelNamespaces model) =>
-        Markers.Has(type, Markers.Contract) || model.Contains(type);
+        Markers.Has(type, Markers.Contract) || IsModel(type, model);
+
+    /// <summary>
+    /// True when <paramref name="type"/> is a model type: in a declared model namespace, and
+    /// reachable from outside the assembly.
+    /// </summary>
+    /// <remarks>
+    /// Effective visibility, not the declared keyword. A <c>public</c> member of a <c>private</c>
+    /// nested record is public so that its container can reach it; nobody outside can name the
+    /// record, so it says nothing to anyone and is how the model is built, not part of it.
+    /// </remarks>
+    internal static bool IsModel(INamedTypeSymbol type, DomainModelNamespaces model) =>
+        model.Contains(type) && ContractScope.IsExternallyVisible(type);
 
     /// <summary>
     /// The signature positions to check on <paramref name="type"/>.

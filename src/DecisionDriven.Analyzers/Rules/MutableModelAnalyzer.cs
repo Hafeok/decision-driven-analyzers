@@ -73,8 +73,7 @@ public sealed class MutableModelAnalyzer : DiagnosticAnalyzer
     {
         INamedTypeSymbol type = (INamedTypeSymbol)context.Symbol;
 
-        if (!model.Contains(type)
-            || type.DeclaredAccessibility != Accessibility.Public
+        if (!Surfaces.IsModel(type, model)
             || Markers.Has(type, Markers.DesignDecision))
         {
             return;
