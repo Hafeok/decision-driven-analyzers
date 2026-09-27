@@ -8,7 +8,7 @@ decisions:
   - key: BannedPrimitiveListIsAdditiveOnly
     statement: "dd_banned_primitive_types_add adds types to the banned list and can never remove one. A list a consumer could shorten would be a suppression path around DD0013 that leaves no citation, which NoPragmaOrSuppressMessage forbids; removing a banned type is a superseding decision in this repository"
   - key: BoundaryMembersExempt
-    statement: "Parse/TryParse/Format/TryFormat, the span-parsable and formattable interfaces, wrapper factories and HotPath members are exempt as the primitive boundary"
+    statement: "Parse/TryParse/Format/TryFormat, the span-parsable and formattable interfaces, wrapper factories and HotPath members are exempt as the primitive boundary. So is a member whose signature another assembly chose: an override of a member declared outside the assembly, or an implementation of a member of an interface declared outside it"
   - key: WrapperExposesItsOwnPrimitive
     statement: "A type wrapping a single banned primitive may take and return that primitive on its own members; any other banned type on it is reported. Without this the wrapper DD0013 asks for cannot be constructed or read back"
   - key: WrappersAreReadonlyStructs
