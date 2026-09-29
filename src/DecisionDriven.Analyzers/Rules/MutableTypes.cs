@@ -48,7 +48,7 @@ internal static class MutableTypes
 
         string fullName = type.OriginalDefinition.ToDisplayString();
 
-        if (IsAllowed(fullName))
+        if (IsAllowed(fullName) || DerivesFromAllowedBase(type))
         {
             return false;
         }
@@ -95,6 +95,28 @@ internal static class MutableTypes
         "System.Type" => true,
         _ => false,
     };
+
+    /// <summary>
+    /// A type derived from one of the exempt base classes. <c>UTF8Encoding</c> is how a caller
+    /// chooses an encoding's options, and a source-generated regex derives from <c>Regex</c>; each is
+    /// as shared-on-purpose as its base, and matching the base's name alone reported them.
+    /// </summary>
+    private static bool DerivesFromAllowedBase(ITypeSymbol type)
+    {
+        for (INamedTypeSymbol? current = type.BaseType; current is not null; current = current.BaseType)
+        {
+            switch (current.OriginalDefinition.ToDisplayString())
+            {
+                case "System.Text.RegularExpressions.Regex":
+                case "System.Text.Encoding":
+                case "System.Buffers.ArrayPool<T>":
+                case "System.Buffers.MemoryPool<T>":
+                    return true;
+            }
+        }
+
+        return false;
+    }
 
     private static bool IsKnownMutable(string fullName) => fullName switch
     {

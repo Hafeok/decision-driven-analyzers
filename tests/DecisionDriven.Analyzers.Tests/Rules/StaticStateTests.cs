@@ -150,6 +150,10 @@ public sealed class StaticStateTests
     [InlineData("global::System.Text.RegularExpressions.Regex", "new(\"a\")")]
     [InlineData("global::System.Buffers.ArrayPool<byte>", "global::System.Buffers.ArrayPool<byte>.Shared")]
     [InlineData("global::System.Collections.Immutable.ImmutableArray<string>", "global::System.Collections.Immutable.ImmutableArray<string>.Empty")]
+    [InlineData("global::System.Text.Encoding", "global::System.Text.Encoding.UTF8")]
+    [InlineData("global::System.Text.UTF8Encoding", "new(false, true)")]
+    [InlineData("global::System.Text.UnicodeEncoding", "new(false, false, true)")]
+    [InlineData("global::System.Text.ASCIIEncoding", "new()")]
     public void The_types_ADR_A05_exempts_are_not_reported(string type, string initialiser)
     {
         // Named exemptions rather than a general rule, because each is famously shared on purpose
