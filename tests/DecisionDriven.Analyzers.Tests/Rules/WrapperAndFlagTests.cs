@@ -238,6 +238,47 @@ public sealed class WrapperAndFlagTests
             new ImplicitConversionAnalyzer(),
             "namespace Consumer.Model { public readonly record struct Position(long Value) { " + member + " } }");
 
+    [Fact]
+    public void The_dispose_pattern_is_not_a_flag()
+    {
+        // Dispose(bool disposing) is the framework's shape, which CA1063 requires on an unsealed
+        // disposable type; its only callers are Dispose() and a finaliser, inside the type.
+        Assert.Empty(Run(
+            new FlagArgumentAnalyzer(),
+            "namespace Consumer { " + ContractSource.Contract + " public abstract class Results : global::System.IDisposable { "
+                + "private protected Results() { } "
+                + "public void Dispose() { Dispose(true); global::System.GC.SuppressFinalize(this); } "
+                + "protected virtual void Dispose(bool disposing) { } } }"));
+    }
+
+    [Fact]
+    public void An_override_of_the_dispose_pattern_is_not_a_flag()
+    {
+        Assert.Empty(Run(
+            new FlagArgumentAnalyzer(),
+            "namespace Consumer { " + ContractSource.Contract + " public abstract class Reader : global::System.IO.Stream { "
+                + "protected override void Dispose(bool disposing) { base.Dispose(disposing); } } }"));
+    }
+
+    [Fact]
+    public void A_public_dispose_with_a_bool_is_still_a_flag()
+    {
+        // The exemption is the pattern, not the name: a public Dispose(bool) is a call site's flag.
+        Assert.Single(Run(
+            new FlagArgumentAnalyzer(),
+            "namespace Consumer { " + ContractSource.Contract + " public abstract class Results : global::System.IDisposable { "
+                + "public void Dispose() { } public void Dispose(bool now) { } } }"));
+    }
+
+    [Fact]
+    public void A_protected_dispose_on_a_type_that_is_not_disposable_is_still_a_flag()
+    {
+        Assert.Single(Run(
+            new FlagArgumentAnalyzer(),
+            "namespace Consumer { " + ContractSource.Contract + " public abstract class Results { "
+                + "protected virtual void Dispose(bool disposing) { } } }"));
+    }
+
     private static ImmutableArray<Diagnostic> Flags(string member) =>
         Run(
             new FlagArgumentAnalyzer(),

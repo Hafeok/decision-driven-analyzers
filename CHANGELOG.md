@@ -37,6 +37,10 @@ it; see below.
 
 ### Fixed
 
+- **`DD0016`** reported the `disposing` parameter of the framework's dispose pattern,
+  `protected virtual void Dispose(bool disposing)`, which CA1063 requires on an unsealed disposable
+  type. The pattern, or an override of it, on an `IDisposable` type is no longer reported
+  (`PrimitiveFreeSurfaces.FlagArgumentsWarning`, amended; #74).
 - **`DD0010`** checked the `internal` and `private protected` members of a `[Contract]` class, which
   no consumer outside the assembly can reach. An internal constructor that builds the contract from
   engine state was reported for naming the engine type. It now checks only members reachable from
