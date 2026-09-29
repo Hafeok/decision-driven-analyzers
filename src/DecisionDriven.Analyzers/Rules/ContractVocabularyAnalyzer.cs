@@ -59,6 +59,15 @@ public sealed class ContractVocabularyAnalyzer : DiagnosticAnalyzer
 
         foreach (ContractSignature.Part part in ContractSignature.Parts(type, context.CancellationToken))
         {
+            // The vocabulary is what the contract says to somebody outside the assembly. An
+            // internal or private protected member says nothing to them: a contract class's
+            // internal constructor is how the assembly builds it from engine state, which is the
+            // point of keeping that state out of the vocabulary.
+            if (!part.IsExternallyVisible)
+            {
+                continue;
+            }
+
             HashSet<string> reported = new HashSet<string>(System.StringComparer.Ordinal);
 
             foreach (ITypeSymbol named in ContractSignature.Mentioned(part.Type))
