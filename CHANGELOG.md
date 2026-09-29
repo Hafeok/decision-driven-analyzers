@@ -37,6 +37,10 @@ it; see below.
 
 ### Fixed
 
+- **`DD0010`** checked the `internal` and `private protected` members of a `[Contract]` class, which
+  no consumer outside the assembly can reach. An internal constructor that builds the contract from
+  engine state was reported for naming the engine type. It now checks only members reachable from
+  outside the assembly: `public`, `protected` and `protected internal` (#71).
 - **`DD0017`** reported a switch over a hierarchy declared in a referenced assembly as open when a
   `private protected` or `internal` constructor closed it. A reference assembly carries neither, so
   the base showed no constructor and read as open, and leaves were looked for in the consuming

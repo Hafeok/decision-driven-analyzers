@@ -203,6 +203,43 @@ public sealed class ContractVocabularyTests
             diagnostic.GetMessage());
     }
 
+    // A contract class built from engine state: its constructor is how the assembly makes it, and
+    // nothing outside the assembly can call it or see the type it takes.
+    private const string EngineThing = "namespace Consumer.Engine { public sealed class Thing { } }";
+
+    [Fact]
+    public void An_internal_constructor_of_a_contract_class_is_not_reported()
+    {
+        Assert.Empty(Run(
+            string.Empty,
+            extra: "namespace Consumer { " + ContractSource.Contract + " public sealed class View { "
+                + "internal View(global::Consumer.Engine.Thing thing) { } public int Count => 0; } } " + EngineThing,
+            domainModel: "Consumer.Model"));
+    }
+
+    [Fact]
+    public void A_private_protected_member_of_a_contract_class_is_not_reported()
+    {
+        Assert.Empty(Run(
+            string.Empty,
+            extra: "namespace Consumer { " + ContractSource.Contract + " public abstract class View { "
+                + "private protected View(global::Consumer.Engine.Thing thing) { } } } " + EngineThing,
+            domainModel: "Consumer.Model"));
+    }
+
+    [Fact]
+    public void A_protected_member_of_a_contract_class_is_reported()
+    {
+        // Protected is reachable from a derived type in another assembly: it is on the surface.
+        Diagnostic diagnostic = Assert.Single(Run(
+            string.Empty,
+            extra: "namespace Consumer { " + ContractSource.Contract + " public abstract class View { "
+                + "protected View(global::Consumer.Engine.Thing thing) { } } } " + EngineThing,
+            domainModel: "Consumer.Model"));
+
+        Assert.Equal("DD0010", diagnostic.Id);
+    }
+
     private static ImmutableArray<Diagnostic> Run(string members, string extra = "", string? domainModel = null)
     {
         string assemblyAttributes = domainModel is null
