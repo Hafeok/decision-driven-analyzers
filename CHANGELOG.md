@@ -37,6 +37,12 @@ it; see below.
 
 ### Fixed
 
+- **`DD0017`** reported a switch over a hierarchy declared in a referenced assembly as open when a
+  `private protected` or `internal` constructor closed it. A reference assembly carries neither, so
+  the base showed no constructor and read as open, and leaves were looked for in the consuming
+  compilation instead of the defining one. A referenced base is now closed when no constructor is
+  callable from outside its assembly and every type its assembly derives from it, enumerated from
+  metadata, is sealed (#73).
 - **`[HotPath]` can mark a constructor.** The generated attribute's usage left `Constructor` out,
   so a struct's constructor could be marked hot only by marking the whole type, which held every
   other member of the type to the same rules (#72).
