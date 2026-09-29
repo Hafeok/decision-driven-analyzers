@@ -289,6 +289,98 @@ public sealed class HierarchyTests
                 .GetMessage());
     }
 
+    // A hierarchy declared in a referenced assembly, as a consumer sees it: from metadata, where a
+    // private protected or internal constructor is not imported at all.
+    private const string ReferencedClosed =
+        "namespace Lib { public abstract record Shape { private protected Shape() { } } "
+        + "public sealed record Circle(double R) : Shape; "
+        + "public sealed record Square(double S) : Shape; }";
+
+    private const string SwitchOverShape =
+        "public static class Area { public static double Of(Lib.Shape s) => "
+        + "s switch { Lib.Circle c => c.R, Lib.Square q => q.S, _ => 0 }; }";
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void A_switch_over_a_referenced_hierarchy_closed_by_a_private_protected_constructor_is_not_warned_about(bool referenceAssembly)
+    {
+        Assert.Empty(SwitchOverReferenced(ReferencedClosed, SwitchOverShape, referenceAssembly));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void A_switch_over_a_referenced_hierarchy_closed_by_an_internal_constructor_is_not_warned_about(bool referenceAssembly)
+    {
+        Assert.Empty(SwitchOverReferenced(
+            "namespace Lib { public abstract class Shape { internal Shape() { } } "
+            + "public sealed class Circle : Shape { public double R; } "
+            + "public sealed class Square : Shape { public double S; } }",
+            "public static class Area { public static double Of(Lib.Shape s) => "
+            + "s switch { Lib.Circle c => c.R, Lib.Square q => q.S, _ => 0 }; }",
+            referenceAssembly));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void A_switch_over_a_referenced_hierarchy_with_an_unsealed_public_leaf_is_warned_about(bool referenceAssembly)
+    {
+        // The base's constructor is out of reach, but a leaf is not sealed: anyone can derive from
+        // the leaf, and so add to the hierarchy.
+        Diagnostic diagnostic = Assert.Single(SwitchOverReferenced(
+            "namespace Lib { public abstract record Shape { private protected Shape() { } } "
+            + "public record Circle(double R) : Shape; "
+            + "public sealed record Square(double S) : Shape; }",
+            SwitchOverShape,
+            referenceAssembly));
+
+        Assert.Equal("DD0017", diagnostic.Id);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void A_switch_over_a_referenced_hierarchy_with_an_unsealed_internal_leaf_is_warned_about(bool referenceAssembly)
+    {
+        // Closed means every derived type in the defining assembly is sealed, not only the ones a
+        // consumer can name: an unsealed internal leaf is a leaf the defining assembly left open.
+        Diagnostic diagnostic = Assert.Single(SwitchOverReferenced(
+            "namespace Lib { public abstract record Shape { private protected Shape() { } } "
+            + "public sealed record Circle(double R) : Shape; "
+            + "public sealed record Square(double S) : Shape; "
+            + "internal record Hidden : Shape; }",
+            SwitchOverShape,
+            referenceAssembly));
+
+        Assert.Equal("DD0017", diagnostic.Id);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void A_switch_over_a_referenced_hierarchy_with_a_protected_constructor_is_warned_about(bool referenceAssembly)
+    {
+        Diagnostic diagnostic = Assert.Single(SwitchOverReferenced(
+            "namespace Lib { public abstract class Shape { protected Shape() { } } "
+            + "public sealed class Circle : Shape { public double R; } "
+            + "public sealed class Square : Shape { public double S; } }",
+            "public static class Area { public static double Of(Lib.Shape s) => "
+            + "s switch { Lib.Circle c => c.R, Lib.Square q => q.S, _ => 0 }; }",
+            referenceAssembly));
+
+        Assert.Equal("DD0017", diagnostic.Id);
+    }
+
+    private static ImmutableArray<Diagnostic> SwitchOverReferenced(string library, string body, bool referenceAssembly) =>
+        RuleHarness.Run(
+            new OpenHierarchyAnalyzer(),
+            ContractSource.File("namespace Consumer { " + body + " }"),
+            assemblyName: "Consumer",
+            archLayer: 1,
+            references: new[] { new RuleHarness.Referenced("Lib", archLayer: 0, library, referenceAssembly) });
+
     private static ImmutableArray<Diagnostic> Switch(string body) =>
         RuleHarness.Run(
             new OpenHierarchyAnalyzer(),

@@ -148,6 +148,19 @@ public sealed class GeneratedSourceTests
             d => d.Severity == DiagnosticSeverity.Error && d.Id is "CS0234" or "CS0246" or "CS0426");
     }
 
+    [Fact]
+    public void HotPath_applies_to_a_constructor()
+    {
+        // A struct built in a hot loop is marked where it is built. Without the Constructor
+        // target the only way to mark its constructor was to mark the whole type.
+        GeneratorHarness.Result result = GeneratorHarness.Run(
+            "internal readonly struct Key { [global::DecisionDriven.HotPath(typeof(global::DecisionDriven.Ledger.SampleNs.SampleSet.SomeKey))] "
+                + "internal Key(long value) { Value = value; } internal long Value { get; } }",
+            new[] { LedgerInput.AsSet(LedgerInput.FrontMatter("sample-set", "SomeKey", "A statement.", "mailto:someone@example.com")) });
+
+        Assert.Empty(result.CompilationDiagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+    }
+
     private static GeneratorHarness.Result Cite(string key, string? acceptedBy, string? revokedAt = null) =>
         GeneratorHarness.Run(
             CitationOf(key),

@@ -25,12 +25,19 @@ internal static class RuleHarness
     /// <summary>A project to compile and reference.</summary>
     internal sealed class Referenced
     {
-        internal Referenced(string assemblyName, int? archLayer, string source = "internal sealed class Marker { }")
+        internal Referenced(string assemblyName, int? archLayer, string source = "internal sealed class Marker { }", bool referenceAssembly = false)
         {
             AssemblyName = assemblyName;
             ArchLayer = archLayer;
             Source = source;
+            ReferenceAssembly = referenceAssembly;
         }
+
+        /// <summary>
+        /// Emit a reference assembly, as a real build references: private, private protected and
+        /// internal members are not in it, so a consumer's compilation never imports them.
+        /// </summary>
+        internal bool ReferenceAssembly { get; }
 
         internal string AssemblyName { get; }
 
@@ -194,7 +201,9 @@ internal static class RuleHarness
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
         using MemoryStream stream = new MemoryStream();
-        Microsoft.CodeAnalysis.Emit.EmitResult result = compilation.Emit(stream);
+        Microsoft.CodeAnalysis.Emit.EmitResult result = reference.ReferenceAssembly
+            ? compilation.Emit(stream, options: new Microsoft.CodeAnalysis.Emit.EmitOptions(metadataOnly: true, includePrivateMembers: false))
+            : compilation.Emit(stream);
 
         if (!result.Success)
         {
