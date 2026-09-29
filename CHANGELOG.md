@@ -37,6 +37,10 @@ it; see below.
 
 ### Fixed
 
+- **`DD0004`** reported a `static readonly` field of a type derived from an exempt base, such as
+  `UTF8Encoding` or a source-generated `Regex`, because the exemption matched the base's name only.
+  A class derived from `Regex`, `Encoding`, `ArrayPool<T>` or `MemoryPool<T>` is now exempt with it
+  (#53).
 - **`DD0016`** reported the `disposing` parameter of the framework's dispose pattern,
   `protected virtual void Dispose(bool disposing)`, which CA1063 requires on an unsealed disposable
   type. The pattern, or an override of it, on an `IDisposable` type is no longer reported
