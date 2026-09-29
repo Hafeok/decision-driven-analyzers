@@ -87,6 +87,11 @@ public sealed class FlagArgumentAnalyzer : DiagnosticAnalyzer
                 continue;
             }
 
+            if (IsDisposePattern(part.Owner, type))
+            {
+                continue;
+            }
+
             string finding = $"parameter '{parameter.Name}' of '{type.Name}.{part.Member}' is a bool, "
                 + $"so the call site reads '{part.Member}(x, true)'";
 
@@ -98,5 +103,40 @@ public sealed class FlagArgumentAnalyzer : DiagnosticAnalyzer
                 finding,
                 designChange));
         }
+    }
+
+    /// <summary>
+    /// The framework's dispose pattern: <c>protected virtual void Dispose(bool disposing)</c>, or an
+    /// override of it, on a type that implements <see cref="System.IDisposable"/>.
+    /// </summary>
+    /// <remarks>
+    /// CA1063 requires this exact signature on an unsealed disposable type, so the design change
+    /// DD0016 asks for would trade one warning for another. Its callers are <c>Dispose()</c> and a
+    /// finaliser, inside the type: there is no call site in somebody else's assembly for the flag to
+    /// be unreadable at. A public <c>Dispose(bool)</c>, or one on a type that is not disposable, is
+    /// not the pattern and is still reported.
+    /// </remarks>
+    private static bool IsDisposePattern(ISymbol owner, INamedTypeSymbol type) =>
+        owner is IMethodSymbol
+        {
+            Name: "Dispose",
+            IsStatic: false,
+            ReturnsVoid: true,
+            Parameters.Length: 1,
+            DeclaredAccessibility: Accessibility.Protected or Accessibility.ProtectedOrInternal,
+        }
+        && IsDisposable(type);
+
+    private static bool IsDisposable(INamedTypeSymbol type)
+    {
+        foreach (INamedTypeSymbol implemented in type.AllInterfaces)
+        {
+            if (implemented.SpecialType == SpecialType.System_IDisposable)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
