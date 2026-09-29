@@ -22,6 +22,9 @@ internal sealed class Hierarchies
 
     private List<INamedTypeSymbol>? declared;
 
+    private readonly ConcurrentDictionary<IAssemblySymbol, List<INamedTypeSymbol>> declaredElsewhere =
+        new ConcurrentDictionary<IAssemblySymbol, List<INamedTypeSymbol>>(SymbolEqualityComparer.Default);
+
     internal Hierarchies(Compilation compilation)
     {
         this.compilation = compilation;
@@ -71,6 +74,11 @@ internal sealed class Hierarchies
         if (type.IsSealed || type.IsFileLocal)
         {
             return true;
+        }
+
+        if (!SymbolEqualityComparer.Default.Equals(type.ContainingAssembly, compilation.Assembly))
+        {
+            return ComputeReferenced(type, cancellationToken);
         }
 
         bool anyConstructor = false;
@@ -125,6 +133,63 @@ internal sealed class Hierarchies
     }
 
     /// <summary>
+    /// Whether a hierarchy declared in a referenced assembly is closed, judged from that assembly's
+    /// metadata.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A consumer sees a referenced type through its metadata, and a real build references a
+    /// reference assembly: private, private protected and internal members are not in it. A base
+    /// closed with a <c>private protected</c> constructor therefore shows no constructor at all, and
+    /// read by the in-compilation rule it looked open. Absence is not openness here: a constructor
+    /// the consumer cannot see is one it cannot call.
+    /// </para>
+    /// <para>
+    /// Two conditions, both required. No constructor is callable from outside the defining assembly
+    /// (public, protected or protected internal), the record copy constructor aside as above. And
+    /// every type the defining assembly derives from the base, enumerated from its metadata, is
+    /// sealed: a leaf left open is a way into the hierarchy for anyone who can name the leaf, and
+    /// the defining assembly is the only place those leaves can be. A derived type the metadata does
+    /// not carry, such as a private nested one in a reference assembly, cannot be seen and so is not
+    /// counted; nothing outside the defining assembly can derive from it either.
+    /// </para>
+    /// </remarks>
+    private bool ComputeReferenced(INamedTypeSymbol type, CancellationToken cancellationToken)
+    {
+        foreach (IMethodSymbol constructor in type.InstanceConstructors)
+        {
+            if (IsRecordCopyConstructor(type, constructor))
+            {
+                continue;
+            }
+
+            if (constructor.DeclaredAccessibility is Accessibility.Public or Accessibility.Protected
+                or Accessibility.ProtectedOrInternal)
+            {
+                return false;
+            }
+        }
+
+        foreach (INamedTypeSymbol candidate in DeclaredIn(type.ContainingAssembly, cancellationToken))
+        {
+            if (SymbolEqualityComparer.Default.Equals(candidate, type))
+            {
+                continue;
+            }
+
+            if (DerivesFrom(candidate, type) && !candidate.IsSealed)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private List<INamedTypeSymbol> DeclaredIn(IAssemblySymbol assembly, CancellationToken cancellationToken) =>
+        declaredElsewhere.GetOrAdd(assembly, a => Walk(a.GlobalNamespace, cancellationToken));
+
+    /// <summary>
     /// A record's copy constructor, which does not decide whether the hierarchy is closed.
     /// </summary>
     /// <remarks>
@@ -173,9 +238,14 @@ internal sealed class Hierarchies
             return declared;
         }
 
+        return declared = Walk(compilation.Assembly.GlobalNamespace, cancellationToken);
+    }
+
+    private static List<INamedTypeSymbol> Walk(INamespaceSymbol root, CancellationToken cancellationToken)
+    {
         List<INamedTypeSymbol> found = new List<INamedTypeSymbol>();
         Stack<INamespaceOrTypeSymbol> pending = new Stack<INamespaceOrTypeSymbol>();
-        pending.Push(compilation.Assembly.GlobalNamespace);
+        pending.Push(root);
 
         while (pending.Count > 0)
         {
@@ -198,7 +268,7 @@ internal sealed class Hierarchies
             }
         }
 
-        return declared = found;
+        return found;
     }
 
     private static bool IsExternallyVisible(INamedTypeSymbol type)

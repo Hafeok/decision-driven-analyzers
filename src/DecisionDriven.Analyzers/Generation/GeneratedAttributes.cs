@@ -87,7 +87,8 @@ namespace DecisionDriven
     /// <summary>Marks code whose cost is measured, citing the decision that says so.</summary>
     [global::Microsoft.CodeAnalysis.Embedded]
     [global::System.AttributeUsage(
-        global::System.AttributeTargets.Method | global::System.AttributeTargets.Property
+        global::System.AttributeTargets.Method | global::System.AttributeTargets.Constructor
+            | global::System.AttributeTargets.Property
             | global::System.AttributeTargets.Class | global::System.AttributeTargets.Struct,
         AllowMultiple = false)]
     internal sealed class HotPathAttribute : global::System.Attribute
