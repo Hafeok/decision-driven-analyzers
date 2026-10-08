@@ -37,12 +37,6 @@ it; see below.
 
 ### Fixed
 
-- **`DD0010`** read `ArchContractTypeAssemblies` only up to the first `;`, so with
-  `<ArchContractTypeAssemblies>A;B</ArchContractTypeAssemblies>` it reported every type from `B`.
-  The compiler reads a visible MSBuild property from a generated analyzer config file, and that
-  file's parser takes everything after a `;` as a comment. The package now hands the analyzers the
-  list with `,` as its separator; `A;B` is written as before, and every assembly in it is accepted
-  (#85).
 - **`DD0004`** reported a `static readonly` field of a type derived from an exempt base, such as
   `UTF8Encoding` or a source-generated `Regex`, because the exemption matched the base's name only.
   A class derived from `Regex`, `Encoding`, `ArrayPool<T>` or `MemoryPool<T>` is now exempt with it
@@ -116,6 +110,17 @@ it; see below.
   point at the model: move it into a namespace already declared, or declare the one it is in
   (`Contracts.ContractVocabularyAllowList`, amended)
   ([#63](https://github.com/Hafeok/decision-driven-analyzers/issues/63)).
+
+## [0.1.0-preview.7] - 2026-10-08
+
+### Fixed
+
+- **`DD0010`** read `ArchContractTypeAssemblies` only up to the first `;`, so with
+  `<ArchContractTypeAssemblies>A;B</ArchContractTypeAssemblies>` it reported every type from `B`.
+  The compiler reads a visible MSBuild property from a generated analyzer config file, and that
+  file's parser takes everything after a `;` as a comment. The package now hands the analyzers the
+  list with `,` as its separator; `A;B` is written as before, and every assembly in it is accepted
+  (#85).
 
 ## [0.1.0-preview.2] - 2026-09-25
 
@@ -269,7 +274,8 @@ Every decision in this repository's own `docs/decisions/` is unaccepted, which i
 working rather than an oversight: citing one produces `CS0618` on every citation, so they are usable
 on a branch and will not ship under `TreatWarningsAsErrors`.
 
-[Unreleased]: https://github.com/Hafeok/decision-driven-analyzers/compare/v0.1.0-preview.2...main
+[Unreleased]: https://github.com/Hafeok/decision-driven-analyzers/compare/v0.1.0-preview.7...main
+[0.1.0-preview.7]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.7
 [0.1.0-preview.2]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.2
 [0.1.0-preview.1]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.1
 [0.1.0-alpha.0.21]: https://github.com/Hafeok/decision-driven-analyzers/tree/acb256b8378b848fac5d16bf1d285959b81e2e38
