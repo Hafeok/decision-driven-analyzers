@@ -37,6 +37,12 @@ it; see below.
 
 ### Fixed
 
+- **`DD0010`** read `ArchContractTypeAssemblies` only up to the first `;`, so with
+  `<ArchContractTypeAssemblies>A;B</ArchContractTypeAssemblies>` it reported every type from `B`.
+  The compiler reads a visible MSBuild property from a generated analyzer config file, and that
+  file's parser takes everything after a `;` as a comment. The package now hands the analyzers the
+  list with `,` as its separator; `A;B` is written as before, and every assembly in it is accepted
+  (#85).
 - **`DD0004`** reported a `static readonly` field of a type derived from an exempt base, such as
   `UTF8Encoding` or a source-generated `Regex`, because the exemption matched the base's name only.
   A class derived from `Regex`, `Encoding`, `ArrayPool<T>` or `MemoryPool<T>` is now exempt with it

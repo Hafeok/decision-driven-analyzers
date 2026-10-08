@@ -37,6 +37,7 @@ internal sealed class ContractVocabulary
 
         // An MSBuild list is semicolon separated; commas are accepted because somebody will write
         // one and a silently ignored assembly name is a rule reporting for a reason nobody can see.
+        // In a build the list arrives comma separated: see ArchOptions.ContractTypeAssembliesFrom.
         foreach (string name in (options.ContractTypeAssemblies ?? string.Empty).Split(';', ','))
         {
             string trimmed = name.Trim();

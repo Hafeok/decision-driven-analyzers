@@ -37,7 +37,10 @@ internal readonly struct ArchOptions
     /// <summary>True for the one project allowed to know every layer at once.</summary>
     internal bool IsCompositionRoot { get; }
 
-    /// <summary>Assemblies whose types may appear on a contract surface.</summary>
+    /// <summary>
+    /// Assemblies whose types may appear on a contract surface, separated by <c>;</c> or <c>,</c>;
+    /// <see cref="ContractVocabulary"/> splits it.
+    /// </summary>
     internal string? ContractTypeAssemblies { get; }
 
     internal static ArchOptions Read(AnalyzerConfigOptions options)
@@ -53,8 +56,23 @@ internal readonly struct ArchOptions
 
         bool compositionRoot = string.Equals(Get(options, "build_property.ArchCompositionRoot"), "true", System.StringComparison.OrdinalIgnoreCase);
 
-        return new ArchOptions(family, layer, compositionRoot, Get(options, "build_property.ArchContractTypeAssemblies"));
+        return new ArchOptions(family, layer, compositionRoot, ContractTypeAssembliesFrom(options));
     }
+
+    /// <summary>
+    /// <c>ArchContractTypeAssemblies</c>, from the key the package's props make visible, or from
+    /// the property's own key when something other than the package supplied the options.
+    /// </summary>
+    /// <remarks>
+    /// The compiler's analyzer config parser reads everything after a <c>;</c> as a comment, so the
+    /// property as written - an MSBuild list, <c>A;B</c> - would arrive as <c>A</c>.
+    /// <c>DecisionDriven.Analyzers.targets</c> rewrites the separator to <c>,</c> into
+    /// <c>_DecisionDrivenArchContractTypeAssemblies</c>, an implementation detail rather than a
+    /// setting, and the props make that visible instead of the raw property.
+    /// </remarks>
+    private static string? ContractTypeAssembliesFrom(AnalyzerConfigOptions options) =>
+        Get(options, "build_property._DecisionDrivenArchContractTypeAssemblies")
+        ?? Get(options, "build_property.ArchContractTypeAssemblies");
 
     private static string? Get(AnalyzerConfigOptions options, string key) =>
         options.TryGetValue(key, out string? value) && value is { Length: > 0 } ? value : null;

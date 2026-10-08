@@ -16,6 +16,16 @@
   </PropertyGroup>
 
   <!--
+    Not a setting. ArchContractTypeAssemblies as the analyzers read it, with ';' rewritten to ','
+    because the compiler's analyzer config parser reads everything after a ';' as a comment (see
+    DecisionDriven.Analyzers.props, which makes this property visible instead of the raw one).
+    Here rather than in the props, which are imported before the project body sets the list.
+  -->
+  <PropertyGroup>
+    <_DecisionDrivenArchContractTypeAssemblies>$(ArchContractTypeAssemblies.Replace(';', ','))</_DecisionDrivenArchContractTypeAssemblies>
+  </PropertyGroup>
+
+  <!--
     The decisions the analyzers read.
 
       DdLedger="decision-set"    an interim set file: front matter with a set id, a
