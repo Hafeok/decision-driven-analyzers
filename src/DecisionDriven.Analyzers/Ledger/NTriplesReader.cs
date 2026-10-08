@@ -347,7 +347,7 @@ internal static class NTriplesReader
             {
                 if (triple.Predicate == Ledger + "set")
                 {
-                    version.SetId = triple.Object;
+                    version.SetId = triple.ObjectIsLiteral ? triple.Object : SetIdFromIri(triple.Object);
                 }
                 else if (triple.Predicate == Ledger + "key")
                 {
@@ -434,6 +434,17 @@ internal static class NTriplesReader
         }
 
         MarkSuccessors(namespaces);
+    }
+
+    /// <summary>
+    /// The export names a set by IRI, <c>&lt;urn:ledger-set:ledger-design&gt;</c>, and the set id is
+    /// its local part: everything after the last <c>:</c>. A set id is lowercase alphanumerics,
+    /// dashes and dots, so it never holds a colon itself. A literal is read as the id unchanged.
+    /// </summary>
+    private static string SetIdFromIri(string iri)
+    {
+        int colon = iri.LastIndexOf(':');
+        return colon >= 0 ? iri.Substring(colon + 1) : iri;
     }
 
     private static string ReadNamespace(List<Triple> statements, string decisionId)
