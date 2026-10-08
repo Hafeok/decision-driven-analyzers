@@ -90,16 +90,28 @@ public sealed class StaticStateAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        // An expression-bodied or get-only static property computes; it holds nothing. A settable
-        // one is a mutable static wearing an accessor.
+        // A settable one is a mutable static wearing an accessor.
         if (property.SetMethod is { } setter && !setter.IsInitOnly)
         {
             Report(context, property, $"static property '{Name(property)}' has a setter", "make it get-only, or give the state to the object that owns it");
             return;
         }
 
+        // Only a property with storage holds a value of its type: an auto-property, or one whose
+        // accessor uses the field keyword. One with no backing field computes on every read and
+        // holds nothing to share, so its type says nothing about static state.
+        if (!HasBackingField(property))
+        {
+            return;
+        }
+
         CheckType(context, property, property.Type, "property");
     }
+
+    private static bool HasBackingField(IPropertySymbol property) =>
+        property.ContainingType.GetMembers()
+            .OfType<IFieldSymbol>()
+            .Any(field => SymbolEqualityComparer.Default.Equals(field.AssociatedSymbol, property));
 
     private static void CheckType(SymbolAnalysisContext context, ISymbol symbol, ITypeSymbol type, string kind)
     {

@@ -28,6 +28,11 @@ consumer that builds with warnings as errors, and are recorded as such.
   one name drops the ten defaults. The rule page also said an empty value turns the rule off, which
   it never did: an empty value leaves the default list in force, and a test now says so
   ([#49](https://github.com/Hafeok/decision-driven-analyzers/issues/49)).
+- **`DD0004`** reported a static property with no backing field, such as `=> Names.Where(...)`, as
+  though it held a value of its return type, and named a computed sequence a static registry. Only a
+  property with storage, an auto-property or one whose accessor uses `field`, is now checked by its
+  type; a computed one holds nothing and is not reported. A settable static property is reported as
+  before ([#80](https://github.com/Hafeok/decision-driven-analyzers/issues/80)).
 
 ## [0.1.0-preview.7] - 2026-10-08
 
