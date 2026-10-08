@@ -170,7 +170,7 @@ The N-Triples path is implemented and has no producer yet: a file tagged
 | [DD0017](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0017.md) | 2 | A type switch over an open hierarchy is a warning | shipped |
 | [DD0018](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0018.md) | 1 | No `NotImplementedException` outside tests | shipped |
 | [DD0019](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0019.md) | 1 | Public domain model types are immutable | shipped |
-| [DD0020](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0020.md) | 1 | No `dynamic` in a project with `ArchLayer` set | unreleased |
+| [DD0020](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0020.md) | 1 | No `dynamic` in a project with `ArchLayer` set | shipped |
 | [DDBUILD0001](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DDBUILD0001.md) | 1 | The Roslyn pin matches the floor the analyzers declare | shipped |
 | [DDBUILD0002](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DDBUILD0002.md) | 1 | The package carries its code-fixes assembly | shipped |
 | [DDGEN0001-0006](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/ledger-input.md) | — | The decision input is well formed | shipped |
