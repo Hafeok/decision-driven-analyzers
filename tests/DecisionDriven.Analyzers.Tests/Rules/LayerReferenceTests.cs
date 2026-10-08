@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using DecisionDriven.Analyzers.Rules;
@@ -122,6 +124,50 @@ public sealed class LayerReferenceTests
             archLayer: null,
             references: new[] { new RuleHarness.Referenced("Sample.Sibling", archLayer: 1) }));
     }
+
+    [Fact]
+    public void With_dd_require_layer_a_family_project_with_no_layer_is_reported()
+    {
+        // StableDependencyRules.FamilyProjectDeclaresLayer: nothing references a host, so without
+        // this nothing checks it either.
+        Diagnostic diagnostic = Assert.Single(RuleHarness.Run(
+            new LayerReferenceAnalyzer(),
+            "namespace Sample.Host { internal static class Program { } }",
+            assemblyName: "Sample.Host",
+            archFamily: "Sample",
+            editorConfig: RequireLayer("true")));
+
+        Assert.Equal("DD0001", diagnostic.Id);
+        Assert.Equal(
+            "'Sample.Host' is in family 'Sample' and declares no layer, and dd_require_layer says every project in the family is placed. "
+            + "Decide: set ArchLayer on 'Sample.Host' to the layer it belongs at "
+            + "| mark it [DesignDecision(typeof(<Set>.<Key>), Scope = ExceptionScope.<Scope>)] "
+            + "citing the accepted decision that says so. "
+            + "Do not add the attribute without a decision that answers this; if the reason is only that "
+            + "the code already looked like this, take the design change.",
+            diagnostic.GetMessage());
+    }
+
+    [Theory]
+    [InlineData(null, "Sample.Host", null)]
+    [InlineData("false", "Sample.Host", null)]
+    [InlineData("true", "Sample.Host", 2)]
+    [InlineData("true", "Sample.Host.Tests", null)]
+    [InlineData("true", "Other.Host", null)]
+    [InlineData("true", "Samples.Host", null)]
+    public void Without_the_option_or_outside_the_family_or_placed_a_project_is_not_reported(string? option, string assemblyName, int? layer)
+    {
+        Assert.Empty(RuleHarness.Run(
+            new LayerReferenceAnalyzer(),
+            "namespace Sample.Host { internal static class Program { } }",
+            assemblyName: assemblyName,
+            archFamily: "Sample",
+            archLayer: layer,
+            editorConfig: option is null ? null : RequireLayer(option)));
+    }
+
+    private static Dictionary<string, string> RequireLayer(string value) =>
+        new Dictionary<string, string>(StringComparer.Ordinal) { [LayerReferenceAnalyzer.RequireLayerOption] = value };
 
     [Fact]
     public void The_message_for_the_canonical_violating_sample_is_exact()

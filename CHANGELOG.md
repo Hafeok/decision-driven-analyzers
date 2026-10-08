@@ -23,6 +23,11 @@ consumer that builds with warnings as errors, and are recorded as such.
   DD0010, DD0013 to DD0016, DD0019 and the report's cohesion metric all read it
   (`DecisionsAsTypes.DomainModelIncludesSubNamespaces`, new;
   [#46](https://github.com/Hafeok/decision-driven-analyzers/issues/46)).
+- **`DD0001`** gains an opt-in finding. With `dd_require_layer = true` in a `.globalconfig`, a project
+  in family `F` whose assembly name begins `F.` and which sets no `ArchLayer` is reported itself;
+  `*.Tests` assemblies stay exempt. Off by default, so adoption stays quiet until the consumer says
+  every project is placed (`StableDependencyRules.FamilyProjectDeclaresLayer`, new;
+  [#48](https://github.com/Hafeok/decision-driven-analyzers/issues/48)).
 
 ### Fixed
 

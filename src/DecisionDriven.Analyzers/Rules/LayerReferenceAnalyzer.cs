@@ -22,6 +22,12 @@ namespace DecisionDriven.Analyzers.Rules;
 /// attribute the generator emits, which is in metadata, rather than from a property that only the
 /// project being compiled can see.
 /// </para>
+/// <para>
+/// <c>StableDependencyRules.FamilyProjectDeclaresLayer</c>: with <c>dd_require_layer = true</c>, a
+/// project in family <c>F</c> whose assembly name begins <c>F.</c> and which declares no layer is
+/// reported itself. Off by default, so adopting the package stays quiet until the consumer says
+/// every project is placed.
+/// </para>
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class LayerReferenceAnalyzer : DiagnosticAnalyzer
@@ -29,6 +35,13 @@ public sealed class LayerReferenceAnalyzer : DiagnosticAnalyzer
     private const string ArchLayerAttributeName = "ArchLayerAttribute";
     private const string AttributeNamespace = "DecisionDriven";
     private const string TestAssemblySuffix = ".Tests";
+
+    /// <summary>
+    /// The global analyzer config option that turns on <c>FamilyProjectDeclaresLayer</c>. Global,
+    /// because it is a question about the compilation: a <c>[*.cs]</c> section of
+    /// <c>.editorconfig</c> applies to files and does not reach <c>GlobalOptions</c>.
+    /// </summary>
+    internal const string RequireLayerOption = "dd_require_layer";
 
     /// <inheritdoc/>
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
@@ -49,9 +62,7 @@ public sealed class LayerReferenceAnalyzer : DiagnosticAnalyzer
     {
         ArchOptions options = ArchOptions.Read(context.Options.AnalyzerConfigOptionsProvider.GlobalOptions);
 
-        // Unset means the project has not opted into layering. Reporting here would make adopting
-        // the package a build break for every project that has not been placed yet.
-        if (options.Family is not { Length: > 0 } family || options.Layer is not int layer)
+        if (options.Family is not { Length: > 0 } family)
         {
             return;
         }
@@ -66,6 +77,23 @@ public sealed class LayerReferenceAnalyzer : DiagnosticAnalyzer
         }
 
         string familyPrefix = family + ".";
+
+        // Unset means the project has not opted into layering. Reporting here would make adopting
+        // the package a build break for every project that has not been placed yet, so it is
+        // reported only once the consumer has said, with dd_require_layer, that adoption is done.
+        if (options.Layer is not int layer)
+        {
+            if (RequiresLayer(context.Options.AnalyzerConfigOptionsProvider.GlobalOptions)
+                && assemblyName.StartsWith(familyPrefix, StringComparison.Ordinal))
+            {
+                Report(
+                    context,
+                    finding: $"'{assemblyName}' is in family '{family}' and declares no layer, and {RequireLayerOption} says every project in the family is placed",
+                    designChange: $"set ArchLayer on '{assemblyName}' to the layer it belongs at");
+            }
+
+            return;
+        }
 
         foreach (IAssemblySymbol reference in context.Compilation.SourceModule.ReferencedAssemblySymbols)
         {
@@ -130,6 +158,10 @@ public sealed class LayerReferenceAnalyzer : DiagnosticAnalyzer
 
         return null;
     }
+
+    private static bool RequiresLayer(AnalyzerConfigOptions options) =>
+        options.TryGetValue(RequireLayerOption, out string? value)
+        && string.Equals(value?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
 
     private static void Report(CompilationAnalysisContext context, string finding, string designChange) =>
         context.ReportDiagnostic(Diagnostic.Create(Descriptors.LayerReference, Location.None, finding, designChange));
