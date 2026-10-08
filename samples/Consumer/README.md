@@ -45,7 +45,11 @@ breaking exactly one rule. Two violations are not source files, because of what 
   with two decisions claiming one key, added to that project's `AdditionalFiles` under the define.
 
 `_Model.cs` is not a violation: it declares the `[DomainModel]` namespace the model-surface
-violations need.
+violations need. Nor is `_ContractTypeAssemblies.cs`: `Sample.Layer2` sets
+`ArchContractTypeAssemblies` to `Sample.Layer0;Sample.Layer1`, and that file is a contract naming a
+type from each. It is the check that the package's props and targets get the whole list to DD0010,
+past the compiler's analyzer config parser, which reads everything after a `;` as a comment; if
+they did not, DD0010 would be reported twice.
 
 The violating samples cite this repository's own decisions, which are all unaccepted until the
 maintainer accepts them, so each citation is CS0618. Under the define only, CS0618 is not reported;

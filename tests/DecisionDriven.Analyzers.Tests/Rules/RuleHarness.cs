@@ -303,7 +303,8 @@ internal static class RuleHarness
     /// <remarks>
     /// <c>ArchContractTypeAssemblies</c> is not visible itself: the targets rewrite its <c>;</c> to
     /// <c>,</c> into <c>_DecisionDrivenArchContractTypeAssemblies</c>, which is. Keep this in step
-    /// with those two files.
+    /// with those two files. This is the unit test of the rewrite; the samples job is its
+    /// integration test, against the nupkg (<c>samples/Consumer/Sample.Layer2</c> sets a two-entry list).
     /// </remarks>
     private static IEnumerable<KeyValuePair<string, string>> AsTheBuildWritesThem(IEnumerable<KeyValuePair<string, string>> properties)
     {
