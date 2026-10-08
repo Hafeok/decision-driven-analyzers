@@ -107,7 +107,7 @@ jobs:
       - name: Download the packages the checks tested
         # ReleaseProcess.PublishedBytesAreTestedBytes: the artifact build.yml's build job uploaded
         # and its samples job installed, from this run.
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: packages
           path: artifacts/packages
