@@ -18,6 +18,10 @@ consumer that builds with warnings as errors, and are recorded as such.
   `README.md` beside the set files is harmless, and the hand-written `AdditionalFiles` form. The
   `.targets` comment no longer says an empty value turns the globbing off; empty is the default
   ([#44](https://github.com/Hafeok/decision-driven-analyzers/issues/44)).
+- **README** quick start referenced the package with `PrivateAssets="all"` only, while ADR-A02
+  prescribes `IncludeAssets="analyzers;build"` as well. The quick start and the samples now use
+  both, and `TwoPackages.DevelopmentTimeOnly` (amended) states the same reference form
+  ([#45](https://github.com/Hafeok/decision-driven-analyzers/issues/45)).
 
 ## [0.1.0-preview.7] - 2026-10-08
 
