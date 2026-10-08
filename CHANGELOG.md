@@ -11,6 +11,13 @@ consumer that builds with warnings as errors, and are recorded as such.
 
 ## [Unreleased]
 
+## [0.1.0-preview.8] - 2026-10-08
+
+**Breaking for a consumer that builds with warnings as errors.** DD0020 is new and tier 1, and
+DD0019 now reports a model class whose methods change it. The N-Triples reader now reads the ledger
+export's ruled shape: set ids from the `ledger:set` IRI, every `rdf:type` of a node, and revocations
+as their own nodes, with the old on-node shape still read and warned about (`DDGEN0006`).
+
 ### Added
 
 - **`DDGEN0006`** (new, warning). An acceptance revoked with `ledger:revokedAt` on the acceptance
@@ -382,7 +389,8 @@ Every decision in this repository's own `docs/decisions/` is unaccepted, which i
 working rather than an oversight: citing one produces `CS0618` on every citation, so they are usable
 on a branch and will not ship under `TreatWarningsAsErrors`.
 
-[Unreleased]: https://github.com/Hafeok/decision-driven-analyzers/compare/v0.1.0-preview.7...main
+[Unreleased]: https://github.com/Hafeok/decision-driven-analyzers/compare/v0.1.0-preview.8...main
+[0.1.0-preview.8]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.8
 [0.1.0-preview.7]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.7
 [0.1.0-preview.6]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.6
 [0.1.0-preview.5]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.5
