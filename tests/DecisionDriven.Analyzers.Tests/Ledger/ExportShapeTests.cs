@@ -48,6 +48,26 @@ public sealed class ExportShapeTests
         Assert.Equal(DiagnosticSeverity.Warning, obsolete.Severity);
     }
 
+    [Fact]
+    public void A_node_is_read_whatever_order_its_types_arrive_in()
+    {
+        // The export types every node twice, ledger:X and prov:Entity, and in code-point order the
+        // prov: line comes first. Reversed, the ledger: line comes first and prov:Entity last; a
+        // reader that kept only the last type read would drop every decision, version and acceptance.
+        string sorted = Fixture();
+        string reversed = string.Join("\n", sorted.Split('\n').Reverse());
+
+        GeneratorHarness.Result fromSorted = Run(Citation("ExportedKey"), sorted);
+        GeneratorHarness.Result fromReversed = Run(Citation("ExportedKey"), reversed);
+
+        string? a = fromSorted.GeneratedSource("DecisionDriven.Ledger.SampleNs.g.cs");
+        string? b = fromReversed.GeneratedSource("DecisionDriven.Ledger.SampleNs.g.cs");
+
+        Assert.NotNull(a);
+        Assert.Equal(a, b);
+        Assert.Empty(fromReversed.CompilationDiagnostics.Where(d => d.Id is "CS0618" or "CS0619" || d.Severity == DiagnosticSeverity.Error));
+    }
+
     internal static string Fixture() =>
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Ledger", "Fixtures", "export-v2.nt"));
 
