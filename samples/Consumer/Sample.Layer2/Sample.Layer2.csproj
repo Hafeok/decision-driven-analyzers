@@ -2,6 +2,14 @@
 
   <PropertyGroup>
     <ArchLayer>2</ArchLayer>
+
+    <!--
+      Two assemblies, written as an MSBuild list. The compiler's analyzer config parser reads
+      everything after a ';' as a comment, so this is also the check that the package's props and
+      targets get the whole list to DD0010: Violations/_ContractTypeAssemblies.cs names a type
+      from each, and a regression reports it as a second DD0010.
+    -->
+    <ArchContractTypeAssemblies>Sample.Layer0;Sample.Layer1</ArchContractTypeAssemblies>
   </PropertyGroup>
 
   <ItemGroup>

@@ -4,10 +4,14 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using DecisionDriven.Analyzers.Tests.Ledger;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Testing;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Testing;
+using Xunit;
 
 namespace DecisionDriven.Analyzers.Tests.Rules;
 
@@ -239,7 +243,86 @@ internal static class RuleHarness
         }
     }
 
+    /// <summary>
+    /// Runs <typeparamref name="TAnalyzer"/> with its MSBuild properties read from an analyzer
+    /// config file, by Roslyn's own config parser, and verifies exactly <paramref name="expected"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is the path a build takes: <c>CompilerVisibleProperty</c> writes each property as a
+    /// <c>build_property.&lt;Name&gt; = &lt;value&gt;</c> line into the generated
+    /// <c>.GeneratedMSBuildEditorConfig.editorconfig</c>, a global config, and the compiler parses
+    /// that file. The parser has opinions about the value - it reads <c>;</c> and <c>#</c> as the
+    /// start of a comment - that a dictionary handed straight to the analyzer never has, so a
+    /// property whose value is a list is tested here as well as through <see cref="Run"/>.
+    /// </para>
+    /// <para>
+    /// <paramref name="buildProperties"/> are the MSBuild properties as a project sets them. They
+    /// are written as the package's props and targets have the build write them (see
+    /// <see cref="AsTheBuildWritesThem"/>), then parsed by the compiler's parser. Mark the expected
+    /// locations in <paramref name="source"/> as <c>{|#0:...|}</c>.
+    /// </para>
+    /// </remarks>
+    internal static Task VerifyThroughAnalyzerConfigAsync<TAnalyzer>(
+        string source,
+        IEnumerable<KeyValuePair<string, string>> buildProperties,
+        IEnumerable<Referenced> references,
+        params DiagnosticResult[] expected)
+        where TAnalyzer : DiagnosticAnalyzer, new()
+    {
+        CSharpAnalyzerTest<TAnalyzer, DefaultVerifier> test = new()
+        {
+            TestCode = source,
+
+            // The referenced projects are built against this runtime's own assemblies, so the test
+            // compilation is too, rather than against a reference pack that would disagree with them.
+            ReferenceAssemblies = new ReferenceAssemblies("platform"),
+        };
+
+        test.TestState.AdditionalReferences.AddRange(PlatformReferences());
+        foreach (Referenced reference in references)
+        {
+            test.TestState.AdditionalReferences.Add(Build(reference));
+        }
+
+        test.TestState.AnalyzerConfigFiles.Add((
+            "/.globalconfig",
+            "is_global = true" + Environment.NewLine
+                + string.Concat(AsTheBuildWritesThem(buildProperties).Select(static property =>
+                    "build_property." + property.Key + " = " + property.Value + Environment.NewLine))));
+
+        test.ExpectedDiagnostics.AddRange(expected);
+
+        return test.RunAsync(TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// The <c>build_property</c> entries a build writes for a project's MSBuild properties, with what
+    /// <c>DecisionDriven.Analyzers.props</c> and <c>.targets</c> do to them on the way.
+    /// </summary>
+    /// <remarks>
+    /// <c>ArchContractTypeAssemblies</c> is not visible itself: the targets rewrite its <c>;</c> to
+    /// <c>,</c> into <c>_DecisionDrivenArchContractTypeAssemblies</c>, which is. Keep this in step
+    /// with those two files. This is the unit test of the rewrite; the samples job is its
+    /// integration test, against the nupkg (<c>samples/Consumer/Sample.Layer2</c> sets a two-entry list).
+    /// </remarks>
+    private static IEnumerable<KeyValuePair<string, string>> AsTheBuildWritesThem(IEnumerable<KeyValuePair<string, string>> properties)
+    {
+        foreach (KeyValuePair<string, string> property in properties)
+        {
+            yield return property.Key == "ArchContractTypeAssemblies"
+                ? new KeyValuePair<string, string>("_DecisionDrivenArchContractTypeAssemblies", property.Value.Replace(';', ','))
+                : property;
+        }
+    }
+
     /// <summary>The MSBuild properties a rule reads, as an options provider.</summary>
+    /// <remarks>
+    /// A dictionary handed to the analyzer as it is: it bypasses the analyzer config parser a build
+    /// puts every <c>CompilerVisibleProperty</c> through, which reads <c>;</c> as the start of a
+    /// comment. A property whose value is a list must also be tested through an analyzer config
+    /// file, with <see cref="VerifyThroughAnalyzerConfigAsync{TAnalyzer}"/>.
+    /// </remarks>
     internal static AnalyzerConfigOptionsProvider OptionsFor(Dictionary<string, string> values) => new GlobalOptionsProvider(values);
 
     private sealed class GlobalOptionsProvider : AnalyzerConfigOptionsProvider

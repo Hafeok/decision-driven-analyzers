@@ -7,8 +7,8 @@ no project file.
 
 | File | Imported | Does |
 | --- | --- | --- |
-| `DecisionDriven.Analyzers.props` | before the consuming project's body | makes `ArchFamily`, `ArchLayer`, `ArchCompositionRoot` and `ArchContractTypeAssemblies` visible to the compiler, and makes `DdLedger` metadata on `AdditionalFiles` visible to analyzers |
-| `DecisionDriven.Analyzers.targets` | after the consuming project's body | adds the decision set files and the ledger export to `AdditionalFiles`, tagged with `DdLedger` |
+| `DecisionDriven.Analyzers.props` | before the consuming project's body | makes `ArchFamily`, `ArchLayer`, `ArchCompositionRoot` and `ArchContractTypeAssemblies` (as `_DecisionDrivenArchContractTypeAssemblies`, below) visible to the compiler, and makes `DdLedger` metadata on `AdditionalFiles` visible to analyzers |
+| `DecisionDriven.Analyzers.targets` | after the consuming project's body | sets `_DecisionDrivenArchContractTypeAssemblies`, and adds the decision set files and the ledger export to `AdditionalFiles`, tagged with `DdLedger` |
 
 A consumer configures the rules like this, and never by changing analyzer code
 (`TwoPackages.ConfigurationViaMsBuildProperties`):
@@ -24,6 +24,14 @@ A consumer configures the rules like this, and never by changing analyzer code
 ```
 
 `samples/Consumer/` in this repository is a worked example of exactly that.
+
+`ArchContractTypeAssemblies` is an MSBuild list: `A;B`, with `,` accepted too.
+
+`_DecisionDrivenArchContractTypeAssemblies` is internal, not a setting; do not set it. The
+compiler reads each visible property from a generated analyzer config file whose parser takes
+everything after a `;` as a comment, so `A;B` made visible as it stands would reach the analyzers
+as `A`. The targets copy `ArchContractTypeAssemblies` into it with `;` rewritten to `,`, after the
+project body has set the list, and the props make it visible instead of the raw property.
 
 A ledger that is not one flat directory skips `DdLedgerDirectory` and adds the files
 itself, with the metadata the analyzers read:

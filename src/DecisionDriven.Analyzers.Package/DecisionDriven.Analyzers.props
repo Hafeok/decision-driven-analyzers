@@ -27,13 +27,21 @@
                                    from a higher layer to a lower one
       ArchCompositionRoot          true for the one project allowed to know about every
                                    layer in order to wire them together
-      ArchContractTypeAssemblies   the assemblies whose types may appear on a contract
+      ArchContractTypeAssemblies   the assemblies whose types may appear on a contract, as an
+                                   MSBuild list: separated by ';', with ',' accepted too
+
+    ArchContractTypeAssemblies itself is not made visible. CompilerVisibleProperty writes a
+    property into the generated analyzer config file as it stands, and the compiler's parser
+    for that file reads ';' as the start of a comment, so "A;B" would reach the analyzers as
+    "A". The analyzers read _DecisionDrivenArchContractTypeAssemblies instead: the same list
+    with ';' rewritten to ',', set in DecisionDriven.Analyzers.targets so that a value set in
+    the project body is the one rewritten. It is an implementation detail, not a setting.
   -->
   <ItemGroup>
     <CompilerVisibleProperty Include="ArchFamily" />
     <CompilerVisibleProperty Include="ArchLayer" />
     <CompilerVisibleProperty Include="ArchCompositionRoot" />
-    <CompilerVisibleProperty Include="ArchContractTypeAssemblies" />
+    <CompilerVisibleProperty Include="_DecisionDrivenArchContractTypeAssemblies" />
   </ItemGroup>
 
   <!--

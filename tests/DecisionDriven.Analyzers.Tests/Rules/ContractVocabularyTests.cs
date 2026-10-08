@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Threading.Tasks;
 using DecisionDriven.Analyzers.Rules;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Testing;
 using Xunit;
 
 namespace DecisionDriven.Analyzers.Tests.Rules;
@@ -239,6 +241,57 @@ public sealed class ContractVocabularyTests
 
         Assert.Equal("DD0010", diagnostic.Id);
     }
+
+    // ArchContractTypeAssemblies as an MSBuild user writes it, read the way a build reads it: through
+    // the analyzer config file CompilerVisibleProperty generates, and the compiler's parser for it.
+    private const string ListedTwo = "A;B";
+
+    [Fact]
+    public async Task Every_assembly_in_a_list_read_from_an_analyzer_config_file_is_accepted()
+    {
+        await RuleHarness.VerifyThroughAnalyzerConfigAsync<ContractVocabularyAnalyzer>(
+            ConfigPathSource("global::A.First First(); global::B.Second Second();"),
+            ConfigPathProperties(),
+            ConfigPathReferences());
+    }
+
+    [Fact]
+    public async Task An_assembly_missing_from_a_list_read_from_an_analyzer_config_file_is_reported_with_the_exact_message()
+    {
+        // DiagnosticMessages.ExactMessageTested.
+        await RuleHarness.VerifyThroughAnalyzerConfigAsync<ContractVocabularyAnalyzer>(
+            ConfigPathSource("global::A.First First(); global::B.Second Second(); global::C.Third {|#0:Third|}();"),
+            ConfigPathProperties(),
+            ConfigPathReferences(),
+            new DiagnosticResult("DD0010", DiagnosticSeverity.Error)
+                .WithLocation(0)
+                .WithMessage(
+                    "the return type of contract member 'IQuadSource.Third' names 'C.Third', "
+                    + "which comes from 'C', which is not in ArchContractTypeAssemblies. "
+                    + "Decide: use a type this contract may already name, or take what it needs into this "
+                    + "assembly's [DomainModel] namespaces "
+                    + "| add 'C' to ArchContractTypeAssemblies, in a decision that says why "
+                    + "every consumer of this contract now depends on 'C'. "
+                    + "Do not add the attribute without a decision that answers this; if the reason is only that "
+                    + "the code already looked like this, take the design change."));
+    }
+
+    private static string ConfigPathSource(string members) =>
+        ContractSource.File(
+            "namespace Consumer { " + ContractSource.Contract + " public interface IQuadSource { " + members + " } }");
+
+    private static Dictionary<string, string> ConfigPathProperties() => new(StringComparer.Ordinal)
+    {
+        ["ArchLayer"] = "1",
+        ["ArchContractTypeAssemblies"] = ListedTwo,
+    };
+
+    private static IEnumerable<RuleHarness.Referenced> ConfigPathReferences() => new[]
+    {
+        new RuleHarness.Referenced("A", archLayer: 0, "namespace A { public sealed class First { } }"),
+        new RuleHarness.Referenced("B", archLayer: 0, "namespace B { public sealed class Second { } }"),
+        new RuleHarness.Referenced("C", archLayer: 0, "namespace C { public sealed class Third { } }"),
+    };
 
     private static ImmutableArray<Diagnostic> Run(string members, string extra = "", string? domainModel = null)
     {
