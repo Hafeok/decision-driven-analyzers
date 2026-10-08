@@ -8,6 +8,12 @@
       wiring them together is the whole of what it does.
     -->
     <ArchCompositionRoot>true</ArchCompositionRoot>
+
+    <!--
+      Above everything it wires, and declared, because the samples set dd_require_layer: a family
+      project with no layer is DD0001's finding there.
+    -->
+    <ArchLayer>3</ArchLayer>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,0 +1,6 @@
+is_global = true
+
+# StableDependencyRules.FamilyProjectDeclaresLayer: every project in the Sample family is placed,
+# so the conforming build fails if one is added without an ArchLayer. Global, not .editorconfig:
+# the option is about the compilation, and a [*.cs] section does not reach it.
+dd_require_layer = true

@@ -7,6 +7,8 @@ decisions:
     statement: "DD0001: a project with ArchLayer n may reference a family assembly only if that assembly declares a lower layer; an undeclared family reference is an error"
   - key: LayerDeclaredInAssemblyMetadata
     statement: "The layer is read from a source-generated assembly-level ArchLayer attribute so the check works across project and package references"
+  - key: FamilyProjectDeclaresLayer
+    statement: "DD0001, opt-in with dd_require_layer = true in a global analyzer config (.globalconfig, is_global = true): a compilation in family F whose assembly name begins F. and declares no ArchLayer is an error, with DD0001's existing exemptions. Off by default, so adoption stays quiet until the consumer says every project in the family is placed"
   - key: InternalsVisibleToTestsOnly
     statement: "DD0002: every InternalsVisibleTo target ends in .Tests"
   - key: NoServiceLocationOutsideCompositionRoot
