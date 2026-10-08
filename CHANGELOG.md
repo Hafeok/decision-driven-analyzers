@@ -40,6 +40,11 @@ consumer that builds with warnings as errors, and are recorded as such.
   site as `Member(x, true)`, including one-parameter members; it now reads the call from the
   member's parameters, `new T(...)` for a constructor
   ([#60](https://github.com/Hafeok/decision-driven-analyzers/issues/60)).
+- **`[HotPath]`** could not be applied to an interface (CS0592), so a `[Contract]` interface, the
+  contract most likely to be on a hot path, could not be marked as a whole. `HotPathAttribute` now
+  has `AttributeTargets.Interface`, and DD0013 exempts the members of a marked interface as it does
+  a marked class or struct
+  ([#61](https://github.com/Hafeok/decision-driven-analyzers/issues/61)).
 
 ## [0.1.0-preview.7] - 2026-10-08
 

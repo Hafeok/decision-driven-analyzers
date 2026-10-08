@@ -38,8 +38,10 @@ namespace DecisionDriven
     }
 
     [global::System.AttributeUsage(
-        global::System.AttributeTargets.Method | global::System.AttributeTargets.Property
-            | global::System.AttributeTargets.Class | global::System.AttributeTargets.Struct)]
+        global::System.AttributeTargets.Method | global::System.AttributeTargets.Constructor
+            | global::System.AttributeTargets.Property
+            | global::System.AttributeTargets.Class | global::System.AttributeTargets.Struct
+            | global::System.AttributeTargets.Interface)]
     internal sealed class HotPathAttribute : global::System.Attribute
     {
         public HotPathAttribute(global::System.Type decision) { Decision = decision; }

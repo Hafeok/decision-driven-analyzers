@@ -161,6 +161,19 @@ public sealed class GeneratedSourceTests
         Assert.Empty(result.CompilationDiagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
     }
 
+    [Fact]
+    public void HotPath_applies_to_an_interface()
+    {
+        // A contract on the hot path is most often an interface, and marking it as a type is what a
+        // class or struct can already do. Without the Interface target this is CS0592.
+        GeneratorHarness.Result result = GeneratorHarness.Run(
+            "[global::DecisionDriven.HotPath(typeof(global::DecisionDriven.Ledger.SampleNs.SampleSet.SomeKey))] "
+                + "internal interface ICursor { bool MoveNext(); }",
+            new[] { LedgerInput.AsSet(LedgerInput.FrontMatter("sample-set", "SomeKey", "A statement.", "mailto:someone@example.com")) });
+
+        Assert.Empty(result.CompilationDiagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+    }
+
     private static GeneratorHarness.Result Cite(string key, string? acceptedBy, string? revokedAt = null) =>
         GeneratorHarness.Run(
             CitationOf(key),

@@ -63,7 +63,7 @@ The same generator emits the marker attributes as `internal sealed` classes in n
 | `ArchLayer` | assembly | `(int layer)`; from the `ArchLayer` MSBuild property; consumed by DD0001 |
 | `Contract` | interface, abstract class, delegate | `(Type decision)` + `string Role` (required named) |
 | `DomainModel` | assembly | `(string namespacePrefix, Type decision)` |
-| `HotPath` | method, property, type | `(Type decision)` |
+| `HotPath` | method, constructor, property, class, struct, interface | `(Type decision)` |
 | `DesignDecision` | any | `(Type decision)` + `ExceptionScope Scope` (required named) |
 
 `ExceptionScope` is a generated enum, closed: `Boundary`, `HotPath`, `Pool`, `Interop`, `Compatibility`, `Migration`. Its values are the notations of a SKOS scheme in the ledger vocabulary so the report tool emits the same tokens. `Role` is the one free string and is a label, not a justification.

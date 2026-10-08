@@ -89,7 +89,8 @@ namespace DecisionDriven
     [global::System.AttributeUsage(
         global::System.AttributeTargets.Method | global::System.AttributeTargets.Constructor
             | global::System.AttributeTargets.Property
-            | global::System.AttributeTargets.Class | global::System.AttributeTargets.Struct,
+            | global::System.AttributeTargets.Class | global::System.AttributeTargets.Struct
+            | global::System.AttributeTargets.Interface,
         AllowMultiple = false)]
     internal sealed class HotPathAttribute : global::System.Attribute
     {
