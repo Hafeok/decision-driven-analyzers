@@ -59,6 +59,10 @@ signatures at once (DD0010). One assembly-level line ahead of time is the differ
 [assembly: DomainModel("Consumer.Model", typeof(CatalogShape.ModelNamespace))]
 ```
 
+A prefix takes in every namespace under it. When the model is the assembly's root namespace and a
+namespace below it is not model, say `IncludeSubNamespaces = false` and only the named namespace
+is model.
+
 ```xml
 <ItemGroup>
   <PackageReference Include="DecisionDriven.Analyzers" Version="0.1.0-*"

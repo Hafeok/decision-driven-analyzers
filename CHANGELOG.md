@@ -17,6 +17,12 @@ consumer that builds with warnings as errors, and are recorded as such.
   node, the shape the ledger export no longer writes. It is still read as revoked; the warning says
   to re-export (`DecisionsAsTypes.RevocationIsItsOwnNode`;
   [#83](https://github.com/Hafeok/decision-driven-analyzers/issues/83)).
+- **`[DomainModel]`** gains `IncludeSubNamespaces`, default `true`. A prefix still takes in every
+  namespace under it; `IncludeSubNamespaces = false` makes only the named namespace model, so an
+  assembly whose model is its root namespace can keep a public sibling below it outside the model.
+  DD0010, DD0013 to DD0016, DD0019 and the report's cohesion metric all read it
+  (`DecisionsAsTypes.DomainModelIncludesSubNamespaces`, new;
+  [#46](https://github.com/Hafeok/decision-driven-analyzers/issues/46)).
 
 ### Fixed
 
