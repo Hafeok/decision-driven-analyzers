@@ -62,7 +62,7 @@ The same generator emits the marker attributes as `internal sealed` classes in n
 |---|---|---|
 | `ArchLayer` | assembly | `(int layer)`; from the `ArchLayer` MSBuild property; consumed by DD0001 |
 | `Contract` | interface, abstract class, delegate | `(Type decision)` + `string Role` (required named) |
-| `DomainModel` | assembly | `(string namespacePrefix, Type decision)` |
+| `DomainModel` | assembly | `(string namespacePrefix, Type decision)` + `bool IncludeSubNamespaces` (optional named, default `true`; `false` matches the named namespace only) |
 | `HotPath` | method, constructor, property, class, struct, interface | `(Type decision)` |
 | `DesignDecision` | any | `(Type decision)` + `ExceptionScope Scope` (required named) |
 

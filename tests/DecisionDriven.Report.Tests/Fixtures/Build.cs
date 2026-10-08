@@ -37,6 +37,7 @@ namespace DecisionDriven
     internal sealed class DomainModelAttribute : global::System.Attribute
     {
         public DomainModelAttribute(string namespacePrefix, global::System.Type decision) { }
+        public bool IncludeSubNamespaces { get; set; } = true;
     }
 
     [global::System.AttributeUsage(global::System.AttributeTargets.All)]

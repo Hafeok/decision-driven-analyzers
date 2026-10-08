@@ -35,6 +35,7 @@ namespace DecisionDriven
 
         public string NamespacePrefix { get; }
         public global::System.Type Decision { get; }
+        public bool IncludeSubNamespaces { get; set; } = true;
     }
 
     [global::System.AttributeUsage(

@@ -82,6 +82,13 @@ namespace DecisionDriven
         public string NamespacePrefix { get; }
 
         public global::System.Type Decision { get; }
+
+        /// <summary>
+        /// True, the default: the prefix's own namespace and every namespace under it are model.
+        /// False: only the namespace named, so a root-namespace model can have siblings below it
+        /// that are not model.
+        /// </summary>
+        public bool IncludeSubNamespaces { get; set; } = true;
     }
 
     /// <summary>Marks code whose cost is measured, citing the decision that says so.</summary>
