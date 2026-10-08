@@ -11,6 +11,14 @@ consumer that builds with warnings as errors, and are recorded as such.
 
 ## [Unreleased]
 
+### Fixed
+
+- **README** did not say what `DdLedgerDirectory` does. A new section, "Where the decisions come
+  from", gives the per-project default, the two non-recursive globs onto `DdLedger` metadata, why a
+  `README.md` beside the set files is harmless, and the hand-written `AdditionalFiles` form. The
+  `.targets` comment no longer says an empty value turns the globbing off; empty is the default
+  ([#44](https://github.com/Hafeok/decision-driven-analyzers/issues/44)).
+
 ## [0.1.0-preview.7] - 2026-10-08
 
 ### Fixed
