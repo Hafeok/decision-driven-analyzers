@@ -33,6 +33,13 @@ consumer that builds with warnings as errors, and are recorded as such.
   property with storage, an auto-property or one whose accessor uses `field`, is now checked by its
   type; a computed one holds nothing and is not reported. A settable static property is reported as
   before ([#80](https://github.com/Hafeok/decision-driven-analyzers/issues/80)).
+- **`DD0016`** reported the constructor of a type wrapping one `bool`, the shape DD0014 asks for, as
+  taking a flag. The one-parameter constructor or static factory of a single-`bool` wrapper, taking
+  that `bool`, is now exempt, as DD0013 exempts a wrapper's own primitive
+  (`PrimitiveFreeSurfaces.FlagArgumentsWarning`, amended). The message also described every call
+  site as `Member(x, true)`, including one-parameter members; it now reads the call from the
+  member's parameters, `new T(...)` for a constructor
+  ([#60](https://github.com/Hafeok/decision-driven-analyzers/issues/60)).
 
 ## [0.1.0-preview.7] - 2026-10-08
 

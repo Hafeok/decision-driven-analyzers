@@ -16,7 +16,7 @@ decisions:
   - key: NoImplicitPrimitiveConversions
     statement: "DD0015: no implicit operator to or from a banned primitive on a DomainModel type"
   - key: FlagArgumentsWarning
-    statement: "DD0016 (tier 2): a bool parameter on a contract or public model member is a warning; prefer an enum. A DesignDecision on the member or on its type answers it, as for DD0013; a positional record's primary constructor cannot carry one, so the type is its only place. The dispose pattern, a protected Dispose(bool disposing) or an override of it on an IDisposable type, is the framework's signature and is not reported"
+    statement: "DD0016 (tier 2): a bool parameter on a contract or public model member is a warning; prefer an enum. A DesignDecision on the member or on its type answers it, as for DD0013; a positional record's primary constructor cannot carry one, so the type is its only place. The dispose pattern, a protected Dispose(bool disposing) or an override of it on an IDisposable type, is the framework's signature and is not reported. Nor is the one-parameter constructor or factory of a type wrapping a single bool, taking that bool: as for WrapperExposesItsOwnPrimitive and BoundaryMembersExempt, it is where the value enters"
 ---
 
 Interim set file (decisions-as-types, InterimFrontMatterUntilExport). No `accepted-by`: every decision here is unaccepted until a holder with accept-decision accepts it in the ledger. Narrative: docs/drafts/ADR-A09-*.md.

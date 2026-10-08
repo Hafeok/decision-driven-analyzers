@@ -215,13 +215,62 @@ public sealed class WrapperAndFlagTests
         Assert.Contains("'Silent'", diagnostic.GetMessage(), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("public readonly struct XsdBoolean : global::System.IEquatable<XsdBoolean> { public XsdBoolean(bool value) => Value = value; public bool Value { get; } public bool Equals(XsdBoolean other) => Value == other.Value; }")]
+    [InlineData("public readonly struct XsdBoolean : global::System.IEquatable<XsdBoolean> { private XsdBoolean(bool value) => Value = value; public static XsdBoolean From(bool value) => new(value); public bool Value { get; } public bool Equals(XsdBoolean other) => Value == other.Value; }")]
+    [InlineData("public readonly record struct XsdBoolean(bool Value);")]
+    public void A_bool_wrappers_own_constructor_or_factory_is_not_a_flag(string declaration)
+    {
+        // PrimitiveFreeSurfaces.FlagArgumentsWarning, amended: the wrapper's constructor is where
+        // its value enters, as WrapperExposesItsOwnPrimitive allows for DD0013.
+        Assert.Empty(Run(new FlagArgumentAnalyzer(), "namespace Consumer.Model { " + declaration + " }"));
+    }
+
+    [Fact]
+    public void A_bool_constructor_on_a_type_that_wraps_more_than_the_bool_is_a_flag()
+    {
+        Diagnostic diagnostic = Assert.Single(Run(
+            new FlagArgumentAnalyzer(),
+            "namespace Consumer.Model { public sealed class Toggle { public Toggle(bool on) { On = on; } public bool On { get; } public int Count { get; } } }"));
+
+        Assert.Contains("'new Toggle(true)'", diagnostic.GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_second_parameter_beside_the_wrapped_bool_makes_it_a_flag_again()
+    {
+        // Both bools are reported: with two parameters, neither is the value simply entering.
+        ImmutableArray<Diagnostic> diagnostics = Run(
+            new FlagArgumentAnalyzer(),
+            "namespace Consumer.Model { public readonly struct XsdBoolean { public XsdBoolean(bool value, bool strict) { Value = value; } public bool Value { get; } } }");
+
+        Assert.Equal(2, diagnostics.Length);
+        Assert.All(diagnostics, d => Assert.Contains("'new XsdBoolean(", d.GetMessage(), StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void The_flag_argument_message_for_a_one_parameter_constructor_is_exactly_this()
+    {
+        // The call site is read from the member: one parameter, one argument.
+        Assert.Equal(
+            "parameter 'on' of 'Toggle..ctor' is a bool, so the call site reads 'new Toggle(true)'. "
+            + "Decide: give it an enum with two named members, or split the member in two "
+            + "| mark it [DesignDecision(typeof(<Set>.<Key>), Scope = ExceptionScope.<Scope>)] "
+            + "citing the accepted decision that says so. "
+            + "Do not add the attribute without a decision that answers this; if the reason is only that "
+            + "the code already looked like this, take the design change.",
+            Assert.Single(Run(
+                new FlagArgumentAnalyzer(),
+                "namespace Consumer.Model { public sealed class Toggle { public Toggle(bool on) { On = on; } public bool On { get; } public int Count { get; } } }")).GetMessage());
+    }
+
     [Fact]
     public void The_flag_argument_message_is_exactly_this()
     {
         // DiagnosticMessages.ExactMessageTested.
         Assert.Equal(
             "parameter 'includeArchived' of 'IQuadSource.Read' is a bool, so the call site reads "
-            + "'Read(x, true)'. "
+            + "'Read(true)'. "
             + "Decide: give it an enum with two named members, or split the member in two "
             + "| mark it [DesignDecision(typeof(<Set>.<Key>), Scope = ExceptionScope.<Scope>)] "
             + "citing the accepted decision that says so. "
