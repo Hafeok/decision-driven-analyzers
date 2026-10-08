@@ -11,6 +11,13 @@ consumer that builds with warnings as errors, and are recorded as such.
 
 ## [Unreleased]
 
+### Added
+
+- **`DDGEN0006`** (new, warning). An acceptance revoked with `ledger:revokedAt` on the acceptance
+  node, the shape the ledger export no longer writes. It is still read as revoked; the warning says
+  to re-export (`DecisionsAsTypes.RevocationIsItsOwnNode`;
+  [#83](https://github.com/Hafeok/decision-driven-analyzers/issues/83)).
+
 ### Fixed
 
 - **README** did not say what `DdLedgerDirectory` does. A new section, "Where the decisions come
@@ -55,6 +62,13 @@ consumer that builds with warnings as errors, and are recorded as such.
   put the `prov:` line first; any other order dropped every decision, version and acceptance
   silently. Every type is now kept, and a node is selected by the `ledger:` type among them
   ([#82](https://github.com/Hafeok/decision-driven-analyzers/issues/82)).
+- **N-Triples reader** decided "revoked" only from `ledger:revokedAt` on the acceptance node, so
+  against an export that writes a revocation as its own `ledger:Revocation` node, a revoked
+  acceptance read as live. A revocation node now revokes the acceptance it names with
+  `ledger:revokes`, taking when, who and why from its `prov:generatedAtTime`,
+  `prov:wasAttributedTo` and `ledger:revocationReason`. The on-node shape is still read, and either
+  shape is enough
+  ([#83](https://github.com/Hafeok/decision-driven-analyzers/issues/83)).
 
 ## [0.1.0-preview.7] - 2026-10-08
 

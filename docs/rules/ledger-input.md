@@ -52,14 +52,32 @@ the lines arrive in does not matter.
 | `ledger:scope` | carried, not acted on | `"version"`, or `"class:<ref>"`. See the open item below. |
 | `prov:wasAttributedTo` | carried | The signing identity. |
 | `prov:generatedAtTime` | carried | When. |
-| `ledger:revokedAt` | **yes** | A revoked acceptance stops counting. |
-| `ledger:revokedBy` | carried | Who revoked it. |
+| `ledger:revokedAt` | **yes**, during the transition | The old shape: a revoked acceptance stops counting, and `DDGEN0006` warns that the export should be re-written with a revocation node. |
+| `ledger:revokedBy` | carried, old shape | Who revoked it. |
+| `ledger:revocationReason` | carried, old shape | Why. |
+
+## Revocation node — `rdf:type ledger:Revocation`
+
+The ledger has ruled that a revocation is its own signed node and that an acceptance node does not
+change after it is written (`DecisionsAsTypes.RevocationIsItsOwnNode`). The same shape revokes an
+authority grant; a revocation naming anything other than an acceptance has nothing here to act on.
+
+| Predicate | Read | Used for |
+| --- | --- | --- |
+| `ledger:revokes` | **yes** | The acceptance it revokes, which stops counting. |
+| `prov:generatedAtTime` | carried | When. |
+| `prov:wasAttributedTo` | carried | Who revoked it. |
 | `ledger:revocationReason` | carried | Why. |
+
+Both shapes are read while exports in the old one still exist, and either is enough: an acceptance
+is revoked if a revocation node names it **or** it carries `ledger:revokedAt`. Where both say so,
+the revocation node's when, who and why are the ones kept. Every acceptance revoked in the old shape
+is reported as `DDGEN0006`, a warning.
 
 ### What "accepted" means
 
 A decision is accepted when **at least one acceptance names the tip version in `ledger:signsVersion`
-and carries no `ledger:revokedAt`**. Anything else is unaccepted, and unaccepted emits
+and has not been revoked**, by a revocation node or by `ledger:revokedAt`. Anything else is unaccepted, and unaccepted emits
 `Obsolete(error: false)` (`DecisionsAsTypes.UnacceptedEmitsWarningObsolete`) — citable on a branch,
 not shippable under warnings as errors.
 

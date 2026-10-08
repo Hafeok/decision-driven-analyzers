@@ -83,6 +83,24 @@ internal static class LedgerDiagnostics
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    /// <summary>An acceptance revoked on its own node, the shape the export no longer writes.</summary>
+    /// <remarks>
+    /// <c>DecisionsAsTypes.RevocationIsItsOwnNode</c>. The ledger has ruled that a revocation is a
+    /// <c>ledger:Revocation</c> node naming the acceptance with <c>ledger:revokes</c>, and that an
+    /// acceptance node is not changed after it is written. The old shape is still read, so an export
+    /// written before the change keeps its meaning, and this warning says it is the old one. A
+    /// warning rather than an error: nothing in it is wrong yet, only due to change.
+    /// </remarks>
+    internal static readonly DiagnosticDescriptor OnNodeRevocation = new DiagnosticDescriptor(
+        id: "DDGEN0006",
+        title: "Acceptance revoked on the acceptance node",
+        messageFormat: "{0}: acceptance '{1}' is revoked with ledger:revokedAt on the acceptance node, the shape the ledger export no longer writes; it is read as revoked. "
+            + "Decide: re-export the ledger, which writes a ledger:Revocation node naming the acceptance with ledger:revokes, or keep this export until a re-export is possible. "
+            + "The on-node shape is read only during the transition, and an export that still uses it will stop revoking anything when that ends.",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
     /// <summary>A line of the N-Triples export that is not a triple.</summary>
     internal static readonly DiagnosticDescriptor UnparseableLine = new DiagnosticDescriptor(
         id: "DDGEN0004",
