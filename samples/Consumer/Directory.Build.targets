@@ -27,7 +27,7 @@
   <!--
     Package mode.
 
-    Exactly what the README tells a consumer to write, PrivateAssets included. Nothing from the
+    Exactly what the README tells a consumer to write, PrivateAssets and IncludeAssets included. Nothing from the
     working tree is imported: the analyzer and code-fix assemblies, the generator and the
     build/ props and targets all come out of the nupkg, which is the point.
 
@@ -43,7 +43,7 @@
 
   <ItemGroup Condition="'$(DdAnalyzersFromPackage)' == 'true'">
     <PackageVersion Include="DecisionDriven.Analyzers" Version="$(DdAnalyzersPackageVersion)" />
-    <PackageReference Include="DecisionDriven.Analyzers" PrivateAssets="all" />
+    <PackageReference Include="DecisionDriven.Analyzers" PrivateAssets="all" IncludeAssets="analyzers;build" />
   </ItemGroup>
 
 </Project>

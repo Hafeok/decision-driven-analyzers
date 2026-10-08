@@ -61,7 +61,8 @@ signatures at once (DD0010). One assembly-level line ahead of time is the differ
 
 ```xml
 <ItemGroup>
-  <PackageReference Include="DecisionDriven.Analyzers" Version="0.1.0-*" PrivateAssets="all" />
+  <PackageReference Include="DecisionDriven.Analyzers" Version="0.1.0-*"
+                    PrivateAssets="all" IncludeAssets="analyzers;build" />
 </ItemGroup>
 
 <PropertyGroup>
@@ -74,7 +75,10 @@ signatures at once (DD0010). One assembly-level line ahead of time is the differ
 ```
 
 `PrivateAssets="all"` is not optional: the package is development-time only and never appears in a
-consumer's runtime output. The four `Arch*` properties are the whole configuration surface — adopting
+consumer's runtime output, nor flows on to a project that references this one.
+`IncludeAssets="analyzers;build"` names the only two asset groups the package has, the analyzers and
+the props and targets that configure them, so nothing else can be taken from it
+(`TwoPackages.DevelopmentTimeOnly`). The four `Arch*` properties are the whole configuration surface — adopting
 a rule never means changing analyzer code.
 
 Write one decision set file, then `dotnet build`. With no decisions the analyzers load and say
