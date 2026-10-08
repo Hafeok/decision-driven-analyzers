@@ -29,6 +29,17 @@ consumer that builds with warnings as errors, and are recorded as such.
   every project is placed (`StableDependencyRules.FamilyProjectDeclaresLayer`, new;
   [#48](https://github.com/Hafeok/decision-driven-analyzers/issues/48)).
 
+### Changed
+
+- **`DD0019`** now reads method bodies. A non-private instance method on a model class that writes
+  one of the class's own instance fields or properties, or invokes a member of a field whose type
+  DD0004 judges mutable, is reported, directly or through one private helper in the same type.
+  Before, a class whose members were all private and readonly passed however its methods changed
+  it (`ImmutableModel.DomainModelImmutable`, amended to name method bodies and to put mutation
+  deeper than one helper out of scope;
+  [#47](https://github.com/Hafeok/decision-driven-analyzers/issues/47)). **Breaking** for a model
+  class whose public methods change it: the build reports DD0019 on each.
+
 ### Fixed
 
 - **README** did not say what `DdLedgerDirectory` does. A new section, "Where the decisions come
