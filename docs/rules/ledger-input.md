@@ -32,7 +32,7 @@ extension, so a consumer's unrelated markdown cannot become a decision set by ha
 | Predicate | Read | Used for |
 | --- | --- | --- |
 | `ledger:ofDecision` | **yes** | Which decision this is a version of. |
-| `ledger:set` | **yes** | Set membership, taken from the tip version. |
+| `ledger:set` | **yes** | Set membership, taken from the tip version. The export writes an IRI, `<urn:ledger-set:ledger-design>`, and the set id is its local part, everything after the last `:`. A literal is read as the id unchanged. |
 | `ledger:key` | **yes** | The nested type's name. Pending a ledger format change. |
 | `ledger:statement` | **yes** | The generated doc comment. |
 | `ledger:supersedes` | **yes** | Decision-to-decision. Marks the predecessor as having a successor. |

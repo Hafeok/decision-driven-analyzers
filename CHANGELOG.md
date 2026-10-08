@@ -45,6 +45,11 @@ consumer that builds with warnings as errors, and are recorded as such.
   has `AttributeTargets.Interface`, and DD0013 exempts the members of a marked interface as it does
   a marked class or struct
   ([#61](https://github.com/Hafeok/decision-driven-analyzers/issues/61)).
+- **N-Triples reader** took the object of `ledger:set` as the set id verbatim. The export writes it as
+  an IRI, `<urn:ledger-set:sample-set>`, so the generated set class and its `SetId` were named after
+  the whole IRI. The set id is now the IRI's local part; a literal is read unchanged. A fixture
+  export in the ledger's shape is tested alongside the older hand-written form
+  ([#81](https://github.com/Hafeok/decision-driven-analyzers/issues/81)).
 
 ## [0.1.0-preview.7] - 2026-10-08
 
