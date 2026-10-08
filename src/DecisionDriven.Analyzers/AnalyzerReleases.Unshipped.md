@@ -30,3 +30,4 @@ DD0016 | DecisionDriven | Warning | Flag argument on a model or contract member,
 DD0017 | DecisionDriven | Warning | Type switch over a hierarchy nothing closed, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0017.md)
 DD0018 | DecisionDriven | Error | Placeholder body in non-test code, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0018.md)
 DD0019 | DecisionDriven | Error | Model type can be changed by its caller, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0019.md)
+DD0020 | DecisionDriven | Error | Dynamically bound code in a layered project, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0020.md)

@@ -28,6 +28,13 @@ consumer that builds with warnings as errors, and are recorded as such.
   `*.Tests` assemblies stay exempt. Off by default, so adoption stays quiet until the consumer says
   every project is placed (`StableDependencyRules.FamilyProjectDeclaresLayer`, new;
   [#48](https://github.com/Hafeok/decision-driven-analyzers/issues/48)).
+- **`DD0020`** (new, tier 1). `dynamic` is an error in any project with `ArchLayer` set, as a
+  declared type or as a dynamically bound operation; a dynamically bound call reaches whatever the
+  runtime object happens to be, which is the loophole DD0001 and DD0011 close for static types
+  (`StableDependencyRules.NoDynamicInLayeredProjects`, new). `CallbackLoopholeNeedsNoRule` is
+  amended: banned symbols cannot close it, because they never see the binder calls the compiler
+  writes ([#69](https://github.com/Hafeok/decision-driven-analyzers/issues/69)). **Breaking** for a
+  layered project that uses `dynamic`.
 
 ### Changed
 
