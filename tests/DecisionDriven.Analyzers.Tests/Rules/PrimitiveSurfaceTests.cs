@@ -152,6 +152,15 @@ public sealed class PrimitiveSurfaceTests
     }
 
     [Fact]
+    public void The_members_of_a_hot_path_interface_are_not_reported()
+    {
+        Assert.Empty(Run(
+            "namespace Consumer { " + ContractSource.Contract
+            + " [global::DecisionDriven.HotPath(" + ContractSource.Decision + ")]"
+            + " public interface ICursor { long Position(); bool MoveNext(int count); } }"));
+    }
+
+    [Fact]
     public void A_member_marked_with_DesignDecision_is_not_reported()
     {
         Assert.Empty(Contract(
