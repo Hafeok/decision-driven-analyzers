@@ -59,9 +59,14 @@ signatures at once (DD0010). One assembly-level line ahead of time is the differ
 [assembly: DomainModel("Consumer.Model", typeof(CatalogShape.ModelNamespace))]
 ```
 
+A prefix takes in every namespace under it. When the model is the assembly's root namespace and a
+namespace below it is not model, say `IncludeSubNamespaces = false` and only the named namespace
+is model.
+
 ```xml
 <ItemGroup>
-  <PackageReference Include="DecisionDriven.Analyzers" Version="0.1.0-*" PrivateAssets="all" />
+  <PackageReference Include="DecisionDriven.Analyzers" Version="0.1.0-*"
+                    PrivateAssets="all" IncludeAssets="analyzers;build" />
 </ItemGroup>
 
 <PropertyGroup>
@@ -74,11 +79,47 @@ signatures at once (DD0010). One assembly-level line ahead of time is the differ
 ```
 
 `PrivateAssets="all"` is not optional: the package is development-time only and never appears in a
-consumer's runtime output. The four `Arch*` properties are the whole configuration surface — adopting
+consumer's runtime output, nor flows on to a project that references this one.
+`IncludeAssets="analyzers;build"` names the only two asset groups the package has, the analyzers and
+the props and targets that configure them, so nothing else can be taken from it
+(`TwoPackages.DevelopmentTimeOnly`). The four `Arch*` properties are the whole configuration surface — adopting
 a rule never means changing analyzer code.
 
 Write one decision set file, then `dotnet build`. With no decisions the analyzers load and say
 nothing; with a decision set, the types become citable.
+
+### Where the decisions come from
+
+`DdLedgerDirectory` is a shortcut for `AdditionalFiles`. The package's `.targets`, imported after the
+project body, turns it into two globs:
+
+```xml
+<AdditionalFiles Include="$(DdLedgerDirectory)/*.md" DdLedger="decision-set" />
+<AdditionalFiles Include="$(DdLedgerDirectory)/*.nt" DdLedger="ledger-export" />
+```
+
+- **The default is per project**: `$(MSBuildProjectDirectory)/docs/decisions`. A solution with one
+  ledger at its root sets the property once, in a `Directory.Build.props`, as the quick start does;
+  otherwise every project looks for its own `docs/decisions/`, finds none, and nothing is read and
+  nothing is reported.
+- **The globs are not recursive.** Only the files directly in the directory are passed in.
+- **Every `*.md` in the directory is passed in.** A file with no front matter contributes nothing,
+  which is why a `README.md` beside the set files is harmless.
+- **An empty value is the default**, not "off": MSBuild cannot tell a property set to empty from one
+  never set. A directory that does not exist adds nothing.
+
+A ledger that is not one flat directory adds the files itself, with the metadata the generator reads.
+The metadata, not the extension, is what makes a file a decision set:
+
+```xml
+<ItemGroup>
+  <AdditionalFiles Include="../ledger/**/*.md" DdLedger="decision-set" />
+  <AdditionalFiles Include="../ledger/export.nt" DdLedger="ledger-export" />
+</ItemGroup>
+```
+
+Both forms can be used together, but keep the hand-written items outside `DdLedgerDirectory`: a set
+file added twice claims each of its keys twice, which is `DDGEN0001`.
 
 ### The decision set format
 
@@ -99,7 +140,8 @@ decisions:
 ```
 
 Set ids are lowercase alphanumerics, dashes and dots. Keys are unique per namespace across all set
-files; a key claimed twice is `DDGEN0001`.
+files; a key claimed twice is `DDGEN0001`. A key may not repeat its set's class name, or be
+`SetId`, which the generated set class already declares (`DDGEN0005`).
 
 The N-Triples path is implemented and has no producer yet: a file tagged
 `DdLedger="ledger-export"` is read as the ledger's export, and nothing emits one today. See
@@ -128,16 +170,18 @@ The N-Triples path is implemented and has no producer yet: a file tagged
 | [DD0017](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0017.md) | 2 | A type switch over an open hierarchy is a warning | shipped |
 | [DD0018](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0018.md) | 1 | No `NotImplementedException` outside tests | shipped |
 | [DD0019](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0019.md) | 1 | Public domain model types are immutable | shipped |
+| [DD0020](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0020.md) | 1 | No `dynamic` in a project with `ArchLayer` set | unreleased |
 | [DDBUILD0001](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DDBUILD0001.md) | 1 | The Roslyn pin matches the floor the analyzers declare | shipped |
 | [DDBUILD0002](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DDBUILD0002.md) | 1 | The package carries its code-fixes assembly | shipped |
-| [DDGEN0001-0004](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/ledger-input.md) | — | The decision input is well formed | shipped |
+| [DDGEN0001-0006](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/ledger-input.md) | — | The decision input is well formed | shipped |
 
 Id families: `DD` for Roslyn analyzers, `DDBUILD` for build-target checks, `DDGEN` for generator
 diagnostics.
 
 Generated code is not checked (`RuleTiers.GeneratedCodeIsExempt`): source-generator output, files
-named `*.g.cs`, `*.generated.cs` or `*.designer.cs`, and what build tasks write to `obj/`. It carries
-its generator author's decisions rather than yours. Everything else that asks the compiler to treat
+named `*.g.cs`, `*.generated.cs` or `*.designer.cs`, what build tasks write to `obj/`, and a
+package's content files compiled from the NuGet package root. It carries its author's decisions
+rather than yours. Everything else that asks the compiler to treat
 code as generated - an `<auto-generated/>` header in a hand-written file, `[GeneratedCode]` on a
 hand-written symbol, `generated_code = true` in `.editorconfig` - is a suppression, and DD0008
 reports it, as it reports a pragma wherever one is.
@@ -154,7 +198,7 @@ all unaccepted (see [Status](#status)).
 | [`build-time-dependencies`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/build-time-dependencies.md) | The Roslyn pin, the test harness, versions from git tags |
 | [`decisions-as-types`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/decisions-as-types.md) | The ledger as source, the generator as read model, citations as type references |
 | [`diagnostic-messages`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/diagnostic-messages.md) | The finding, `Decide:` with both paths, and the guard sentence |
-| [`stable-dependency-rules`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/stable-dependency-rules.md) | Layers, `InternalsVisibleTo`, service location (DD0001-DD0003) |
+| [`stable-dependency-rules`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/stable-dependency-rules.md) | Layers, `InternalsVisibleTo`, service location, `dynamic` (DD0001-DD0003, DD0020) |
 | [`static-state`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/static-state.md) | No mutable static state (DD0004) |
 | [`names-and-namespaces`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/names-and-namespaces.md) | Grab-bag names and root namespaces (DD0005, DD0006) |
 | [`contracts`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/contracts.md) | `[Contract]`, its vocabulary and its parameters (DD0009-DD0012) |
@@ -215,8 +259,8 @@ second source of truth.
 format above.
 
 **When `decision-cli` can export**, it reads N-Triples tagged `DdLedger="ledger-export"` —
-`ledger:Decision`, `ledger:DecisionVersion` and `ledger:Acceptance` nodes, with acceptance decided
-by `ledger:signsVersion` naming the tip and no `ledger:revokedAt`. That reader is implemented and
+`ledger:Decision`, `ledger:DecisionVersion`, `ledger:Acceptance` and `ledger:Revocation` nodes,
+with acceptance decided by `ledger:signsVersion` naming the tip and no revocation of it. That reader is implemented and
 untested against a real export, because none exists.
 
 [`docs/rules/ledger-input.md`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/ledger-input.md) records exactly what is read, and three

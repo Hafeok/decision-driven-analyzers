@@ -79,9 +79,9 @@ public sealed class BannedNameTests
     }
 
     [Fact]
-    public void The_list_is_configurable()
+    public void The_configured_list_replaces_the_default_rather_than_extending_it()
     {
-        // NamesAndNamespaces.BannedGrabBagNames says the list is configurable. A consumer whose
+        // NamesAndNamespaces.BannedGrabBagNames: dd_banned_names replaces the list. A consumer whose
         // domain genuinely has a 'Core' can say so, and can ban something of its own instead.
         Dictionary<string, string> options = new Dictionary<string, string>(StringComparer.Ordinal)
         {
@@ -97,6 +97,23 @@ public sealed class BannedNameTests
         Assert.Single(RuleHarness.Run(
             new BannedNameAnalyzer(),
             "namespace Sample.Layer1.Sundry { public sealed class Thing { } }",
+            assemblyName: "Sample.Layer1",
+            editorConfig: options));
+    }
+
+    [Fact]
+    public void An_empty_list_is_no_list_and_the_default_applies()
+    {
+        // An empty value is indistinguishable from an unset one in .editorconfig, so it cannot be
+        // the way a consumer turns the rule off; it leaves the default list in force.
+        Dictionary<string, string> options = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [BannedNameAnalyzer.OptionName] = string.Empty,
+        };
+
+        Assert.Single(RuleHarness.Run(
+            new BannedNameAnalyzer(),
+            "namespace Sample.Layer1.Core { public sealed class Thing { } }",
             assemblyName: "Sample.Layer1",
             editorConfig: options));
     }

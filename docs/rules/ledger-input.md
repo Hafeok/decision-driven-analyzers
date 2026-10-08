@@ -17,6 +17,11 @@ extension, so a consumer's unrelated markdown cannot become a decision set by ha
 | `prov:` | `http://www.w3.org/ns/prov#` |
 | `rdf:` | `http://www.w3.org/1999/02/22-rdf-syntax-ns#` |
 
+A node is selected by the `ledger:` type among its `rdf:type` statements. The export types every
+node twice, as PROV-O requires (`ledger:Decision`, `ledger:DecisionVersion` and `ledger:Acceptance`
+with `prov:Entity`, `ledger:ChangeSet` with `prov:Activity`), and every type is kept, so the order
+the lines arrive in does not matter.
+
 ## Decision node — `rdf:type ledger:Decision`
 
 | Predicate | Read | Used for |
@@ -32,7 +37,7 @@ extension, so a consumer's unrelated markdown cannot become a decision set by ha
 | Predicate | Read | Used for |
 | --- | --- | --- |
 | `ledger:ofDecision` | **yes** | Which decision this is a version of. |
-| `ledger:set` | **yes** | Set membership, taken from the tip version. |
+| `ledger:set` | **yes** | Set membership, taken from the tip version. The export writes an IRI, `<urn:ledger-set:ledger-design>`, and the set id is its local part, everything after the last `:`. A literal is read as the id unchanged. |
 | `ledger:key` | **yes** | The nested type's name. Pending a ledger format change. |
 | `ledger:statement` | **yes** | The generated doc comment. |
 | `ledger:supersedes` | **yes** | Decision-to-decision. Marks the predecessor as having a successor. |
@@ -47,14 +52,32 @@ extension, so a consumer's unrelated markdown cannot become a decision set by ha
 | `ledger:scope` | carried, not acted on | `"version"`, or `"class:<ref>"`. See the open item below. |
 | `prov:wasAttributedTo` | carried | The signing identity. |
 | `prov:generatedAtTime` | carried | When. |
-| `ledger:revokedAt` | **yes** | A revoked acceptance stops counting. |
-| `ledger:revokedBy` | carried | Who revoked it. |
+| `ledger:revokedAt` | **yes**, during the transition | The old shape: a revoked acceptance stops counting, and `DDGEN0006` warns that the export should be re-written with a revocation node. |
+| `ledger:revokedBy` | carried, old shape | Who revoked it. |
+| `ledger:revocationReason` | carried, old shape | Why. |
+
+## Revocation node — `rdf:type ledger:Revocation`
+
+The ledger has ruled that a revocation is its own signed node and that an acceptance node does not
+change after it is written (`DecisionsAsTypes.RevocationIsItsOwnNode`). The same shape revokes an
+authority grant; a revocation naming anything other than an acceptance has nothing here to act on.
+
+| Predicate | Read | Used for |
+| --- | --- | --- |
+| `ledger:revokes` | **yes** | The acceptance it revokes, which stops counting. |
+| `prov:generatedAtTime` | carried | When. |
+| `prov:wasAttributedTo` | carried | Who revoked it. |
 | `ledger:revocationReason` | carried | Why. |
+
+Both shapes are read while exports in the old one still exist, and either is enough: an acceptance
+is revoked if a revocation node names it **or** it carries `ledger:revokedAt`. Where both say so,
+the revocation node's when, who and why are the ones kept. Every acceptance revoked in the old shape
+is reported as `DDGEN0006`, a warning.
 
 ### What "accepted" means
 
 A decision is accepted when **at least one acceptance names the tip version in `ledger:signsVersion`
-and carries no `ledger:revokedAt`**. Anything else is unaccepted, and unaccepted emits
+and has not been revoked**, by a revocation node or by `ledger:revokedAt`. Anything else is unaccepted, and unaccepted emits
 `Obsolete(error: false)` (`DecisionsAsTypes.UnacceptedEmitsWarningObsolete`) — citable on a branch,
 not shippable under warnings as errors.
 
@@ -134,3 +157,9 @@ is a C# identifier. Both are PascalCased: `build-time-dependencies` is `BuildTim
 namespace `ddd-analyzers` gives `DecisionDriven.Ledger.DddAnalyzers`. Decision keys are **not**
 transformed — their syntax already makes them identifiers, and changing one would break the citation
 it exists to carry.
+
+That is why a key must not equal its set's PascalCased id, nor `SetId`: the set is a static class of
+that name declaring a `SetId` constant, and a nested type named like its enclosing type (CS0542) or
+like a sibling member (CS0102) is not valid C#. The generator reports such a key as `DDGEN0005`
+against the ledger, and leaves that decision out so that the rest of the namespace still compiles,
+rather than emitting code the compiler rejects in a file the consumer never wrote.

@@ -54,6 +54,9 @@ internal sealed class Acceptance
     /// <summary>The version signed, from <c>ledger:signsVersion</c>.</summary>
     internal string VersionId { get; }
 
+    /// <summary>The acceptance node's IRI, which a <c>ledger:Revocation</c> names to revoke it.</summary>
+    internal string? Id { get; set; }
+
     /// <summary>The decision the acceptance is of, from <c>ledger:ofDecision</c>.</summary>
     internal string? DecisionId { get; set; }
 
@@ -75,17 +78,24 @@ internal sealed class Acceptance
     /// <summary>When it was signed, from <c>prov:generatedAtTime</c>.</summary>
     internal string? GeneratedAtTime { get; set; }
 
-    /// <summary>Set by <c>ledger:revokedAt</c> on the acceptance, which makes it stop counting.</summary>
+    /// <summary>
+    /// Whether the acceptance has been revoked: by a <c>ledger:Revocation</c> node naming it with
+    /// <c>ledger:revokes</c>, or, in the shape the export no longer writes, by <c>ledger:revokedAt</c>
+    /// on the acceptance node itself. Either one is enough.
+    /// </summary>
+    internal bool Revoked { get; set; }
+
+    /// <summary>When it was revoked: the revocation's <c>prov:generatedAtTime</c>, or <c>ledger:revokedAt</c>.</summary>
     internal string? RevokedAt { get; set; }
 
-    /// <summary>Who revoked it, from <c>ledger:revokedBy</c>.</summary>
+    /// <summary>Who revoked it: the revocation's <c>prov:wasAttributedTo</c>, or <c>ledger:revokedBy</c>.</summary>
     internal string? RevokedBy { get; set; }
 
-    /// <summary>Why, from <c>ledger:revocationReason</c>.</summary>
+    /// <summary>Why: <c>ledger:revocationReason</c>, on the revocation or on the acceptance.</summary>
     internal string? RevocationReason { get; set; }
 
     /// <summary>Whether this acceptance still counts towards the decision being accepted.</summary>
-    internal bool IsLive => RevokedAt is null;
+    internal bool IsLive => !Revoked;
 }
 
 /// <summary>

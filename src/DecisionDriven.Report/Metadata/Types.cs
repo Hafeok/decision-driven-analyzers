@@ -83,10 +83,13 @@ internal static class Types
         return false;
     }
 
-    /// <summary>The <c>[DomainModel]</c> namespace prefixes an assembly declares.</summary>
-    internal static List<string> DomainModelPrefixes(MetadataReader reader)
+    /// <summary>
+    /// The <c>[DomainModel]</c> namespace prefixes an assembly declares, each with whether it takes in
+    /// the namespaces under it (<c>DecisionsAsTypes.DomainModelIncludesSubNamespaces</c>).
+    /// </summary>
+    internal static List<KeyValuePair<string, bool>> DomainModelPrefixes(MetadataReader reader)
     {
-        List<string> prefixes = new List<string>();
+        List<KeyValuePair<string, bool>> prefixes = new List<KeyValuePair<string, bool>>();
         System.Collections.Immutable.ImmutableArray<string> wanted =
             System.Collections.Immutable.ImmutableArray.Create(Attributes.DomainModel);
 
@@ -97,19 +100,33 @@ internal static class Types
                 && decoded.Value.FixedArguments[0].Value is string prefix
                 && prefix.Length > 0)
             {
-                prefixes.Add(prefix);
+                bool includeSubNamespaces = true;
+
+                foreach (CustomAttributeNamedArgument<string> named in decoded.Value.NamedArguments)
+                {
+                    if (named.Name == "IncludeSubNamespaces" && named.Value is bool include)
+                    {
+                        includeSubNamespaces = include;
+                    }
+                }
+
+                prefixes.Add(new KeyValuePair<string, bool>(prefix, includeSubNamespaces));
             }
         }
 
         return prefixes;
     }
 
-    /// <summary>True when <paramref name="ns"/> is one of <paramref name="prefixes"/> or under one.</summary>
-    internal static bool InNamespaces(string ns, List<string> prefixes)
+    /// <summary>
+    /// True when <paramref name="ns"/> is one of <paramref name="prefixes"/>, or under one that takes
+    /// in its sub-namespaces.
+    /// </summary>
+    internal static bool InNamespaces(string ns, List<KeyValuePair<string, bool>> prefixes)
     {
-        foreach (string prefix in prefixes)
+        foreach (KeyValuePair<string, bool> declared in prefixes)
         {
-            if (ns == prefix || ns.StartsWith(prefix + ".", System.StringComparison.Ordinal))
+            if (ns == declared.Key
+                || (declared.Value && ns.StartsWith(declared.Key + ".", System.StringComparison.Ordinal)))
             {
                 return true;
             }

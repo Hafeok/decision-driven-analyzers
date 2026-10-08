@@ -147,9 +147,72 @@ public sealed class StaticStateTests
     }
 
     [Theory]
+    [InlineData("{ get; } = new();")]
+    [InlineData("=> field ??= new();")]
+    [InlineData("{ get { return field ??= new(); } }")]
+    public void A_static_property_with_storage_of_a_mutable_type_is_reported(string body)
+    {
+        // An auto-property, or one whose accessor uses the field keyword, stores a value of its
+        // type, and the store is as shared as a static readonly field would be.
+        Diagnostic diagnostic = Assert.Single(Run($$"""
+            internal sealed class Thing
+            {
+                internal static global::System.Collections.Generic.List<string> Items {{body}}
+            }
+            """));
+
+        Assert.Contains("static readonly property 'Thing.Items' holds a mutable collection", diagnostic.GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("global::System.Collections.Generic.IEnumerable<string> Selected => Names.Where(static n => n.Length > 1);")]
+    [InlineData("global::System.Collections.Generic.IReadOnlyList<string> Long => [.. Names.Where(static n => n.Length > 1)];")]
+    [InlineData("global::System.Collections.Generic.List<string> Fresh { get { return new(Names); } }")]
+    public void A_static_property_with_no_backing_field_is_not_reported(string property)
+    {
+        // No backing field: every read computes a new value, so nothing is held to be shared.
+        Assert.Empty(Run($$"""
+            using System.Linq;
+
+            internal static class Catalogue
+            {
+                private static readonly global::System.Collections.Immutable.ImmutableArray<string> Names = ["a", "bb"];
+
+                public static {{property}}
+            }
+            """));
+    }
+
+    [Fact]
+    public void The_message_for_a_stored_static_property_is_exact()
+    {
+        Diagnostic diagnostic = Assert.Single(Run("""
+            internal sealed class Thing
+            {
+                internal static global::System.Collections.Generic.List<string> Items { get; } = new();
+            }
+            """));
+
+        Assert.Equal(
+            "static readonly property 'Thing.Items' holds a mutable collection "
+            + "'System.Collections.Generic.List<string>', which is the shape of a static registry. "
+            + "Decide: make it an immutable collection if it never changes, or give the collection to "
+            + "the object that owns it and pass that object where it is needed "
+            + "| mark it [DesignDecision(typeof(<Set>.<Key>), Scope = ExceptionScope.<Scope>)] "
+            + "citing the accepted decision that says so. "
+            + "Do not add the attribute without a decision that answers this; "
+            + "if the reason is only that the code already looked like this, take the design change.",
+            diagnostic.GetMessage());
+    }
+
+    [Theory]
     [InlineData("global::System.Text.RegularExpressions.Regex", "new(\"a\")")]
     [InlineData("global::System.Buffers.ArrayPool<byte>", "global::System.Buffers.ArrayPool<byte>.Shared")]
     [InlineData("global::System.Collections.Immutable.ImmutableArray<string>", "global::System.Collections.Immutable.ImmutableArray<string>.Empty")]
+    [InlineData("global::System.Text.Encoding", "global::System.Text.Encoding.UTF8")]
+    [InlineData("global::System.Text.UTF8Encoding", "new(false, true)")]
+    [InlineData("global::System.Text.UnicodeEncoding", "new(false, false, true)")]
+    [InlineData("global::System.Text.ASCIIEncoding", "new()")]
     public void The_types_ADR_A05_exempts_are_not_reported(string type, string initialiser)
     {
         // Named exemptions rather than a general rule, because each is famously shared on purpose

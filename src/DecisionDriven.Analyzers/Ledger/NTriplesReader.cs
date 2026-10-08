@@ -247,18 +247,25 @@ internal static class NTriplesReader
     /// <param name="fileName">Used only to say where a bad line is.</param>
     /// <param name="namespaces">Accumulator, so several files can build one model.</param>
     /// <param name="malformedLines">One-based line numbers that were not statements.</param>
+    /// <param name="onNodeRevocations">
+    /// The acceptances revoked with <c>ledger:revokedAt</c> on the acceptance node, the shape the
+    /// export no longer writes. They are revoked all the same; the list is so the caller can say so.
+    /// </param>
     internal static void Read(
         string text,
         string fileName,
         Dictionary<string, LedgerNamespace> namespaces,
-        List<int> malformedLines)
+        List<int> malformedLines,
+        List<string>? onNodeRevocations = null)
     {
         string[] lines = text.Split('\n');
 
-        // Subject -> what the type statement said it is, so that acceptance nodes can be told from
-        // version nodes without depending on the order statements arrive in.
+        // Subject -> every type statement made about it, so that acceptance nodes can be told from
+        // version nodes without depending on the order statements arrive in. Every type, not the
+        // last one read: the export types each node twice, ledger:Decision and prov:Entity, and the
+        // line order is not something the reader may rely on.
         Dictionary<string, List<Triple>> bySubject = new Dictionary<string, List<Triple>>();
-        Dictionary<string, string> nodeTypes = new Dictionary<string, string>();
+        Dictionary<string, HashSet<string>> nodeTypes = new Dictionary<string, HashSet<string>>();
 
         for (int i = 0; i < lines.Length; i++)
         {
@@ -276,7 +283,13 @@ internal static class NTriplesReader
 
             if (triple.Predicate == Rdf + "type" && !triple.ObjectIsLiteral)
             {
-                nodeTypes[triple.Subject] = triple.Object;
+                if (!nodeTypes.TryGetValue(triple.Subject, out HashSet<string>? types))
+                {
+                    types = new HashSet<string>(StringComparer.Ordinal);
+                    nodeTypes.Add(triple.Subject, types);
+                }
+
+                types.Add(triple.Object);
             }
 
             if (!bySubject.TryGetValue(triple.Subject, out List<Triple>? statements))
@@ -292,7 +305,7 @@ internal static class NTriplesReader
         // namespace, before either can be placed.
         foreach (KeyValuePair<string, List<Triple>> node in bySubject)
         {
-            if (!nodeTypes.TryGetValue(node.Key, out string? type) || type != Ledger + "Decision")
+            if (!IsA(nodeTypes, node.Key, Ledger + "Decision"))
             {
                 continue;
             }
@@ -313,7 +326,7 @@ internal static class NTriplesReader
         // Versions, which also tell us who supersedes whom.
         foreach (KeyValuePair<string, List<Triple>> node in bySubject)
         {
-            if (!nodeTypes.TryGetValue(node.Key, out string? type) || type != Ledger + "DecisionVersion")
+            if (!IsA(nodeTypes, node.Key, Ledger + "DecisionVersion"))
             {
                 continue;
             }
@@ -347,7 +360,7 @@ internal static class NTriplesReader
             {
                 if (triple.Predicate == Ledger + "set")
                 {
-                    version.SetId = triple.Object;
+                    version.SetId = triple.ObjectIsLiteral ? triple.Object : SetIdFromIri(triple.Object);
                 }
                 else if (triple.Predicate == Ledger + "key")
                 {
@@ -373,7 +386,7 @@ internal static class NTriplesReader
         // Acceptances last: they point at versions, which now exist.
         foreach (KeyValuePair<string, List<Triple>> node in bySubject)
         {
-            if (!nodeTypes.TryGetValue(node.Key, out string? type) || type != Ledger + "Acceptance")
+            if (!IsA(nodeTypes, node.Key, Ledger + "Acceptance"))
             {
                 continue;
             }
@@ -392,7 +405,7 @@ internal static class NTriplesReader
                 continue;
             }
 
-            Acceptance acceptance = new Acceptance(versionId);
+            Acceptance acceptance = new Acceptance(versionId) { Id = node.Key };
             foreach (Triple triple in node.Value)
             {
                 if (triple.Predicate == Ledger + "ofDecision")
@@ -413,7 +426,12 @@ internal static class NTriplesReader
                 }
                 else if (triple.Predicate == Ledger + "revokedAt")
                 {
+                    // The transition shape: the ledger has ruled that a revocation is its own signed
+                    // node and that an acceptance node does not change after it is written. Still
+                    // read, so an export written before the change keeps meaning what it meant.
+                    acceptance.Revoked = true;
                     acceptance.RevokedAt = triple.Object;
+                    onNodeRevocations?.Add(node.Key);
                 }
                 else if (triple.Predicate == Ledger + "revokedBy")
                 {
@@ -433,7 +451,66 @@ internal static class NTriplesReader
             owner?.Acceptances.Add(acceptance);
         }
 
+        // Revocations, which point at acceptances. The same shape revokes an authority grant, and a
+        // revocation naming anything that is not an acceptance read above has nothing here to act on.
+        foreach (KeyValuePair<string, List<Triple>> node in bySubject)
+        {
+            if (!IsA(nodeTypes, node.Key, Ledger + "Revocation"))
+            {
+                continue;
+            }
+
+            string? revokes = null;
+            string? at = null;
+            string? by = null;
+            string? reason = null;
+
+            foreach (Triple triple in node.Value)
+            {
+                if (triple.Predicate == Ledger + "revokes")
+                {
+                    revokes = triple.Object;
+                }
+                else if (triple.Predicate == Prov + "generatedAtTime")
+                {
+                    at = triple.Object;
+                }
+                else if (triple.Predicate == Prov + "wasAttributedTo")
+                {
+                    by = triple.Object;
+                }
+                else if (triple.Predicate == Ledger + "revocationReason")
+                {
+                    reason = triple.Object;
+                }
+            }
+
+            if (revokes is not null && FindAcceptance(namespaces, revokes) is { } revoked)
+            {
+                // The revocation node is the record; where an old-shape export said it on the
+                // acceptance as well, the node's account is the one kept.
+                revoked.Revoked = true;
+                revoked.RevokedAt = at ?? revoked.RevokedAt;
+                revoked.RevokedBy = by ?? revoked.RevokedBy;
+                revoked.RevocationReason = reason ?? revoked.RevocationReason;
+            }
+        }
+
         MarkSuccessors(namespaces);
+    }
+
+    private static bool IsA(Dictionary<string, HashSet<string>> nodeTypes, string subject, string type) =>
+        nodeTypes.TryGetValue(subject, out HashSet<string>? types) && types.Contains(type);
+
+    /// <summary>
+    /// The export names a set by IRI, <c>&lt;urn:ledger-set:ledger-design&gt;</c>, and the set id is
+    /// its local part: everything after the last <c>:</c>. A set id is lowercase alphanumerics,
+    /// dashes and dots, so it never holds a colon itself. A literal is read as the id unchanged.
+    /// </summary>
+    private static string SetIdFromIri(string iri)
+    {
+        int colon = iri.LastIndexOf(':');
+        return colon >= 0 ? iri.Substring(colon + 1) : iri;
     }
 
     private static string ReadNamespace(List<Triple> statements, string decisionId)
@@ -501,6 +578,25 @@ internal static class NTriplesReader
                     if (version.Id == versionId)
                     {
                         return decision;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static Acceptance? FindAcceptance(Dictionary<string, LedgerNamespace> namespaces, string acceptanceId)
+    {
+        foreach (LedgerNamespace ns in namespaces.Values)
+        {
+            foreach (Decision decision in ns.Decisions.Values)
+            {
+                foreach (Acceptance acceptance in decision.Acceptances)
+                {
+                    if (acceptance.Id == acceptanceId)
+                    {
+                        return acceptance;
                     }
                 }
             }

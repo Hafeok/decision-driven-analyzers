@@ -11,6 +11,194 @@ consumer that builds with warnings as errors, and are recorded as such.
 
 ## [Unreleased]
 
+### Added
+
+- **`DDGEN0006`** (new, warning). An acceptance revoked with `ledger:revokedAt` on the acceptance
+  node, the shape the ledger export no longer writes. It is still read as revoked; the warning says
+  to re-export (`DecisionsAsTypes.RevocationIsItsOwnNode`;
+  [#83](https://github.com/Hafeok/decision-driven-analyzers/issues/83)).
+- **`[DomainModel]`** gains `IncludeSubNamespaces`, default `true`. A prefix still takes in every
+  namespace under it; `IncludeSubNamespaces = false` makes only the named namespace model, so an
+  assembly whose model is its root namespace can keep a public sibling below it outside the model.
+  DD0010, DD0013 to DD0016, DD0019 and the report's cohesion metric all read it
+  (`DecisionsAsTypes.DomainModelIncludesSubNamespaces`, new;
+  [#46](https://github.com/Hafeok/decision-driven-analyzers/issues/46)).
+- **`DD0001`** gains an opt-in finding. With `dd_require_layer = true` in a `.globalconfig`, a project
+  in family `F` whose assembly name begins `F.` and which sets no `ArchLayer` is reported itself;
+  `*.Tests` assemblies stay exempt. Off by default, so adoption stays quiet until the consumer says
+  every project is placed (`StableDependencyRules.FamilyProjectDeclaresLayer`, new;
+  [#48](https://github.com/Hafeok/decision-driven-analyzers/issues/48)).
+- **`DD0020`** (new, tier 1). `dynamic` is an error in any project with `ArchLayer` set, as a
+  declared type or as a dynamically bound operation; a dynamically bound call reaches whatever the
+  runtime object happens to be, which is the loophole DD0001 and DD0011 close for static types
+  (`StableDependencyRules.NoDynamicInLayeredProjects`, new). `CallbackLoopholeNeedsNoRule` is
+  amended: banned symbols cannot close it, because they never see the binder calls the compiler
+  writes ([#69](https://github.com/Hafeok/decision-driven-analyzers/issues/69)). **Breaking** for a
+  layered project that uses `dynamic`.
+
+### Changed
+
+- **`DD0019`** now reads method bodies. A non-private instance method on a model class that writes
+  one of the class's own instance fields or properties, or invokes a member of a field whose type
+  DD0004 judges mutable, is reported, directly or through one private helper in the same type.
+  Before, a class whose members were all private and readonly passed however its methods changed
+  it (`ImmutableModel.DomainModelImmutable`, amended to name method bodies and to put mutation
+  deeper than one helper out of scope;
+  [#47](https://github.com/Hafeok/decision-driven-analyzers/issues/47)). **Breaking** for a model
+  class whose public methods change it: the build reports DD0019 on each.
+
+### Fixed
+
+- **README** did not say what `DdLedgerDirectory` does. A new section, "Where the decisions come
+  from", gives the per-project default, the two non-recursive globs onto `DdLedger` metadata, why a
+  `README.md` beside the set files is harmless, and the hand-written `AdditionalFiles` form. The
+  `.targets` comment no longer says an empty value turns the globbing off; empty is the default
+  ([#44](https://github.com/Hafeok/decision-driven-analyzers/issues/44)).
+- **README** quick start referenced the package with `PrivateAssets="all"` only, while ADR-A02
+  prescribes `IncludeAssets="analyzers;build"` as well. The quick start and the samples now use
+  both, and `TwoPackages.DevelopmentTimeOnly` (amended) states the same reference form
+  ([#45](https://github.com/Hafeok/decision-driven-analyzers/issues/45)).
+- **`DD0005`** decision and rule page disagreed about `dd_banned_names`. The decision said the list
+  was "configurable"; the rule page said the option replaces it. `NamesAndNamespaces.BannedGrabBagNames`
+  (amended) and ADR-A06 now say it replaces the list rather than extending it, so setting it to add
+  one name drops the ten defaults. The rule page also said an empty value turns the rule off, which
+  it never did: an empty value leaves the default list in force, and a test now says so
+  ([#49](https://github.com/Hafeok/decision-driven-analyzers/issues/49)).
+- **`DD0004`** reported a static property with no backing field, such as `=> Names.Where(...)`, as
+  though it held a value of its return type, and named a computed sequence a static registry. Only a
+  property with storage, an auto-property or one whose accessor uses `field`, is now checked by its
+  type; a computed one holds nothing and is not reported. A settable static property is reported as
+  before ([#80](https://github.com/Hafeok/decision-driven-analyzers/issues/80)).
+- **`DD0016`** reported the constructor of a type wrapping one `bool`, the shape DD0014 asks for, as
+  taking a flag. The one-parameter constructor or static factory of a single-`bool` wrapper, taking
+  that `bool`, is now exempt, as DD0013 exempts a wrapper's own primitive
+  (`PrimitiveFreeSurfaces.FlagArgumentsWarning`, amended). The message also described every call
+  site as `Member(x, true)`, including one-parameter members; it now reads the call from the
+  member's parameters, `new T(...)` for a constructor
+  ([#60](https://github.com/Hafeok/decision-driven-analyzers/issues/60)).
+- **`[HotPath]`** could not be applied to an interface (CS0592), so a `[Contract]` interface, the
+  contract most likely to be on a hot path, could not be marked as a whole. `HotPathAttribute` now
+  has `AttributeTargets.Interface`, and DD0013 exempts the members of a marked interface as it does
+  a marked class or struct
+  ([#61](https://github.com/Hafeok/decision-driven-analyzers/issues/61)).
+- **N-Triples reader** took the object of `ledger:set` as the set id verbatim. The export writes it as
+  an IRI, `<urn:ledger-set:sample-set>`, so the generated set class and its `SetId` were named after
+  the whole IRI. The set id is now the IRI's local part; a literal is read unchanged. A fixture
+  export in the ledger's shape is tested alongside the older hand-written form
+  ([#81](https://github.com/Hafeok/decision-driven-analyzers/issues/81)).
+- **N-Triples reader** kept one `rdf:type` per node, the last one read. The export types every node
+  twice, `ledger:` and `prov:`, and it was read correctly only because code-point order happens to
+  put the `prov:` line first; any other order dropped every decision, version and acceptance
+  silently. Every type is now kept, and a node is selected by the `ledger:` type among them
+  ([#82](https://github.com/Hafeok/decision-driven-analyzers/issues/82)).
+- **N-Triples reader** decided "revoked" only from `ledger:revokedAt` on the acceptance node, so
+  against an export that writes a revocation as its own `ledger:Revocation` node, a revoked
+  acceptance read as live. A revocation node now revokes the acceptance it names with
+  `ledger:revokes`, taking when, who and why from its `prov:generatedAtTime`,
+  `prov:wasAttributedTo` and `ledger:revocationReason`. The on-node shape is still read, and either
+  shape is enough
+  ([#83](https://github.com/Hafeok/decision-driven-analyzers/issues/83)).
+
+## [0.1.0-preview.7] - 2026-10-08
+
+### Fixed
+
+- **`DD0010`** read `ArchContractTypeAssemblies` only up to the first `;`, so with
+  `<ArchContractTypeAssemblies>A;B</ArchContractTypeAssemblies>` it reported every type from `B`.
+  The compiler reads a visible MSBuild property from a generated analyzer config file, and that
+  file's parser takes everything after a `;` as a comment. The package now hands the analyzers the
+  list with `,` as its separator; `A;B` is written as before, and every assembly in it is accepted
+  (#85).
+
+## [0.1.0-preview.6] - 2026-09-29
+
+### Fixed
+
+- **`DD0004`** reported a `static readonly` field of a type derived from an exempt base, such as
+  `UTF8Encoding` or a source-generated `Regex`, because the exemption matched the base's name only.
+  A class derived from `Regex`, `Encoding`, `ArrayPool<T>` or `MemoryPool<T>` is now exempt with it
+  (#53).
+- **`DD0016`** reported the `disposing` parameter of the framework's dispose pattern,
+  `protected virtual void Dispose(bool disposing)`, which CA1063 requires on an unsealed disposable
+  type. The pattern, or an override of it, on an `IDisposable` type is no longer reported
+  (`PrimitiveFreeSurfaces.FlagArgumentsWarning`, amended; #74).
+- **`DD0010`** checked the `internal` and `private protected` members of a `[Contract]` class, which
+  no consumer outside the assembly can reach. An internal constructor that builds the contract from
+  engine state was reported for naming the engine type. It now checks only members reachable from
+  outside the assembly: `public`, `protected` and `protected internal` (#71).
+- **`DD0017`** reported a switch over a hierarchy declared in a referenced assembly as open when a
+  `private protected` or `internal` constructor closed it. A reference assembly carries neither, so
+  the base showed no constructor and read as open, and leaves were looked for in the consuming
+  compilation instead of the defining one. A referenced base is now closed when no constructor is
+  callable from outside its assembly and every type its assembly derives from it, enumerated from
+  metadata, is sealed (#73).
+- **`[HotPath]` can mark a constructor.** The generated attribute's usage left `Constructor` out,
+  so a struct's constructor could be marked hot only by marking the whole type, which held every
+  other member of the type to the same rules (#72).
+
+## [0.1.0-preview.5] - 2026-09-27
+
+### Fixed
+
+- **`DD0013`** reported members whose signature the type does not choose: `Equals(object)`,
+  `GetHashCode()` and `ToString()` overrides, and implementations of framework interfaces such as
+  `IComparable<T>.CompareTo`. A hand-written wrapper following DD0014's value-equality advice was
+  reported for doing so. Overrides of members declared in another assembly, and implementations of
+  interfaces declared in another assembly, are now boundary members
+  (`PrimitiveFreeSurfaces.BoundaryMembersExempt`, amended); the consumer's own interfaces and base
+  classes stay checked ([#59](https://github.com/Hafeok/decision-driven-analyzers/issues/59)).
+- **`DD0013`, `DD0014`, `DD0015`, `DD0016` and `DD0019`** read a model type's visibility from its
+  declaration alone, so `public` members of a `private` nested record, or of an `internal` class, in
+  a `[DomainModel]` namespace were reported as model surface, and DD0019 checked a `public` type
+  nested inside an internal one. A model type is now one that is externally visible: it and every
+  type containing it public (`PrimitiveFreeSurfaces.NoNakedPrimitivesOnModelAndContract` and
+  `ImmutableModel.DomainModelImmutable`, amended)
+  ([#62](https://github.com/Hafeok/decision-driven-analyzers/issues/62)).
+- **`DD0016`** honoured `[DesignDecision]` only on the member owning the `bool`, so a positional
+  record's `bool` had no exception path: its primary constructor cannot carry an attribute. The
+  citation now answers from the member or from its type, as it does for DD0013
+  (`PrimitiveFreeSurfaces.FlagArgumentsWarning`, amended)
+  ([#64](https://github.com/Hafeok/decision-driven-analyzers/issues/64)).
+- **`DD0010`** offered "mark it itself `[Contract]`" for a struct or an enum of the current assembly,
+  which `ContractAttribute` cannot be applied to (CS0592). For a struct or an enum both paths now
+  point at the model: move it into a namespace already declared, or declare the one it is in
+  (`Contracts.ContractVocabularyAllowList`, amended)
+  ([#63](https://github.com/Hafeok/decision-driven-analyzers/issues/63)).
+
+## [0.1.0-preview.4] - 2026-09-26
+
+**Breaking for a ledger with a key equal to its set's generated class name, or to `SetId`.** The
+build fails with `DDGEN0005` instead of `CS0542`; see below.
+
+### Fixed
+
+- **`DDGEN0005`** (new). A decision key equal to its set's generated class name, or to `SetId`,
+  compiled to a nested class the compiler rejects (CS0542, CS0102) inside generated code, failing
+  every consuming project at a line of a file nobody wrote. The generator now reports it against the
+  ledger and leaves that one decision out, so the rest of the namespace still compiles
+  ([#52](https://github.com/Hafeok/decision-driven-analyzers/issues/52)). **Breaking** for a ledger
+  that has such a key: the build fails with `DDGEN0005` instead of `CS0542`.
+- **Generated types collided across `InternalsVisibleTo`** (CS0436). Every compilation gets its own
+  `internal` copy of the attributes, `ExceptionScope` and the decision types, so a test assembly that
+  sees its library's internals saw two of each, and the compiler warned on every use, an error under
+  warnings as errors. Every generated type is now `[Microsoft.CodeAnalysis.Embedded]`, which the
+  compiler never imports into another compilation. Rules still match the attributes by full name
+  ([#51](https://github.com/Hafeok/decision-driven-analyzers/issues/51)).
+- **`DD0008`** reported a package's content files. A test framework compiles helper sources from its
+  package into every test project, headed `<auto-generated>`, and DD0008 asked the consumer to
+  delete a header in a file in the package cache. Code under the NuGet package root is now counted
+  with generated code (`RuleTiers.GeneratedCodeIsExempt`, amended), read from `NuGetPackageRoot`,
+  which the package makes visible to the analyzers
+  ([#50](https://github.com/Hafeok/decision-driven-analyzers/issues/50)).
+- **`DD0017`** could never count an abstract record hierarchy as closed. The compiler gives every
+  non-sealed record a `protected` copy constructor and forbids declaring it narrower, so an abstract
+  record base with a `private protected` constructor and sealed leaves was reported on every switch.
+  The copy constructor is now set aside when deciding closedness
+  (`Hierarchies.ClosedHierarchiesAreSealed`, amended; the narrow door it leaves is stated on the
+  rule page) ([#54](https://github.com/Hafeok/decision-driven-analyzers/issues/54)).
+
+## [0.1.0-preview.3] - 2026-09-25
+
 **Breaking for a consumer with a hand-written file that claims to be generated.** DD0008 now reports
 it; see below.
 
@@ -194,7 +382,12 @@ Every decision in this repository's own `docs/decisions/` is unaccepted, which i
 working rather than an oversight: citing one produces `CS0618` on every citation, so they are usable
 on a branch and will not ship under `TreatWarningsAsErrors`.
 
-[Unreleased]: https://github.com/Hafeok/decision-driven-analyzers/compare/v0.1.0-preview.2...main
+[Unreleased]: https://github.com/Hafeok/decision-driven-analyzers/compare/v0.1.0-preview.7...main
+[0.1.0-preview.7]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.7
+[0.1.0-preview.6]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.6
+[0.1.0-preview.5]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.5
+[0.1.0-preview.4]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.4
+[0.1.0-preview.3]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.3
 [0.1.0-preview.2]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.2
 [0.1.0-preview.1]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.1
 [0.1.0-alpha.0.21]: https://github.com/Hafeok/decision-driven-analyzers/tree/acb256b8378b848fac5d16bf1d285959b81e2e38

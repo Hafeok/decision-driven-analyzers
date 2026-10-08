@@ -78,6 +78,13 @@ public sealed class WrapperAndFlagTests
     }
 
     [Fact]
+    public void A_wrapper_nested_privately_is_not_checked()
+    {
+        // Nobody outside can name it, so it is how the model is built, not part of it.
+        Assert.Empty(Shape("public sealed class Outer { private sealed class Slot { public long Value { get; } } }"));
+    }
+
+    [Fact]
     public void The_wrapper_shape_message_is_exactly_this()
     {
         // DiagnosticMessages.ExactMessageTested.
@@ -164,6 +171,17 @@ public sealed class WrapperAndFlagTests
     }
 
     [Fact]
+    public void A_bool_parameter_on_a_private_nested_model_type_is_not_warned_about()
+    {
+        Assert.Empty(RuleHarness.Run(
+            new FlagArgumentAnalyzer(),
+            File("namespace Consumer.Model { public sealed class Catalog { "
+                + "private sealed class Page { public void Read(bool archived) { } } } }"),
+            assemblyName: "Consumer",
+            archLayer: 1));
+    }
+
+    [Fact]
     public void A_member_marked_with_DesignDecision_is_not_warned_about()
     {
         Assert.Empty(Flags(
@@ -172,12 +190,87 @@ public sealed class WrapperAndFlagTests
     }
 
     [Fact]
+    public void A_positional_record_marked_with_DesignDecision_is_not_warned_about()
+    {
+        // The primary constructor owns the bool and cannot carry an attribute, so the type does.
+        Assert.Empty(RuleHarness.Run(
+            new FlagArgumentAnalyzer(),
+            File("namespace Consumer.Model { "
+                + "[global::DecisionDriven.DesignDecision(" + ContractSource.Decision
+                + ", Scope = global::DecisionDriven.ExceptionScope.Boundary)] "
+                + "public sealed record Load(string Source, bool Silent); }"),
+            assemblyName: "Consumer",
+            archLayer: 1));
+    }
+
+    [Fact]
+    public void A_positional_record_without_a_citation_is_warned_about()
+    {
+        Diagnostic diagnostic = Assert.Single(RuleHarness.Run(
+            new FlagArgumentAnalyzer(),
+            File("namespace Consumer.Model { public sealed record Load(string Source, bool Silent); }"),
+            assemblyName: "Consumer",
+            archLayer: 1));
+
+        Assert.Contains("'Silent'", diagnostic.GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("public readonly struct XsdBoolean : global::System.IEquatable<XsdBoolean> { public XsdBoolean(bool value) => Value = value; public bool Value { get; } public bool Equals(XsdBoolean other) => Value == other.Value; }")]
+    [InlineData("public readonly struct XsdBoolean : global::System.IEquatable<XsdBoolean> { private XsdBoolean(bool value) => Value = value; public static XsdBoolean From(bool value) => new(value); public bool Value { get; } public bool Equals(XsdBoolean other) => Value == other.Value; }")]
+    [InlineData("public readonly record struct XsdBoolean(bool Value);")]
+    public void A_bool_wrappers_own_constructor_or_factory_is_not_a_flag(string declaration)
+    {
+        // PrimitiveFreeSurfaces.FlagArgumentsWarning, amended: the wrapper's constructor is where
+        // its value enters, as WrapperExposesItsOwnPrimitive allows for DD0013.
+        Assert.Empty(Run(new FlagArgumentAnalyzer(), "namespace Consumer.Model { " + declaration + " }"));
+    }
+
+    [Fact]
+    public void A_bool_constructor_on_a_type_that_wraps_more_than_the_bool_is_a_flag()
+    {
+        Diagnostic diagnostic = Assert.Single(Run(
+            new FlagArgumentAnalyzer(),
+            "namespace Consumer.Model { public sealed class Toggle { public Toggle(bool on) { On = on; } public bool On { get; } public int Count { get; } } }"));
+
+        Assert.Contains("'new Toggle(true)'", diagnostic.GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_second_parameter_beside_the_wrapped_bool_makes_it_a_flag_again()
+    {
+        // Both bools are reported: with two parameters, neither is the value simply entering.
+        ImmutableArray<Diagnostic> diagnostics = Run(
+            new FlagArgumentAnalyzer(),
+            "namespace Consumer.Model { public readonly struct XsdBoolean { public XsdBoolean(bool value, bool strict) { Value = value; } public bool Value { get; } } }");
+
+        Assert.Equal(2, diagnostics.Length);
+        Assert.All(diagnostics, d => Assert.Contains("'new XsdBoolean(", d.GetMessage(), StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void The_flag_argument_message_for_a_one_parameter_constructor_is_exactly_this()
+    {
+        // The call site is read from the member: one parameter, one argument.
+        Assert.Equal(
+            "parameter 'on' of 'Toggle..ctor' is a bool, so the call site reads 'new Toggle(true)'. "
+            + "Decide: give it an enum with two named members, or split the member in two "
+            + "| mark it [DesignDecision(typeof(<Set>.<Key>), Scope = ExceptionScope.<Scope>)] "
+            + "citing the accepted decision that says so. "
+            + "Do not add the attribute without a decision that answers this; if the reason is only that "
+            + "the code already looked like this, take the design change.",
+            Assert.Single(Run(
+                new FlagArgumentAnalyzer(),
+                "namespace Consumer.Model { public sealed class Toggle { public Toggle(bool on) { On = on; } public bool On { get; } public int Count { get; } } }")).GetMessage());
+    }
+
+    [Fact]
     public void The_flag_argument_message_is_exactly_this()
     {
         // DiagnosticMessages.ExactMessageTested.
         Assert.Equal(
             "parameter 'includeArchived' of 'IQuadSource.Read' is a bool, so the call site reads "
-            + "'Read(x, true)'. "
+            + "'Read(true)'. "
             + "Decide: give it an enum with two named members, or split the member in two "
             + "| mark it [DesignDecision(typeof(<Set>.<Key>), Scope = ExceptionScope.<Scope>)] "
             + "citing the accepted decision that says so. "
@@ -193,6 +286,47 @@ public sealed class WrapperAndFlagTests
         Run(
             new ImplicitConversionAnalyzer(),
             "namespace Consumer.Model { public readonly record struct Position(long Value) { " + member + " } }");
+
+    [Fact]
+    public void The_dispose_pattern_is_not_a_flag()
+    {
+        // Dispose(bool disposing) is the framework's shape, which CA1063 requires on an unsealed
+        // disposable type; its only callers are Dispose() and a finaliser, inside the type.
+        Assert.Empty(Run(
+            new FlagArgumentAnalyzer(),
+            "namespace Consumer { " + ContractSource.Contract + " public abstract class Results : global::System.IDisposable { "
+                + "private protected Results() { } "
+                + "public void Dispose() { Dispose(true); global::System.GC.SuppressFinalize(this); } "
+                + "protected virtual void Dispose(bool disposing) { } } }"));
+    }
+
+    [Fact]
+    public void An_override_of_the_dispose_pattern_is_not_a_flag()
+    {
+        Assert.Empty(Run(
+            new FlagArgumentAnalyzer(),
+            "namespace Consumer { " + ContractSource.Contract + " public abstract class Reader : global::System.IO.Stream { "
+                + "protected override void Dispose(bool disposing) { base.Dispose(disposing); } } }"));
+    }
+
+    [Fact]
+    public void A_public_dispose_with_a_bool_is_still_a_flag()
+    {
+        // The exemption is the pattern, not the name: a public Dispose(bool) is a call site's flag.
+        Assert.Single(Run(
+            new FlagArgumentAnalyzer(),
+            "namespace Consumer { " + ContractSource.Contract + " public abstract class Results : global::System.IDisposable { "
+                + "public void Dispose() { } public void Dispose(bool now) { } } }"));
+    }
+
+    [Fact]
+    public void A_protected_dispose_on_a_type_that_is_not_disposable_is_still_a_flag()
+    {
+        Assert.Single(Run(
+            new FlagArgumentAnalyzer(),
+            "namespace Consumer { " + ContractSource.Contract + " public abstract class Results { "
+                + "protected virtual void Dispose(bool disposing) { } } }"));
+    }
 
     private static ImmutableArray<Diagnostic> Flags(string member) =>
         Run(

@@ -16,7 +16,7 @@ High cohesion, as the first consumer states it, means one package, one reason to
 
 ## Decision
 
-- **DD0005, tier 1.** No assembly, root namespace or namespace segment named `Common`, `Core`, `Utils`, `Utilities`, `Helpers`, `Abstractions`, `Shared`, `Misc`, `Internal` (as a public namespace) or `Extensions` (as a namespace; `*Extensions` static classes are fine). The list is configurable in `.editorconfig` (`dd_banned_names`).
+- **DD0005, tier 1.** No assembly, root namespace or namespace segment named `Common`, `Core`, `Utils`, `Utilities`, `Helpers`, `Abstractions`, `Shared`, `Misc`, `Internal` (as a public namespace) or `Extensions` (as a namespace; `*Extensions` static classes are fine). `dd_banned_names` in `.editorconfig` replaces the list rather than extending it: a consumer that sets it to add one name drops the ten defaults, so narrowing the list is something it does visibly. (DD0013's `dd_banned_primitive_types_add` makes the opposite choice, additive only, because a shorter primitive list would be a suppression path.)
 - **DD0006, tier 1.** Every public type's namespace starts with the assembly name, and an assembly has exactly one root namespace equal to its name. Public types outside that root are errors.
 
 LCOM and similar per-type cohesion metrics go to the tier-3 report (ADR-A12).

@@ -9,6 +9,8 @@ DDGEN0001 | DecisionDriven.Ledger | Error | Duplicate decision key in a ledger n
 DDGEN0002 | DecisionDriven.Ledger | Error | Decision key does not match the key syntax
 DDGEN0003 | DecisionDriven.Ledger | Error | Decision key changed between versions
 DDGEN0004 | DecisionDriven.Ledger | Error | Unparseable line in the ledger export
+DDGEN0005 | DecisionDriven.Ledger | Error | Decision key collides with a member the generator emits
+DDGEN0006 | DecisionDriven.Ledger | Warning | Acceptance revoked on the acceptance node
 DD0001 | DecisionDriven | Error | Reference does not point strictly downward, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0001.md)
 DD0002 | DecisionDriven | Error | InternalsVisibleTo grants access to something that is not a test assembly, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0002.md)
 DD0003 | DecisionDriven | Error | Service resolved at runtime outside the composition root, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0003.md)
@@ -28,3 +30,4 @@ DD0016 | DecisionDriven | Warning | Flag argument on a model or contract member,
 DD0017 | DecisionDriven | Warning | Type switch over a hierarchy nothing closed, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0017.md)
 DD0018 | DecisionDriven | Error | Placeholder body in non-test code, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0018.md)
 DD0019 | DecisionDriven | Error | Model type can be changed by its caller, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0019.md)
+DD0020 | DecisionDriven | Error | Dynamically bound code in a layered project, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0020.md)

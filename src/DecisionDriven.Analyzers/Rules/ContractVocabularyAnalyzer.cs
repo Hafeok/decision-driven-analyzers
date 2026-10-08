@@ -59,6 +59,15 @@ public sealed class ContractVocabularyAnalyzer : DiagnosticAnalyzer
 
         foreach (ContractSignature.Part part in ContractSignature.Parts(type, context.CancellationToken))
         {
+            // The vocabulary is what the contract says to somebody outside the assembly. An
+            // internal or private protected member says nothing to them: a contract class's
+            // internal constructor is how the assembly builds it from engine state, which is the
+            // point of keeping that state out of the vocabulary.
+            if (!part.IsExternallyVisible)
+            {
+                continue;
+            }
+
             HashSet<string> reported = new HashSet<string>(System.StringComparer.Ordinal);
 
             foreach (ITypeSymbol named in ContractSignature.Mentioned(part.Type))
@@ -100,7 +109,8 @@ public sealed class ContractVocabularyAnalyzer : DiagnosticAnalyzer
     /// <remarks>
     /// A type of this assembly is a question about what this assembly's model is, so the design
     /// change names the namespace to declare and the exception is to make the type a contract in its
-    /// own right. A type from elsewhere is a question about which packages a contract may name, so
+    /// own right - unless it is a struct or an enum, which is data and cannot carry [Contract], so
+    /// both of its answers are the model. A type from elsewhere is a question about which packages a contract may name, so
     /// the exception names the assembly to list - and it is the exception rather than the design
     /// change because every consumer of the contract takes that dependency on.
     /// </remarks>
@@ -119,13 +129,27 @@ public sealed class ContractVocabularyAnalyzer : DiagnosticAnalyzer
                 ? containing.ToDisplayString()
                 : string.Empty;
 
+            string display = type.ToDisplayString(Display.Format);
+
+            // A struct or an enum is data, and ContractAttribute cannot be applied to either, so
+            // "mark it [Contract]" would be a path that does not compile. Both of its answers are
+            // the model: move it into a namespace already declared, or declare the one it is in.
+            if (type.TypeKind is TypeKind.Struct or TypeKind.Enum)
+            {
+                return (
+                    $"move '{display}' into a namespace already declared as model",
+                    @namespace.Length > 0
+                        ? $"declare '{@namespace}' as model with [assembly: DomainModel(\"{@namespace}\", typeof(<Set>.<Key>))]; a struct or an enum is data, and [Contract] does not apply to it"
+                        : "put it in a namespace and declare that namespace as model with [assembly: DomainModel(\"<namespace>\", typeof(<Set>.<Key>))]; a struct or an enum is data, and [Contract] does not apply to it");
+            }
+
             string declare = @namespace.Length > 0
                 ? $"declare the namespace as model with [assembly: DomainModel(\"{@namespace}\", typeof(<Set>.<Key>))], or move the type into a namespace already declared"
                 : "put the type in a namespace and declare that namespace as model with [assembly: DomainModel(\"<namespace>\", typeof(<Set>.<Key>))]";
 
             return (
                 declare,
-                $"mark '{type.ToDisplayString(Display.Format)}' itself [Contract(typeof(<Set>.<Key>), Role = \"...\")]");
+                $"mark '{display}' itself [Contract(typeof(<Set>.<Key>), Role = \"...\")]");
         }
 
         return (

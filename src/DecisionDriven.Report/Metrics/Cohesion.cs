@@ -40,7 +40,7 @@ internal static class Cohesion
         foreach (LoadedAssembly assembly in assemblies)
         {
             MetadataReader reader = assembly.Reader;
-            List<string> model = Types.DomainModelPrefixes(reader);
+            List<KeyValuePair<string, bool>> model = Types.DomainModelPrefixes(reader);
             if (model.Count == 0)
             {
                 continue;

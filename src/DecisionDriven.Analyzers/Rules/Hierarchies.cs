@@ -22,6 +22,9 @@ internal sealed class Hierarchies
 
     private List<INamedTypeSymbol>? declared;
 
+    private readonly ConcurrentDictionary<IAssemblySymbol, List<INamedTypeSymbol>> declaredElsewhere =
+        new ConcurrentDictionary<IAssemblySymbol, List<INamedTypeSymbol>>(SymbolEqualityComparer.Default);
+
     internal Hierarchies(Compilation compilation)
     {
         this.compilation = compilation;
@@ -73,12 +76,22 @@ internal sealed class Hierarchies
             return true;
         }
 
+        if (!SymbolEqualityComparer.Default.Equals(type.ContainingAssembly, compilation.Assembly))
+        {
+            return ComputeReferenced(type, cancellationToken);
+        }
+
         bool anyConstructor = false;
         bool derivableOutside = false;
         bool allPrivate = true;
 
         foreach (IMethodSymbol constructor in type.InstanceConstructors)
         {
+            if (IsRecordCopyConstructor(type, constructor))
+            {
+                continue;
+            }
+
             anyConstructor = true;
 
             if (constructor.DeclaredAccessibility is Accessibility.Public or Accessibility.Protected
@@ -119,6 +132,86 @@ internal sealed class Hierarchies
         return AllDerivedAreSealed(type, cancellationToken);
     }
 
+    /// <summary>
+    /// Whether a hierarchy declared in a referenced assembly is closed, judged from that assembly's
+    /// metadata.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A consumer sees a referenced type through its metadata, and a real build references a
+    /// reference assembly: private, private protected and internal members are not in it. A base
+    /// closed with a <c>private protected</c> constructor therefore shows no constructor at all, and
+    /// read by the in-compilation rule it looked open. Absence is not openness here: a constructor
+    /// the consumer cannot see is one it cannot call.
+    /// </para>
+    /// <para>
+    /// Two conditions, both required. No constructor is callable from outside the defining assembly
+    /// (public, protected or protected internal), the record copy constructor aside as above. And
+    /// every type the defining assembly derives from the base, enumerated from its metadata, is
+    /// sealed: a leaf left open is a way into the hierarchy for anyone who can name the leaf, and
+    /// the defining assembly is the only place those leaves can be. A derived type the metadata does
+    /// not carry, such as a private nested one in a reference assembly, cannot be seen and so is not
+    /// counted; nothing outside the defining assembly can derive from it either.
+    /// </para>
+    /// </remarks>
+    private bool ComputeReferenced(INamedTypeSymbol type, CancellationToken cancellationToken)
+    {
+        foreach (IMethodSymbol constructor in type.InstanceConstructors)
+        {
+            if (IsRecordCopyConstructor(type, constructor))
+            {
+                continue;
+            }
+
+            if (constructor.DeclaredAccessibility is Accessibility.Public or Accessibility.Protected
+                or Accessibility.ProtectedOrInternal)
+            {
+                return false;
+            }
+        }
+
+        foreach (INamedTypeSymbol candidate in DeclaredIn(type.ContainingAssembly, cancellationToken))
+        {
+            if (SymbolEqualityComparer.Default.Equals(candidate, type))
+            {
+                continue;
+            }
+
+            if (DerivesFrom(candidate, type) && !candidate.IsSealed)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private List<INamedTypeSymbol> DeclaredIn(IAssemblySymbol assembly, CancellationToken cancellationToken) =>
+        declaredElsewhere.GetOrAdd(assembly, a => Walk(a.GlobalNamespace, cancellationToken));
+
+    /// <summary>
+    /// A record's copy constructor, which does not decide whether the hierarchy is closed.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>Hierarchies.ClosedHierarchiesAreSealed</c>, as amended. The compiler gives every non-sealed
+    /// record a <c>protected</c> copy constructor, <c>R(R original)</c>, and forbids declaring it any
+    /// narrower (CS8878). Counting it would make every abstract record base open whatever its author
+    /// wrote, and the design-change half of DD0017's message would have no path to take.
+    /// </para>
+    /// <para>
+    /// It is a real, narrow door and this says so rather than pretending otherwise: a record in
+    /// another assembly can derive by passing an existing instance of the hierarchy to that
+    /// constructor. Doing so is deliberate - it needs an instance of a subtype this assembly made,
+    /// handed to a record written to reach past the base's other constructors - and no declaration
+    /// can prevent it, so it is not treated as the base being open.
+    /// </para>
+    /// </remarks>
+    private static bool IsRecordCopyConstructor(INamedTypeSymbol type, IMethodSymbol constructor) =>
+        type.IsRecord
+        && constructor.Parameters.Length == 1
+        && SymbolEqualityComparer.Default.Equals(constructor.Parameters[0].Type, type);
+
     private bool AllDerivedAreSealed(INamedTypeSymbol type, CancellationToken cancellationToken)
     {
         foreach (INamedTypeSymbol candidate in Declared(cancellationToken))
@@ -145,9 +238,14 @@ internal sealed class Hierarchies
             return declared;
         }
 
+        return declared = Walk(compilation.Assembly.GlobalNamespace, cancellationToken);
+    }
+
+    private static List<INamedTypeSymbol> Walk(INamespaceSymbol root, CancellationToken cancellationToken)
+    {
         List<INamedTypeSymbol> found = new List<INamedTypeSymbol>();
         Stack<INamespaceOrTypeSymbol> pending = new Stack<INamespaceOrTypeSymbol>();
-        pending.Push(compilation.Assembly.GlobalNamespace);
+        pending.Push(root);
 
         while (pending.Count > 0)
         {
@@ -170,7 +268,7 @@ internal sealed class Hierarchies
             }
         }
 
-        return declared = found;
+        return found;
     }
 
     private static bool IsExternallyVisible(INamedTypeSymbol type)

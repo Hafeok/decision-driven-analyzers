@@ -107,9 +107,57 @@ public sealed class PrimitiveSurfaceTests
     }
 
     [Fact]
+    public void A_signature_the_framework_chose_is_not_reported()
+    {
+        // PrimitiveFreeSurfaces.BoundaryMembersExempt, amended. Equals(object), GetHashCode and
+        // ToString belong to object, CompareTo to IComparable<T>; no wrapper can replace the int.
+        Assert.Empty(Model(
+            "public readonly struct Mark : System.IEquatable<Mark>, System.IComparable<Mark> { "
+            + "private readonly byte _kind; "
+            + "public bool Equals(Mark other) => _kind == other._kind; "
+            + "public override bool Equals(object? obj) => obj is Mark other && Equals(other); "
+            + "public override int GetHashCode() => _kind; "
+            + "public override string ToString() => \"mark\"; "
+            + "public int CompareTo(Mark other) => _kind.CompareTo(other._kind); }"));
+    }
+
+    [Fact]
+    public void An_implementation_of_an_interface_declared_here_is_still_reported()
+    {
+        // Here the consumer chose the signature, so the rule still asks.
+        Diagnostic diagnostic = Assert.Single(Run(
+            "namespace Consumer.Scoring { public interface IScored { int Score(); } }"
+            + Environment.NewLine
+            + "namespace Consumer.Model { public sealed class Mark : global::Consumer.Scoring.IScored "
+            + "{ public int Score() => 0; } }"));
+
+        Assert.Contains("'Mark.Score'", diagnostic.GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_override_of_a_member_declared_here_is_still_reported()
+    {
+        ImmutableArray<Diagnostic> diagnostics = Model(
+            "public abstract class Shape { public abstract int Sides(); } "
+            + "public sealed class Square : Shape { public override int Sides() => 4; }");
+
+        Assert.Equal(2, diagnostics.Length);
+        Assert.Contains(diagnostics, d => d.GetMessage().Contains("'Square.Sides'", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void A_hot_path_member_is_not_reported()
     {
         Assert.Empty(Contract("[global::DecisionDriven.HotPath(" + ContractSource.Decision + ")] long Read();"));
+    }
+
+    [Fact]
+    public void The_members_of_a_hot_path_interface_are_not_reported()
+    {
+        Assert.Empty(Run(
+            "namespace Consumer { " + ContractSource.Contract
+            + " [global::DecisionDriven.HotPath(" + ContractSource.Decision + ")]"
+            + " public interface ICursor { long Position(); bool MoveNext(int count); } }"));
     }
 
     [Fact]
@@ -131,6 +179,32 @@ public sealed class PrimitiveSurfaceTests
     {
         // The rest of a model type is how it is built, not what it says.
         Assert.Empty(Model("public sealed class Product { internal string Name => string.Empty; }"));
+    }
+
+    [Fact]
+    public void A_public_member_of_a_private_nested_model_type_is_not_in_scope()
+    {
+        // Public so that the container can reach it; nobody outside can name the type.
+        Assert.Empty(Model(
+            "public sealed class Outer { "
+            + "private readonly record struct Pair(int Left, int Right); "
+            + "private struct Slot { public int Index; public int Length { get; set; } } "
+            + "internal int Sum() => new Pair(1, 2).Left; }"));
+    }
+
+    [Fact]
+    public void A_public_member_of_an_internal_model_type_is_not_in_scope()
+    {
+        Assert.Empty(Model("internal sealed class Product { public string Name => string.Empty; }"));
+    }
+
+    [Fact]
+    public void A_public_member_of_a_public_nested_model_type_is_in_scope()
+    {
+        Diagnostic diagnostic = Assert.Single(Model(
+            "public sealed class Outer { public sealed class Inner { public string Name => string.Empty; } }"));
+
+        Assert.Contains("'Inner.Name'", diagnostic.GetMessage(), StringComparison.Ordinal);
     }
 
     [Fact]

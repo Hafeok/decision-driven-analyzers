@@ -14,10 +14,12 @@ namespace DecisionDriven.Analyzers.Rules;
 /// </remarks>
 internal sealed class DomainModelNamespaces
 {
-    private readonly Compilation compilation;
-    private readonly List<string> prefixes;
+    private const string IncludeSubNamespaces = "IncludeSubNamespaces";
 
-    private DomainModelNamespaces(Compilation compilation, List<string> prefixes)
+    private readonly Compilation compilation;
+    private readonly List<KeyValuePair<string, bool>> prefixes;
+
+    private DomainModelNamespaces(Compilation compilation, List<KeyValuePair<string, bool>> prefixes)
     {
         this.compilation = compilation;
         this.prefixes = prefixes;
@@ -28,7 +30,7 @@ internal sealed class DomainModelNamespaces
 
     internal static DomainModelNamespaces Read(Compilation compilation)
     {
-        List<string> prefixes = new List<string>();
+        List<KeyValuePair<string, bool>> prefixes = new List<KeyValuePair<string, bool>>();
 
         foreach (AttributeData attribute in Markers.All(compilation.Assembly, Markers.DomainModel))
         {
@@ -36,7 +38,7 @@ internal sealed class DomainModelNamespaces
                 && attribute.ConstructorArguments[0].Value is string prefix
                 && prefix.Length > 0)
             {
-                prefixes.Add(prefix);
+                prefixes.Add(new KeyValuePair<string, bool>(prefix, IncludesSubNamespaces(attribute)));
             }
         }
 
@@ -57,10 +59,13 @@ internal sealed class DomainModelNamespaces
             return false;
         }
 
-        foreach (string prefix in prefixes)
+        foreach (KeyValuePair<string, bool> declared in prefixes)
         {
+            string prefix = declared.Key;
+
             if (containing.Equals(prefix, StringComparison.Ordinal)
-                || (containing.StartsWith(prefix, StringComparison.Ordinal)
+                || (declared.Value
+                    && containing.StartsWith(prefix, StringComparison.Ordinal)
                     && containing.Length > prefix.Length
                     && containing[prefix.Length] == '.'))
             {
@@ -69,5 +74,23 @@ internal sealed class DomainModelNamespaces
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// <c>DecisionsAsTypes.DomainModelIncludesSubNamespaces</c>: a prefix matches its namespace and
+    /// every namespace under it unless the attribute says <c>IncludeSubNamespaces = false</c>, in
+    /// which case it matches only the namespace it names.
+    /// </summary>
+    private static bool IncludesSubNamespaces(AttributeData attribute)
+    {
+        foreach (KeyValuePair<string, TypedConstant> named in attribute.NamedArguments)
+        {
+            if (named.Key == IncludeSubNamespaces && named.Value.Value is bool include)
+            {
+                return include;
+            }
+        }
+
+        return true;
     }
 }

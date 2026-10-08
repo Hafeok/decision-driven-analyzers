@@ -47,4 +47,9 @@
     <ProjectReference Include="../../src/DecisionDriven.Analyzers.CodeFixes/DecisionDriven.Analyzers.CodeFixes.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Ledger exports in the shape the ledger writes them, read from disk by the tests. -->
+    <None Include="Ledger/Fixtures/*.nt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

@@ -12,7 +12,7 @@ decisions:
   - key: CodeFixesShipInSeparateAssembly
     statement: "Code fixes ship in their own assembly alongside the analyzers in analyzers/dotnet/cs, because the compiler loads the analyzer assembly and only an IDE or dotnet format loads the fixes"
   - key: DevelopmentTimeOnly
-    statement: "The package is consumed with PrivateAssets=all and never appears in a consumer runtime output"
+    statement: "The package is consumed with PrivateAssets=all and IncludeAssets=analyzers;build, and never appears in a consumer runtime output"
 ---
 
 Interim set file (decisions-as-types, InterimFrontMatterUntilExport). No `accepted-by`: every decision here is unaccepted until a holder with accept-decision accepts it in the ledger. Narrative: docs/drafts/ADR-A02-*.md.

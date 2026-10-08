@@ -10,9 +10,20 @@
     <!--
       Where the decisions live. The default is docs/decisions/ beside the project; a
       solution that keeps one ledger for many projects sets this to that one directory.
-      Set it to empty to turn the globbing off.
+      Empty is the default, not "off": MSBuild cannot tell empty from unset. A directory
+      that does not exist adds nothing.
     -->
     <DdLedgerDirectory Condition="'$(DdLedgerDirectory)' == ''">$(MSBuildProjectDirectory)/docs/decisions</DdLedgerDirectory>
+  </PropertyGroup>
+
+  <!--
+    Not a setting. ArchContractTypeAssemblies as the analyzers read it, with ';' rewritten to ','
+    because the compiler's analyzer config parser reads everything after a ';' as a comment (see
+    DecisionDriven.Analyzers.props, which makes this property visible instead of the raw one).
+    Here rather than in the props, which are imported before the project body sets the list.
+  -->
+  <PropertyGroup>
+    <_DecisionDrivenArchContractTypeAssemblies>$(ArchContractTypeAssemblies.Replace(';', ','))</_DecisionDrivenArchContractTypeAssemblies>
   </PropertyGroup>
 
   <!--

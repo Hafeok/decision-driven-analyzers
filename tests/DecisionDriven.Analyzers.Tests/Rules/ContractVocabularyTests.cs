@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Threading.Tasks;
 using DecisionDriven.Analyzers.Rules;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Testing;
 using Xunit;
 
 namespace DecisionDriven.Analyzers.Tests.Rules;
@@ -76,6 +78,47 @@ public sealed class ContractVocabularyTests
             "mark 'Consumer.Scratch.Thing' itself [Contract(",
             diagnostic.GetMessage(),
             StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("public readonly struct Thing { }")]
+    [InlineData("public readonly record struct Thing(long Value);")]
+    [InlineData("public enum Thing { Stop, Continue }")]
+    public void A_struct_or_enum_is_pointed_at_the_model_and_never_at_Contract(string declaration)
+    {
+        // ContractAttribute applies to interfaces, classes and delegates. Offering it for a struct
+        // or an enum is a path that does not compile.
+        string message = Assert.Single(Run(
+            "global::Consumer.Scratch.Thing Read();",
+            extra: "namespace Consumer.Scratch { " + declaration + " }",
+            domainModel: "Consumer.Model")).GetMessage();
+
+        Assert.DoesNotContain("[Contract(", message, StringComparison.Ordinal);
+        Assert.Contains(
+            "[assembly: DomainModel(\"Consumer.Scratch\", typeof(<Set>.<Key>))]",
+            message,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_message_for_a_struct_of_this_assembly_is_exactly_this()
+    {
+        // DiagnosticMessages.ExactMessageTested.
+        Diagnostic diagnostic = Assert.Single(Run(
+            "void Read(global::Consumer.Scratch.Thing thing);",
+            extra: "namespace Consumer.Scratch { public readonly struct Thing { } }",
+            domainModel: "Consumer.Model"));
+
+        Assert.Equal(
+            "the parameter 'thing' of contract member 'IQuadSource.Read' names 'Consumer.Scratch.Thing', "
+            + "which is declared in this assembly outside any [DomainModel] namespace. "
+            + "Decide: move 'Consumer.Scratch.Thing' into a namespace already declared as model "
+            + "| declare 'Consumer.Scratch' as model with "
+            + "[assembly: DomainModel(\"Consumer.Scratch\", typeof(<Set>.<Key>))]; a struct or an enum is "
+            + "data, and [Contract] does not apply to it. "
+            + "Do not add the attribute without a decision that answers this; if the reason is only that "
+            + "the code already looked like this, take the design change.",
+            diagnostic.GetMessage());
     }
 
     [Fact]
@@ -161,6 +204,94 @@ public sealed class ContractVocabularyTests
             + "the code already looked like this, take the design change.",
             diagnostic.GetMessage());
     }
+
+    // A contract class built from engine state: its constructor is how the assembly makes it, and
+    // nothing outside the assembly can call it or see the type it takes.
+    private const string EngineThing = "namespace Consumer.Engine { public sealed class Thing { } }";
+
+    [Fact]
+    public void An_internal_constructor_of_a_contract_class_is_not_reported()
+    {
+        Assert.Empty(Run(
+            string.Empty,
+            extra: "namespace Consumer { " + ContractSource.Contract + " public sealed class View { "
+                + "internal View(global::Consumer.Engine.Thing thing) { } public int Count => 0; } } " + EngineThing,
+            domainModel: "Consumer.Model"));
+    }
+
+    [Fact]
+    public void A_private_protected_member_of_a_contract_class_is_not_reported()
+    {
+        Assert.Empty(Run(
+            string.Empty,
+            extra: "namespace Consumer { " + ContractSource.Contract + " public abstract class View { "
+                + "private protected View(global::Consumer.Engine.Thing thing) { } } } " + EngineThing,
+            domainModel: "Consumer.Model"));
+    }
+
+    [Fact]
+    public void A_protected_member_of_a_contract_class_is_reported()
+    {
+        // Protected is reachable from a derived type in another assembly: it is on the surface.
+        Diagnostic diagnostic = Assert.Single(Run(
+            string.Empty,
+            extra: "namespace Consumer { " + ContractSource.Contract + " public abstract class View { "
+                + "protected View(global::Consumer.Engine.Thing thing) { } } } " + EngineThing,
+            domainModel: "Consumer.Model"));
+
+        Assert.Equal("DD0010", diagnostic.Id);
+    }
+
+    // ArchContractTypeAssemblies as an MSBuild user writes it, read the way a build reads it: through
+    // the analyzer config file CompilerVisibleProperty generates, and the compiler's parser for it.
+    private const string ListedTwo = "A;B";
+
+    [Fact]
+    public async Task Every_assembly_in_a_list_read_from_an_analyzer_config_file_is_accepted()
+    {
+        await RuleHarness.VerifyThroughAnalyzerConfigAsync<ContractVocabularyAnalyzer>(
+            ConfigPathSource("global::A.First First(); global::B.Second Second();"),
+            ConfigPathProperties(),
+            ConfigPathReferences());
+    }
+
+    [Fact]
+    public async Task An_assembly_missing_from_a_list_read_from_an_analyzer_config_file_is_reported_with_the_exact_message()
+    {
+        // DiagnosticMessages.ExactMessageTested.
+        await RuleHarness.VerifyThroughAnalyzerConfigAsync<ContractVocabularyAnalyzer>(
+            ConfigPathSource("global::A.First First(); global::B.Second Second(); global::C.Third {|#0:Third|}();"),
+            ConfigPathProperties(),
+            ConfigPathReferences(),
+            new DiagnosticResult("DD0010", DiagnosticSeverity.Error)
+                .WithLocation(0)
+                .WithMessage(
+                    "the return type of contract member 'IQuadSource.Third' names 'C.Third', "
+                    + "which comes from 'C', which is not in ArchContractTypeAssemblies. "
+                    + "Decide: use a type this contract may already name, or take what it needs into this "
+                    + "assembly's [DomainModel] namespaces "
+                    + "| add 'C' to ArchContractTypeAssemblies, in a decision that says why "
+                    + "every consumer of this contract now depends on 'C'. "
+                    + "Do not add the attribute without a decision that answers this; if the reason is only that "
+                    + "the code already looked like this, take the design change."));
+    }
+
+    private static string ConfigPathSource(string members) =>
+        ContractSource.File(
+            "namespace Consumer { " + ContractSource.Contract + " public interface IQuadSource { " + members + " } }");
+
+    private static Dictionary<string, string> ConfigPathProperties() => new(StringComparer.Ordinal)
+    {
+        ["ArchLayer"] = "1",
+        ["ArchContractTypeAssemblies"] = ListedTwo,
+    };
+
+    private static IEnumerable<RuleHarness.Referenced> ConfigPathReferences() => new[]
+    {
+        new RuleHarness.Referenced("A", archLayer: 0, "namespace A { public sealed class First { } }"),
+        new RuleHarness.Referenced("B", archLayer: 0, "namespace B { public sealed class Second { } }"),
+        new RuleHarness.Referenced("C", archLayer: 0, "namespace C { public sealed class Third { } }"),
+    };
 
     private static ImmutableArray<Diagnostic> Run(string members, string extra = "", string? domainModel = null)
     {

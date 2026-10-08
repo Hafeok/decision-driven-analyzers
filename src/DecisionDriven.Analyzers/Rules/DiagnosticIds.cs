@@ -67,6 +67,9 @@ internal static class DiagnosticIds
     /// <summary>A model type a caller can change.</summary>
     internal const string MutableModel = "DD0019";
 
+    /// <summary><c>dynamic</c>, as a type or a dynamically bound operation, in a layered project.</summary>
+    internal const string DynamicBinding = "DD0020";
+
     /// <summary>
     /// Every id family this package ships, longest first.
     /// </summary>

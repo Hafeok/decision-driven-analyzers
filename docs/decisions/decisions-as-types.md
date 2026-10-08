@@ -17,12 +17,16 @@ decisions:
     statement: "Superseded decisions emit no Obsolete; the diverging cited version is the invalidation signal"
   - key: UnacceptedEmitsWarningObsolete
     statement: "A decision whose tip version has no unrevoked acceptance is emitted with Obsolete(error=false), so it cannot ship under TreatWarningsAsErrors"
+  - key: RevocationIsItsOwnNode
+    statement: "An acceptance is revoked by a ledger:Revocation node naming it with ledger:revokes, whose prov:generatedAtTime, prov:wasAttributedTo and ledger:revocationReason say when, who and why. ledger:revokedAt on the acceptance node, the shape the export no longer writes, is read as a revocation during the transition and reported as DDGEN0006, a warning; either shape is enough to revoke"
   - key: RevokedEmitsErrorObsolete
     statement: "A revoked decision without successor is emitted with Obsolete(error=true); the ledger has no decision-level retirement yet, so until it does this is fed only by the interim front matter's revoked-at"
   - key: CitationVersionDerivedNotWritten
     statement: "The version a citation was written against is never written in source; the report tool derives it from the introducing commit and the ledger tip at that commit"
   - key: AttributesAreSourceGenerated
     statement: "Contract, DomainModel, HotPath, DesignDecision, ArchLayer and ExceptionScope are emitted as internal types into each consuming compilation and matched by full name"
+  - key: DomainModelIncludesSubNamespaces
+    statement: "DomainModel matches its namespace and sub-namespaces unless IncludeSubNamespaces is false, which matches the named namespace only. An exclusion list is rejected: two declarations, one exact and one prefix, already say what an exception would"
   - key: AttributesTakeOneDecisionType
     statement: "Contract, DomainModel, HotPath and DesignDecision take a single Type argument that must be a generated decision type; Role is the only free string"
   - key: ExceptionScopeIsClosed

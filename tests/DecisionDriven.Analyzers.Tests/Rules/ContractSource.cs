@@ -35,11 +35,14 @@ namespace DecisionDriven
 
         public string NamespacePrefix { get; }
         public global::System.Type Decision { get; }
+        public bool IncludeSubNamespaces { get; set; } = true;
     }
 
     [global::System.AttributeUsage(
-        global::System.AttributeTargets.Method | global::System.AttributeTargets.Property
-            | global::System.AttributeTargets.Class | global::System.AttributeTargets.Struct)]
+        global::System.AttributeTargets.Method | global::System.AttributeTargets.Constructor
+            | global::System.AttributeTargets.Property
+            | global::System.AttributeTargets.Class | global::System.AttributeTargets.Struct
+            | global::System.AttributeTargets.Interface)]
     internal sealed class HotPathAttribute : global::System.Attribute
     {
         public HotPathAttribute(global::System.Type decision) { Decision = decision; }

@@ -142,6 +142,27 @@ public sealed class MetricsTests
         Assert.False(lcom4.ContainsKey("Fix.Model.Quad"));
     }
 
+    [Fact]
+    public void LCOM4_reads_only_the_named_namespace_when_the_model_excludes_its_sub_namespaces()
+    {
+        // DecisionsAsTypes.DomainModelIncludesSubNamespaces: the report and the analyzers are two
+        // readers of one declaration, and they agree about which types are model.
+        using Scratch scratch = new Scratch();
+        string model = Build.Assembly(scratch.PathOf("bin"), "Fix.Model", new Dictionary<string, string>
+        {
+            [scratch.PathOf("m/Model.cs")] =
+                "[assembly: DecisionDriven.DomainModel(\"Fix.Model\", typeof(DecisionDriven.Ledger.Fixture.Shape.ModelNamespace), IncludeSubNamespaces = false)]\n"
+                + "namespace Fix.Model { public sealed class Whole { private int a; public int A() => a; public int Twice() => a * 2; } }\n"
+                + "namespace Fix.Model.Stores { public sealed class Store { private int a; public int A() => a; public int Twice() => a * 2; } }\n",
+            [scratch.PathOf("m/Markers.cs")] = Build.Markers,
+            [scratch.PathOf("m/Decisions.cs")] = Build.Decision("fixture", "Shape", "ModelNamespace"),
+        });
+
+        using Assemblies built = new Assemblies(model);
+
+        Assert.Equal(new[] { "Fix.Model.Whole" }, Cohesion.Compute(built.All).Select(row => row.Type));
+    }
+
     private static Assemblies Two(Scratch scratch, int storeLayer = 0, int serviceLayer = 1)
     {
         string store = Build.Assembly(scratch.PathOf("bin"), "Fix.Store", new Dictionary<string, string>

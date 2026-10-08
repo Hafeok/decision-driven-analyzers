@@ -38,7 +38,12 @@ public sealed class DecisionLedgerGenerator : IIncrementalGenerator
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         context.RegisterPostInitializationOutput(static ctx =>
-            ctx.AddSource(GeneratedAttributes.HintName, SourceText.From(GeneratedAttributes.Text, System.Text.Encoding.UTF8)));
+        {
+            // Every generated type is [Embedded], so no other compilation imports it. The definition
+            // is Roslyn's own, shared with any other generator that asks for it.
+            ctx.AddEmbeddedAttributeDefinition();
+            ctx.AddSource(GeneratedAttributes.HintName, SourceText.From(GeneratedAttributes.Text, System.Text.Encoding.UTF8));
+        });
 
         IncrementalValuesProvider<LedgerInput> ledgerFiles = context.AdditionalTextsProvider
             .Combine(context.AnalyzerConfigOptionsProvider)
@@ -92,7 +97,8 @@ public sealed class DecisionLedgerGenerator : IIncrementalGenerator
             if (input.Kind == LedgerExportKind)
             {
                 List<int> malformed = new List<int>();
-                NTriplesReader.Read(input.Text!, input.Path!, namespaces, malformed);
+                List<string> onNodeRevocations = new List<string>();
+                NTriplesReader.Read(input.Text!, input.Path!, namespaces, malformed, onNodeRevocations);
 
                 foreach (int line in malformed)
                 {
@@ -101,6 +107,15 @@ public sealed class DecisionLedgerGenerator : IIncrementalGenerator
                         Location.None,
                         FileName(input.Path!),
                         line));
+                }
+
+                foreach (string acceptance in onNodeRevocations)
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        LedgerDiagnostics.OnNodeRevocation,
+                        Location.None,
+                        FileName(input.Path!),
+                        acceptance));
                 }
             }
             else
@@ -145,8 +160,8 @@ public sealed class DecisionLedgerGenerator : IIncrementalGenerator
     }
 
     /// <summary>
-    /// The three things about a key that make a citation meaningful: it is an identifier, it is
-    /// unique in its namespace, and it did not change between versions.
+    /// The four things about a key that make a citation meaningful: it is an identifier, it is
+    /// unique in its namespace, it can be emitted in its set, and it did not change between versions.
     /// </summary>
     private static void Validate(SourceProductionContext context, Dictionary<string, LedgerNamespace> namespaces)
     {
@@ -195,6 +210,18 @@ public sealed class DecisionLedgerGenerator : IIncrementalGenerator
                         key,
                         namespaceName));
                     continue;
+                }
+
+                if (tip.SetId is { Length: > 0 } setId
+                    && DecisionKey.CollidingGeneratedMember(key, setId) is { } member)
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        LedgerDiagnostics.KeyCollidesWithGeneratedMember,
+                        Location.None,
+                        key,
+                        setId,
+                        namespaceName,
+                        member));
                 }
 
                 if (keyOwners.TryGetValue(key, out string? owner))

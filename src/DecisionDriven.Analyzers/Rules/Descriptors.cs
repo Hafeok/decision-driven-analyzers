@@ -237,6 +237,14 @@ internal static class Descriptors
             + "A settable property, a mutable field or an exposed list means every holder of the "
             + "value shares one, and the snapshot was never a snapshot.");
 
+    internal static readonly DiagnosticDescriptor DynamicBinding = Rule(
+        DiagnosticIds.DynamicBinding,
+        "Dynamically bound code in a layered project",
+        "{0}. Decide: {1} | " + ExceptionPath + ". " + Guard,
+        "A dynamically bound call reaches whatever the runtime object happens to be. That is the "
+            + "loophole DD0001 and DD0011 close for static types: a lower layer calling into a higher "
+            + "one it holds no reference to.");
+
     /// <summary>
     /// Every descriptor this package ships, so DD0008 can read their declared tiers.
     /// </summary>
@@ -263,7 +271,8 @@ internal static class Descriptors
         FlagArgument,
         OpenHierarchySwitch,
         NotImplemented,
-        MutableModel);
+        MutableModel,
+        DynamicBinding);
 
     /// <summary>
     /// One descriptor, at the severity its tier declares.
