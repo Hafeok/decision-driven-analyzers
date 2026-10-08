@@ -92,8 +92,13 @@ public sealed class FlagArgumentAnalyzer : DiagnosticAnalyzer
                 continue;
             }
 
+            if (IsWrapperBoundary(part.Owner, type))
+            {
+                continue;
+            }
+
             string finding = $"parameter '{parameter.Name}' of '{type.Name}.{part.Member}' is a bool, "
-                + $"so the call site reads '{part.Member}(x, true)'";
+                + $"so the call site reads '{CallSite(part.Owner, parameter, type)}'";
 
             string designChange = "give it an enum with two named members, or split the member in two";
 
@@ -126,6 +131,82 @@ public sealed class FlagArgumentAnalyzer : DiagnosticAnalyzer
             DeclaredAccessibility: Accessibility.Protected or Accessibility.ProtectedOrInternal,
         }
         && IsDisposable(type);
+
+    /// <summary>
+    /// The constructor or factory of a type that wraps one <c>bool</c>, taking that <c>bool</c> and
+    /// nothing else.
+    /// </summary>
+    /// <remarks>
+    /// <c>PrimitiveFreeSurfaces.FlagArgumentsWarning</c>, amended, for the reason DD0013 has
+    /// <c>WrapperExposesItsOwnPrimitive</c> and <c>BoundaryMembersExempt</c>: the wrapper's
+    /// constructor is where its value enters. An enum with two members would be a second name for
+    /// <c>bool</c>, and splitting the member in two would leave a wrapper that cannot be built from
+    /// the value it wraps. Only a one-parameter member is exempt; a second parameter beside the
+    /// <c>bool</c> makes it a call site with a flag again.
+    /// </remarks>
+    private static bool IsWrapperBoundary(ISymbol owner, INamedTypeSymbol type)
+    {
+        if (owner is not IMethodSymbol { Parameters.Length: 1 } method)
+        {
+            return false;
+        }
+
+        bool entersHere = method.MethodKind == MethodKind.Constructor
+            || (method.IsStatic && SymbolEqualityComparer.Default.Equals(method.ReturnType, type));
+
+        return entersHere && WrapsOneBool(type);
+    }
+
+    private static bool WrapsOneBool(INamedTypeSymbol type)
+    {
+        int fields = 0;
+
+        foreach (ISymbol member in type.GetMembers())
+        {
+            if (member is not IFieldSymbol { IsStatic: false, IsConst: false } field)
+            {
+                continue;
+            }
+
+            if (field.Type.SpecialType != SpecialType.System_Boolean || ++fields > 1)
+            {
+                return false;
+            }
+        }
+
+        return fields == 1;
+    }
+
+    /// <summary>
+    /// The call the reader will see: <c>true</c> where the flag goes and <c>x</c> for every other
+    /// argument, so a one-parameter member is not described as taking two.
+    /// </summary>
+    private static string CallSite(ISymbol owner, IParameterSymbol flag, INamedTypeSymbol type)
+    {
+        ImmutableArray<IParameterSymbol> parameters = owner switch
+        {
+            IMethodSymbol method => method.Parameters,
+            IPropertySymbol indexer => indexer.Parameters,
+            _ => ImmutableArray.Create(flag),
+        };
+
+        string[] arguments = new string[parameters.Length];
+
+        for (int i = 0; i < parameters.Length; i++)
+        {
+            arguments[i] = SymbolEqualityComparer.Default.Equals(parameters[i], flag) ? "true" : "x";
+        }
+
+        string list = string.Join(", ", arguments);
+
+        return owner switch
+        {
+            IMethodSymbol { MethodKind: MethodKind.Constructor } => $"new {type.Name}({list})",
+            IPropertySymbol { IsIndexer: true } => $"{type.Name}[{list}]",
+            IMethodSymbol { MethodKind: MethodKind.DelegateInvoke } => $"{type.Name}({list})",
+            _ => $"{owner.Name}({list})",
+        };
+    }
 
     private static bool IsDisposable(INamedTypeSymbol type)
     {
