@@ -80,6 +80,39 @@ a rule never means changing analyzer code.
 Write one decision set file, then `dotnet build`. With no decisions the analyzers load and say
 nothing; with a decision set, the types become citable.
 
+### Where the decisions come from
+
+`DdLedgerDirectory` is a shortcut for `AdditionalFiles`. The package's `.targets`, imported after the
+project body, turns it into two globs:
+
+```xml
+<AdditionalFiles Include="$(DdLedgerDirectory)/*.md" DdLedger="decision-set" />
+<AdditionalFiles Include="$(DdLedgerDirectory)/*.nt" DdLedger="ledger-export" />
+```
+
+- **The default is per project**: `$(MSBuildProjectDirectory)/docs/decisions`. A solution with one
+  ledger at its root sets the property once, in a `Directory.Build.props`, as the quick start does;
+  otherwise every project looks for its own `docs/decisions/`, finds none, and nothing is read and
+  nothing is reported.
+- **The globs are not recursive.** Only the files directly in the directory are passed in.
+- **Every `*.md` in the directory is passed in.** A file with no front matter contributes nothing,
+  which is why a `README.md` beside the set files is harmless.
+- **An empty value is the default**, not "off": MSBuild cannot tell a property set to empty from one
+  never set. A directory that does not exist adds nothing.
+
+A ledger that is not one flat directory adds the files itself, with the metadata the generator reads.
+The metadata, not the extension, is what makes a file a decision set:
+
+```xml
+<ItemGroup>
+  <AdditionalFiles Include="../ledger/**/*.md" DdLedger="decision-set" />
+  <AdditionalFiles Include="../ledger/export.nt" DdLedger="ledger-export" />
+</ItemGroup>
+```
+
+Both forms can be used together, but keep the hand-written items outside `DdLedgerDirectory`: a set
+file added twice claims each of its keys twice, which is `DDGEN0001`.
+
 ### The decision set format
 
 Until the ledger can export, a markdown file with YAML front matter carries the decisions. This is
