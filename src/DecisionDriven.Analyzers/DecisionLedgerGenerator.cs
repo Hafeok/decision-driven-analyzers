@@ -97,7 +97,8 @@ public sealed class DecisionLedgerGenerator : IIncrementalGenerator
             if (input.Kind == LedgerExportKind)
             {
                 List<int> malformed = new List<int>();
-                NTriplesReader.Read(input.Text!, input.Path!, namespaces, malformed);
+                List<string> onNodeRevocations = new List<string>();
+                NTriplesReader.Read(input.Text!, input.Path!, namespaces, malformed, onNodeRevocations);
 
                 foreach (int line in malformed)
                 {
@@ -106,6 +107,15 @@ public sealed class DecisionLedgerGenerator : IIncrementalGenerator
                         Location.None,
                         FileName(input.Path!),
                         line));
+                }
+
+                foreach (string acceptance in onNodeRevocations)
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        LedgerDiagnostics.OnNodeRevocation,
+                        Location.None,
+                        FileName(input.Path!),
+                        acceptance));
                 }
             }
             else

@@ -247,11 +247,16 @@ internal static class NTriplesReader
     /// <param name="fileName">Used only to say where a bad line is.</param>
     /// <param name="namespaces">Accumulator, so several files can build one model.</param>
     /// <param name="malformedLines">One-based line numbers that were not statements.</param>
+    /// <param name="onNodeRevocations">
+    /// The acceptances revoked with <c>ledger:revokedAt</c> on the acceptance node, the shape the
+    /// export no longer writes. They are revoked all the same; the list is so the caller can say so.
+    /// </param>
     internal static void Read(
         string text,
         string fileName,
         Dictionary<string, LedgerNamespace> namespaces,
-        List<int> malformedLines)
+        List<int> malformedLines,
+        List<string>? onNodeRevocations = null)
     {
         string[] lines = text.Split('\n');
 
@@ -400,7 +405,7 @@ internal static class NTriplesReader
                 continue;
             }
 
-            Acceptance acceptance = new Acceptance(versionId);
+            Acceptance acceptance = new Acceptance(versionId) { Id = node.Key };
             foreach (Triple triple in node.Value)
             {
                 if (triple.Predicate == Ledger + "ofDecision")
@@ -421,7 +426,12 @@ internal static class NTriplesReader
                 }
                 else if (triple.Predicate == Ledger + "revokedAt")
                 {
+                    // The transition shape: the ledger has ruled that a revocation is its own signed
+                    // node and that an acceptance node does not change after it is written. Still
+                    // read, so an export written before the change keeps meaning what it meant.
+                    acceptance.Revoked = true;
                     acceptance.RevokedAt = triple.Object;
+                    onNodeRevocations?.Add(node.Key);
                 }
                 else if (triple.Predicate == Ledger + "revokedBy")
                 {
@@ -439,6 +449,51 @@ internal static class NTriplesReader
 
             owner ??= FindByVersion(namespaces, versionId);
             owner?.Acceptances.Add(acceptance);
+        }
+
+        // Revocations, which point at acceptances. The same shape revokes an authority grant, and a
+        // revocation naming anything that is not an acceptance read above has nothing here to act on.
+        foreach (KeyValuePair<string, List<Triple>> node in bySubject)
+        {
+            if (!IsA(nodeTypes, node.Key, Ledger + "Revocation"))
+            {
+                continue;
+            }
+
+            string? revokes = null;
+            string? at = null;
+            string? by = null;
+            string? reason = null;
+
+            foreach (Triple triple in node.Value)
+            {
+                if (triple.Predicate == Ledger + "revokes")
+                {
+                    revokes = triple.Object;
+                }
+                else if (triple.Predicate == Prov + "generatedAtTime")
+                {
+                    at = triple.Object;
+                }
+                else if (triple.Predicate == Prov + "wasAttributedTo")
+                {
+                    by = triple.Object;
+                }
+                else if (triple.Predicate == Ledger + "revocationReason")
+                {
+                    reason = triple.Object;
+                }
+            }
+
+            if (revokes is not null && FindAcceptance(namespaces, revokes) is { } revoked)
+            {
+                // The revocation node is the record; where an old-shape export said it on the
+                // acceptance as well, the node's account is the one kept.
+                revoked.Revoked = true;
+                revoked.RevokedAt = at ?? revoked.RevokedAt;
+                revoked.RevokedBy = by ?? revoked.RevokedBy;
+                revoked.RevocationReason = reason ?? revoked.RevocationReason;
+            }
         }
 
         MarkSuccessors(namespaces);
@@ -523,6 +578,25 @@ internal static class NTriplesReader
                     if (version.Id == versionId)
                     {
                         return decision;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static Acceptance? FindAcceptance(Dictionary<string, LedgerNamespace> namespaces, string acceptanceId)
+    {
+        foreach (LedgerNamespace ns in namespaces.Values)
+        {
+            foreach (Decision decision in ns.Decisions.Values)
+            {
+                foreach (Acceptance acceptance in decision.Acceptances)
+                {
+                    if (acceptance.Id == acceptanceId)
+                    {
+                        return acceptance;
                     }
                 }
             }
