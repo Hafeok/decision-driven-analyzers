@@ -22,6 +22,12 @@ consumer that builds with warnings as errors, and are recorded as such.
   prescribes `IncludeAssets="analyzers;build"` as well. The quick start and the samples now use
   both, and `TwoPackages.DevelopmentTimeOnly` (amended) states the same reference form
   ([#45](https://github.com/Hafeok/decision-driven-analyzers/issues/45)).
+- **`DD0005`** decision and rule page disagreed about `dd_banned_names`. The decision said the list
+  was "configurable"; the rule page said the option replaces it. `NamesAndNamespaces.BannedGrabBagNames`
+  (amended) and ADR-A06 now say it replaces the list rather than extending it, so setting it to add
+  one name drops the ten defaults. The rule page also said an empty value turns the rule off, which
+  it never did: an empty value leaves the default list in force, and a test now says so
+  ([#49](https://github.com/Hafeok/decision-driven-analyzers/issues/49)).
 
 ## [0.1.0-preview.7] - 2026-10-08
 
