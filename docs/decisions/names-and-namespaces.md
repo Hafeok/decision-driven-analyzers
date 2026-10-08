@@ -4,7 +4,7 @@ namespace: ddd-analyzers
 source-draft: ADR-A06
 decisions:
   - key: BannedGrabBagNames
-    statement: "DD0005: no assembly, root namespace or namespace segment named Common, Core, Utils, Utilities, Helpers, Abstractions, Shared, Misc, public Internal, or Extensions as a namespace; list configurable"
+    statement: "DD0005: no assembly, root namespace or namespace segment named Common, Core, Utils, Utilities, Helpers, Abstractions, Shared, Misc, public Internal, or Extensions as a namespace. dd_banned_names in .editorconfig replaces the list rather than extending it, so a consumer narrowing the list does so visibly"
   - key: RootNamespaceEqualsAssemblyName
     statement: "DD0006: every public type lives under a root namespace equal to the assembly name"
   - key: CohesionMetricsAreReport
