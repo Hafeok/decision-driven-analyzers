@@ -50,6 +50,11 @@ consumer that builds with warnings as errors, and are recorded as such.
   the whole IRI. The set id is now the IRI's local part; a literal is read unchanged. A fixture
   export in the ledger's shape is tested alongside the older hand-written form
   ([#81](https://github.com/Hafeok/decision-driven-analyzers/issues/81)).
+- **N-Triples reader** kept one `rdf:type` per node, the last one read. The export types every node
+  twice, `ledger:` and `prov:`, and it was read correctly only because code-point order happens to
+  put the `prov:` line first; any other order dropped every decision, version and acceptance
+  silently. Every type is now kept, and a node is selected by the `ledger:` type among them
+  ([#82](https://github.com/Hafeok/decision-driven-analyzers/issues/82)).
 
 ## [0.1.0-preview.7] - 2026-10-08
 

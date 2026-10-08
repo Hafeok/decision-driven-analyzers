@@ -255,10 +255,12 @@ internal static class NTriplesReader
     {
         string[] lines = text.Split('\n');
 
-        // Subject -> what the type statement said it is, so that acceptance nodes can be told from
-        // version nodes without depending on the order statements arrive in.
+        // Subject -> every type statement made about it, so that acceptance nodes can be told from
+        // version nodes without depending on the order statements arrive in. Every type, not the
+        // last one read: the export types each node twice, ledger:Decision and prov:Entity, and the
+        // line order is not something the reader may rely on.
         Dictionary<string, List<Triple>> bySubject = new Dictionary<string, List<Triple>>();
-        Dictionary<string, string> nodeTypes = new Dictionary<string, string>();
+        Dictionary<string, HashSet<string>> nodeTypes = new Dictionary<string, HashSet<string>>();
 
         for (int i = 0; i < lines.Length; i++)
         {
@@ -276,7 +278,13 @@ internal static class NTriplesReader
 
             if (triple.Predicate == Rdf + "type" && !triple.ObjectIsLiteral)
             {
-                nodeTypes[triple.Subject] = triple.Object;
+                if (!nodeTypes.TryGetValue(triple.Subject, out HashSet<string>? types))
+                {
+                    types = new HashSet<string>(StringComparer.Ordinal);
+                    nodeTypes.Add(triple.Subject, types);
+                }
+
+                types.Add(triple.Object);
             }
 
             if (!bySubject.TryGetValue(triple.Subject, out List<Triple>? statements))
@@ -292,7 +300,7 @@ internal static class NTriplesReader
         // namespace, before either can be placed.
         foreach (KeyValuePair<string, List<Triple>> node in bySubject)
         {
-            if (!nodeTypes.TryGetValue(node.Key, out string? type) || type != Ledger + "Decision")
+            if (!IsA(nodeTypes, node.Key, Ledger + "Decision"))
             {
                 continue;
             }
@@ -313,7 +321,7 @@ internal static class NTriplesReader
         // Versions, which also tell us who supersedes whom.
         foreach (KeyValuePair<string, List<Triple>> node in bySubject)
         {
-            if (!nodeTypes.TryGetValue(node.Key, out string? type) || type != Ledger + "DecisionVersion")
+            if (!IsA(nodeTypes, node.Key, Ledger + "DecisionVersion"))
             {
                 continue;
             }
@@ -373,7 +381,7 @@ internal static class NTriplesReader
         // Acceptances last: they point at versions, which now exist.
         foreach (KeyValuePair<string, List<Triple>> node in bySubject)
         {
-            if (!nodeTypes.TryGetValue(node.Key, out string? type) || type != Ledger + "Acceptance")
+            if (!IsA(nodeTypes, node.Key, Ledger + "Acceptance"))
             {
                 continue;
             }
@@ -435,6 +443,9 @@ internal static class NTriplesReader
 
         MarkSuccessors(namespaces);
     }
+
+    private static bool IsA(Dictionary<string, HashSet<string>> nodeTypes, string subject, string type) =>
+        nodeTypes.TryGetValue(subject, out HashSet<string>? types) && types.Contains(type);
 
     /// <summary>
     /// The export names a set by IRI, <c>&lt;urn:ledger-set:ledger-design&gt;</c>, and the set id is

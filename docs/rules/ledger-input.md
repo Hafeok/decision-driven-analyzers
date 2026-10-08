@@ -17,6 +17,11 @@ extension, so a consumer's unrelated markdown cannot become a decision set by ha
 | `prov:` | `http://www.w3.org/ns/prov#` |
 | `rdf:` | `http://www.w3.org/1999/02/22-rdf-syntax-ns#` |
 
+A node is selected by the `ledger:` type among its `rdf:type` statements. The export types every
+node twice, as PROV-O requires (`ledger:Decision`, `ledger:DecisionVersion` and `ledger:Acceptance`
+with `prov:Entity`, `ledger:ChangeSet` with `prov:Activity`), and every type is kept, so the order
+the lines arrive in does not matter.
+
 ## Decision node — `rdf:type ledger:Decision`
 
 | Predicate | Read | Used for |
