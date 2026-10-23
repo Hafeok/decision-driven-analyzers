@@ -15,6 +15,8 @@ decisions:
     statement: "Microsoft.CodeAnalysis.Workspaces is referenced only by the code-fixes assembly, pinned with the other Roslyn packages, and supplied by the host at run time rather than shipped"
   - key: RoslynPinEnforcedByBuild
     statement: "The Roslyn pin is enforced by an MSBuild check (DDBUILD0001) that fails the build on a bump; Microsoft.CodeAnalysis.CSharp, Microsoft.CodeAnalysis.Analyzers and Microsoft.CodeAnalysis.CSharp.Workspaces move together and only by a deliberate decision, which is why all three are ignored by Dependabot"
+  - key: HarnessTransitivesPatchedWhenAudited
+    statement: "When NuGet's audit reports a package the test harness brings in transitively, and no harness release raises it, the test project references the first patched version directly through Directory.Packages.props; the audit is never suppressed or downgraded, and the reference is removed when the harness resolves a version the audit accepts"
 ---
 
 Interim set file (decisions-as-types, InterimFrontMatterUntilExport). No `accepted-by`: every decision here is unaccepted until a holder with accept-decision accepts it in the ledger. Narrative: docs/drafts/ADR-A03-*.md.
