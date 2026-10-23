@@ -11,6 +11,13 @@ consumer that builds with warnings as errors, and are recorded as such.
 
 ## [Unreleased]
 
+## [0.1.0-preview.9] - 2026-10-23
+
+DD0019 no longer reports a model class for reading a collection it holds: `Contains`, `TryGetValue`,
+`ContainsKey` and the other reads below pass, and writes still report. **Breaking, narrowly, for a
+consumer that builds with warnings as errors:** DD0019 now also sees a writing method of a held
+collection passed as a delegate.
+
 ### Changed
 
 - **`DD0019`** reports a method group of a held mutable collection passed as a delegate,
@@ -409,7 +416,8 @@ Every decision in this repository's own `docs/decisions/` is unaccepted, which i
 working rather than an oversight: citing one produces `CS0618` on every citation, so they are usable
 on a branch and will not ship under `TreatWarningsAsErrors`.
 
-[Unreleased]: https://github.com/Hafeok/decision-driven-analyzers/compare/v0.1.0-preview.8...main
+[Unreleased]: https://github.com/Hafeok/decision-driven-analyzers/compare/v0.1.0-preview.9...main
+[0.1.0-preview.9]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.9
 [0.1.0-preview.8]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.8
 [0.1.0-preview.7]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.7
 [0.1.0-preview.6]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.6
