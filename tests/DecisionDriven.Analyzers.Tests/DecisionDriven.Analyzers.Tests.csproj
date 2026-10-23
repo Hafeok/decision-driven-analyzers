@@ -35,6 +35,12 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
 
     <PackageReference Include="xunit.v3" />
+
+    <!--
+      BuildTimeDependencies.HarnessTransitivesPatchedWhenAudited: the harness's own NuGet.Packaging
+      brings 9.0.6, which fails the audit. Not used by any test.
+    -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
   </ItemGroup>
 
   <ItemGroup>

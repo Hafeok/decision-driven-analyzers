@@ -37,4 +37,5 @@ All at error severity through `Directory.Build.props`. Off-the-shelf rules are p
 ## Consequences
 
 - Version bumps follow the existing bump policy: patch/minor without amendment, major or new package with an entry here.
+- A transitive of the test harness that NuGet's audit reports is not a reason to stop building. When no harness release raises it, the test project references the first patched version directly (`HarnessTransitivesPatchedWhenAudited`). The audit stays at error: suppressing it would hide the next report too, and the direct reference is removed once the harness resolves a version the audit accepts.
 - The `BannedSymbols.txt` file is itself a tracked decision surface; adding a symbol needs an ADR citation in the file's comment line.

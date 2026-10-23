@@ -80,6 +80,16 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.CodeFix.Testing" Version="1.1.4" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.SourceGenerators.Testing" Version="1.1.4" />
     <PackageVersion Include="xunit.v3" Version="4.0.1" />
+
+    <!--
+      BuildTimeDependencies.HarnessTransitivesPatchedWhenAudited. The harness reaches
+      System.Security.Cryptography.Pkcs through NuGet.Packaging 7.0.3, at 9.0.6, which NuGet's
+      audit reports (moderate and high) and TreatWarningsAsErrors makes a failed restore. No
+      harness release raises it, so the test project references the patched version directly.
+      Test-only: nothing here reaches a consumer's package graph. Remove it when the harness
+      itself resolves a version the audit accepts.
+    -->
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
   </ItemGroup>
 
 </Project>
