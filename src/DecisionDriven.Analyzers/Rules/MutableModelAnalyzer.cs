@@ -30,6 +30,10 @@ namespace DecisionDriven.Analyzers.Rules;
 /// that does either through a private helper of the same type, one call deep. Anything deeper is
 /// out of scope, and the decision says so.
 /// </para>
+/// <para>
+/// A call on such a field that only reads it, <c>_named.Contains(g)</c>, changes nothing and is
+/// not reported; <see cref="HeldCollectionReads"/> says which calls those are.
+/// </para>
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class MutableModelAnalyzer : DiagnosticAnalyzer
@@ -218,9 +222,19 @@ public sealed class MutableModelAnalyzer : DiagnosticAnalyzer
         if (operation is IInvocationOperation { Instance: { } target, TargetMethod: { } called }
             && called.MethodKind != MethodKind.DelegateInvoke
             && called.ContainingType?.SpecialType != SpecialType.System_Object
-            && MutableField(target, type) is { } field)
+            && MutableField(target, type) is { } field
+            && !HeldCollectionReads.IsRead(called, field.Type))
         {
             return CallsOnField(field, called.Name);
+        }
+
+        // The same call made through a delegate: xs.Select(_set.Add) adds as surely as _set.Add(x).
+        if (operation is IMethodReferenceOperation { Instance: { } source, Method: { } referenced }
+            && referenced.ContainingType?.SpecialType != SpecialType.System_Object
+            && MutableField(source, type) is { } held
+            && !HeldCollectionReads.IsRead(referenced, held.Type))
+        {
+            return CallsOnField(held, referenced.Name);
         }
 
         return null;

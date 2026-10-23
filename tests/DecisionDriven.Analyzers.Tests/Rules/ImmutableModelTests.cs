@@ -142,6 +142,56 @@ public sealed class ImmutableModelTests
         Assert.Empty(Run("public sealed class Dataset { " + members + " }"));
     }
 
+    private const string Ids = "private readonly System.Collections.Generic.Dictionary<string, int> ids = new(); ";
+
+    private const string Bag = "public interface IBag : System.Collections.Generic.IEnumerable<int> { bool Contains(int item); } ";
+
+    [Theory]
+    [InlineData(Set + "public bool Add(int item) => items.Add(item);", "calls 'items.Add' on the 'System.Collections.Generic.HashSet<int>' it holds")]
+    [InlineData(Set + "public bool Drop(int item) => items.Remove(item);", "calls 'items.Remove' on the 'System.Collections.Generic.HashSet<int>' it holds")]
+    [InlineData(Set + "public void Empty() => items.Clear();", "calls 'items.Clear' on the 'System.Collections.Generic.HashSet<int>' it holds")]
+    [InlineData(Ids + "public void Name(string key, int id) => ids[key] = id;", "calls 'ids.this[]' on the 'System.Collections.Generic.Dictionary<string, int>' it holds")]
+    [InlineData(Ids + "public bool Name(string key, int id) => ids.TryAdd(key, id);", "calls 'ids.TryAdd' on the 'System.Collections.Generic.Dictionary<string, int>' it holds")]
+    [InlineData("private readonly System.Collections.Generic.List<int> items = new(); public bool Has(int item) => items.Contains(item);", "calls 'items.Contains' on the 'System.Collections.Generic.List<int>' it holds")]
+    [InlineData("private readonly System.Collections.Generic.IDictionary<string, int> ids = new System.Collections.Generic.Dictionary<string, int>(); public void Name(string key, int id) => ids.Add(key, id);", "calls 'ids.Add' on the 'System.Collections.Generic.IDictionary<string, int>' it holds")]
+    [InlineData(Set + "public int Count(System.Collections.Generic.IEnumerable<int> more) => System.Linq.Enumerable.Count(System.Linq.Enumerable.Where(more, items.Add));", "calls 'items.Add' on the 'System.Collections.Generic.HashSet<int>' it holds")]
+    [InlineData("private readonly IBag bag = null!; public bool Has(int item) => bag.Contains(item);", "calls 'bag.Contains' on the 'Consumer.Model.IBag' it holds")]
+    public void A_call_that_writes_a_held_collection_is_reported(string members, string expected)
+    {
+        // ImmutableModel.DomainModelImmutable: a write is anything not classified as a read. A
+        // method group handed out as a delegate, and a member of an interface the rule does not
+        // know, stay writes, so the rule errs towards reporting.
+        Diagnostic diagnostic = Assert.Single(Run(Bag + "public sealed class Dataset { " + members + " }"));
+
+        Assert.Equal("DD0019", diagnostic.Id);
+        Assert.Contains(expected, diagnostic.GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("public sealed class Scope { private readonly System.Collections.Generic.HashSet<int> _named; public Scope(System.Collections.Generic.IEnumerable<int> named) => _named = new(named); public bool Allows(int g) => _named.Contains(g); }")]
+    [InlineData("public sealed class Table { private readonly System.Collections.Generic.Dictionary<string, int> _ids = new(); public bool TryFind(string k, out int id) => _ids.TryGetValue(k, out id); }")]
+    [InlineData("public sealed class Dataset { " + Ids + "public bool Knows(string key) => ids.ContainsKey(key); }")]
+    [InlineData("public sealed class Dataset { " + Ids + "public bool Uses(int id) => ids.ContainsValue(id); }")]
+    [InlineData("public sealed class Dataset { " + Ids + "public int Find(string key) => ids[key]; }")]
+    [InlineData("public sealed class Dataset { " + Ids + "public int Size() => ids.Count; }")]
+    [InlineData("public sealed class Dataset { private readonly System.Collections.Generic.List<int> items = new(); public int Find(int item) => items.IndexOf(item); }")]
+    [InlineData("public sealed class Dataset { private readonly System.Collections.Generic.List<int> items = new(); public int First() { using var e = items.GetEnumerator(); return e.MoveNext() ? e.Current : 0; } }")]
+    [InlineData("public sealed class Dataset { private readonly System.Collections.Generic.List<int> items = new(); public int Sum() { int sum = 0; foreach (int item in items) { sum += item; } return sum; } }")]
+    [InlineData("public sealed class Dataset { private readonly System.Collections.Generic.ISet<int> items = new System.Collections.Generic.HashSet<int>(); public bool Has(int item) => items.Contains(item); }")]
+    [InlineData("public sealed class Dataset { private readonly System.Collections.Generic.IDictionary<string, int> ids = new System.Collections.Generic.Dictionary<string, int>(); public bool TryFind(string k, out int id) => ids.TryGetValue(k, out id); }")]
+    [InlineData("public sealed class Dataset { private readonly System.Collections.Generic.IReadOnlyDictionary<string, int> ids = new System.Collections.Generic.Dictionary<string, int>(); public bool TryFind(string k, out int id) => ids.TryGetValue(k, out id); }")]
+    [InlineData("public sealed class Dataset { private readonly System.Collections.Generic.SortedSet<int> items = new(); public bool Has(int item) => items.Contains(item); }")]
+    [InlineData("public sealed class Dataset { " + Set + "public bool Has(int item, out int found) => items.TryGetValue(item, out found); }")]
+    [InlineData("public sealed class Dataset { " + Set + "public int Count(System.Collections.Generic.IEnumerable<int> more) => System.Linq.Enumerable.Count(System.Linq.Enumerable.Where(more, items.Contains)); }")]
+    public void A_call_that_only_reads_a_held_collection_is_not_reported(string type)
+    {
+        // ImmutableModel.DomainModelImmutable: a member of IReadOnlyCollection<T>, IReadOnlyList<T>,
+        // IReadOnlyDictionary<K,V> or IReadOnlySet<T> the receiver implements, matched through the
+        // interface map, or one of the reads those do not cover. Scope and Table are the two
+        // reported before (#107).
+        Assert.Empty(Run(type));
+    }
+
     [Fact]
     public void A_method_marked_with_DesignDecision_is_not_reported()
     {

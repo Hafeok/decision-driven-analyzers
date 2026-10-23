@@ -11,6 +11,26 @@ consumer that builds with warnings as errors, and are recorded as such.
 
 ## [Unreleased]
 
+### Changed
+
+- **`DD0019`** reports a method group of a held mutable collection passed as a delegate,
+  `more.Where(items.Add)`, the same as the call it stands for. Before, only a direct call was seen
+  (`ImmutableModel.DomainModelImmutable`, amended;
+  [#107](https://github.com/Hafeok/decision-driven-analyzers/issues/107)). **Breaking** for a model
+  class that hands a writing method of a field out as a delegate.
+
+### Fixed
+
+- **`DD0019`** reported a call that only reads a collection the class holds as a mutation:
+  `named.Contains(g)` on a `HashSet<int>`, `ids.TryGetValue(k, out id)` on a `Dictionary<string, int>`.
+  A call is now a read when the method implements a member of `IReadOnlyCollection<T>`,
+  `IReadOnlyList<T>`, `IReadOnlyDictionary<K,V>` or `IReadOnlySet<T>` that the field's type
+  implements, matched through the interface map, or is `Contains` on a `HashSet<T>`/`ISet<T>`,
+  `ContainsKey`, `ContainsValue`, `IndexOf`, `GetEnumerator` or `TryGetValue` on a `System.Collections`
+  type. `Add`, `Remove`, `Clear`, `TryAdd`, an indexer set and every call the rule cannot classify
+  still report (`ImmutableModel.DomainModelImmutable`, amended;
+  [#107](https://github.com/Hafeok/decision-driven-analyzers/issues/107)).
+
 ## [0.1.0-preview.8] - 2026-10-08
 
 **Breaking for a consumer that builds with warnings as errors.** DD0020 is new and tier 1, and

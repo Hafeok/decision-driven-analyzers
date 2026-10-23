@@ -28,3 +28,4 @@ Builders are the escape hatch: a type named `*Builder` in the same namespace is 
 
 - Datasets and graphs that mutate in place live outside `[DomainModel]` namespaces (they are stores, not values), which is consistent with the log-first model where mutation is a commit.
 - Builder types are explicit and never leak across a contract.
+- A model class may hold a mutable collection privately, fill it in its constructor and only read it afterwards; that is as immutable as a `FrozenSet` and cheaper to write. DD0019 tells reads from writes by the read-only collection interfaces the held type implements, plus a short list of reads those interfaces leave out. Anything it cannot classify, including a call through an interface it does not know, is treated as a write: a false positive costs a decision, a false negative costs the snapshot.
