@@ -110,6 +110,16 @@ namespace DecisionDriven
     }
 
     /// <summary>
+    /// Marks a private field as a memo of a pure computation: written once, after construction,
+    /// with a value that never changes. DD0019 verifies the field instead of reporting the write.
+    /// </summary>
+    [global::Microsoft.CodeAnalysis.Embedded]
+    [global::System.AttributeUsage(global::System.AttributeTargets.Field, AllowMultiple = false)]
+    internal sealed class MemoizedAttribute : global::System.Attribute
+    {
+    }
+
+    /// <summary>
     /// The only way to accept a violation of a DD rule. Cites the decision that permits it and says
     /// which kind of exception it is.
     /// </summary>

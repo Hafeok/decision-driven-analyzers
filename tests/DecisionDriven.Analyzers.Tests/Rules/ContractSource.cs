@@ -49,6 +49,11 @@ namespace DecisionDriven
         public global::System.Type Decision { get; }
     }
 
+    [global::System.AttributeUsage(global::System.AttributeTargets.Field)]
+    internal sealed class MemoizedAttribute : global::System.Attribute
+    {
+    }
+
     [global::System.AttributeUsage(global::System.AttributeTargets.All, AllowMultiple = true)]
     internal sealed class DesignDecisionAttribute : global::System.Attribute
     {

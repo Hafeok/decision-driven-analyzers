@@ -24,11 +24,11 @@ decisions:
   - key: CitationVersionDerivedNotWritten
     statement: "The version a citation was written against is never written in source; the report tool derives it from the introducing commit and the ledger tip at that commit"
   - key: AttributesAreSourceGenerated
-    statement: "Contract, DomainModel, HotPath, DesignDecision, ArchLayer and ExceptionScope are emitted as internal types into each consuming compilation and matched by full name"
+    statement: "Contract, DomainModel, HotPath, Memoized, DesignDecision, ArchLayer and ExceptionScope are emitted as internal types into each consuming compilation and matched by full name"
   - key: DomainModelIncludesSubNamespaces
     statement: "DomainModel matches its namespace and sub-namespaces unless IncludeSubNamespaces is false, which matches the named namespace only. An exclusion list is rejected: two declarations, one exact and one prefix, already say what an exception would"
   - key: AttributesTakeOneDecisionType
-    statement: "Contract, DomainModel, HotPath and DesignDecision take a single Type argument that must be a generated decision type; Role is the only free string"
+    statement: "Contract, DomainModel, HotPath and DesignDecision take a single Type argument that must be a generated decision type; Role is the only free string. Memoized takes no argument: it is a claim DD0019 verifies (ImmutableModel.MemoizedFieldsAreVerified), not a justification, so it has nothing to cite"
   - key: ExceptionScopeIsClosed
     statement: "ExceptionScope is a closed enum (Boundary, HotPath, Pool, Interop, Compatibility, Migration) mirrored by a SKOS scheme in the ledger vocabulary"
   - key: AttributeArgumentsMustBeGenerated

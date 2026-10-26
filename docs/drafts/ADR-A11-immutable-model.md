@@ -19,10 +19,19 @@ Terms, quads, positions, commits and algebra nodes are values. Snapshot isolatio
 
 Builders are the escape hatch: a type named `*Builder` in the same namespace is exempt, must be `sealed`, and must not be exposed by any `[Contract]` member (DD0010 already prevents it since a builder is neither model vocabulary nor a contract).
 
+Memoisation is not mutation, and DD0019 verifies it rather than reporting it. A cached hash, a lazily built immutable view or a per-key cache of a computed answer is written after the value is handed out, but every reader sees what the first would have computed. Computing it eagerly is measurably costly, or wrong when it is rarely needed; citing a `[DesignDecision]` for it records an exception to a rule that was never broken. A private field marked `[Memoized]` is checked against two forms:
+
+- **a value memo**: not readonly, of an immutable type, written only by `field ??= expr` or `if (field == sentinel) field = expr` (or the same through a local copy), in one member, from an expression of readonly state, parameters and calls the body check finds change nothing;
+- **a per-key memo**: a readonly `ConcurrentDictionary<K, V>` of immutable values, filled only through `GetOrAdd` with a static lambda or static method as the factory.
+
+A plain `Dictionary`, `HashSet` or `List` is refused even when every write is guarded. A model value is shared by whoever holds it, and two readers filling a plain collection at once is a race that corrupts it; `ConcurrentDictionary.GetOrAdd` is the one fill the framework makes safe. The factory has to be static so that it cannot capture: a lambda over `this` or a local would make what is memoised for a key depend on who asked first. `[Memoized]` cites no decision, because the rule checks the claim. Anything that is not one of the two forms is still a finding, and its message says which way out was taken.
+
 ## Alternatives considered
 
 - Records only. Rejected: `readonly struct` and `ref struct` are needed for allocation-free paths and are not all records.
 - Immutability by convention with review. Rejected by ADR-A01.
+- `Lazy<T>` for every memo. Rejected as the only form: it allocates a `Lazy<T>` and a delegate per value, which is the eager cost moved rather than removed, and a cached hash is the case where that matters. It remains available, since DD0004 already judges a `Lazy<T>` of an immutable type immutable.
+- `[DesignDecision]` on each memo. Rejected: it records an exception to a rule the memo does not break, and an unchecked exception admits a memo that does break it.
 
 ## Consequences
 
