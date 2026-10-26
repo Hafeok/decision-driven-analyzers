@@ -11,6 +11,13 @@ consumer that builds with warnings as errors, and are recorded as such.
 
 ## [Unreleased]
 
+## [0.1.0-preview.10] - 2026-10-26
+
+A new marker attribute, **`[Memoized]`**, gives DD0019 a checked idiom for memoised fields. A
+cached hash, a cached string or a `ConcurrentDictionary.GetOrAdd` per-key cache on a model class is
+verified, not reported, and no `[DesignDecision]` is needed for it. Not breaking: a class without
+the attribute is reported exactly as before.
+
 ### Added
 
 - **`[Memoized]`**, a new generated marker attribute for a private field of a model class.
@@ -432,7 +439,8 @@ Every decision in this repository's own `docs/decisions/` is unaccepted, which i
 working rather than an oversight: citing one produces `CS0618` on every citation, so they are usable
 on a branch and will not ship under `TreatWarningsAsErrors`.
 
-[Unreleased]: https://github.com/Hafeok/decision-driven-analyzers/compare/v0.1.0-preview.9...main
+[Unreleased]: https://github.com/Hafeok/decision-driven-analyzers/compare/v0.1.0-preview.10...main
+[0.1.0-preview.10]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.10
 [0.1.0-preview.9]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.9
 [0.1.0-preview.8]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.8
 [0.1.0-preview.7]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.7
