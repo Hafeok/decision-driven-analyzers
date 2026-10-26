@@ -20,6 +20,7 @@ internal static class Markers
     internal const string Contract = "ContractAttribute";
     internal const string DomainModel = "DomainModelAttribute";
     internal const string DesignDecision = "DesignDecisionAttribute";
+    internal const string Memoized = "MemoizedAttribute";
 
     /// <summary>True when <paramref name="symbol"/> carries the named marker.</summary>
     internal static bool Has(ISymbol symbol, string attributeName)

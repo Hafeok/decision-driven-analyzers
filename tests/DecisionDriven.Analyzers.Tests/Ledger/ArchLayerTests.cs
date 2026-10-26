@@ -76,6 +76,7 @@ public sealed class ArchLayerTests
             "ContractAttribute",
             "DomainModelAttribute",
             "HotPathAttribute",
+            "MemoizedAttribute",
             "DesignDecisionAttribute",
             "enum ExceptionScope",
         })

@@ -12,6 +12,8 @@ not ship it.
   named by its key.
 - Code cites one with `[Contract(typeof(<Set>.<Key>))]`, `[DomainModel(...)]`, `[HotPath(...)]`, or
   `[DesignDecision(typeof(<Set>.<Key>), Scope = …)]` to accept a violation.
+- `[Memoized]` on a private field of a model class cites nothing: it says the field caches a pure
+  computation, and DD0019 checks that it does rather than reporting the write.
 - `[assembly: ArchLayer(n)]` is generated from an MSBuild property and read back out of metadata, so
   layering is checked across package references as well as project references.
 - A decision with no unrevoked acceptance of its tip version is `[Obsolete(error: false)]`: citing
@@ -169,7 +171,7 @@ The N-Triples path is implemented and has no producer yet: a file tagged
 | [DD0016](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0016.md) | 2 | A `bool` parameter on a contract is a warning; prefer an enum | shipped |
 | [DD0017](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0017.md) | 2 | A type switch over an open hierarchy is a warning | shipped |
 | [DD0018](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0018.md) | 1 | No `NotImplementedException` outside tests | shipped |
-| [DD0019](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0019.md) | 1 | Public domain model types are immutable | shipped |
+| [DD0019](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0019.md) | 1 | Public domain model types are immutable; `[Memoized]` fields are verified | shipped |
 | [DD0020](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0020.md) | 1 | No `dynamic` in a project with `ArchLayer` set | shipped |
 | [DDBUILD0001](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DDBUILD0001.md) | 1 | The Roslyn pin matches the floor the analyzers declare | shipped |
 | [DDBUILD0002](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DDBUILD0002.md) | 1 | The package carries its code-fixes assembly | shipped |

@@ -64,6 +64,7 @@ The same generator emits the marker attributes as `internal sealed` classes in n
 | `Contract` | interface, abstract class, delegate | `(Type decision)` + `string Role` (required named) |
 | `DomainModel` | assembly | `(string namespacePrefix, Type decision)` + `bool IncludeSubNamespaces` (optional named, default `true`; `false` matches the named namespace only) |
 | `HotPath` | method, constructor, property, class, struct, interface | `(Type decision)` |
+| `Memoized` | field | `()`; no decision: DD0019 verifies the field's form rather than accepting it on a citation (ADR-A11) |
 | `DesignDecision` | any | `(Type decision)` + `ExceptionScope Scope` (required named) |
 
 `ExceptionScope` is a generated enum, closed: `Boundary`, `HotPath`, `Pool`, `Interop`, `Compatibility`, `Migration`. Its values are the notations of a SKOS scheme in the ledger vocabulary so the report tool emits the same tokens. `Role` is the one free string and is a label, not a justification.

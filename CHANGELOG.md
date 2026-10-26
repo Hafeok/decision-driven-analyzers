@@ -11,6 +11,22 @@ consumer that builds with warnings as errors, and are recorded as such.
 
 ## [Unreleased]
 
+### Added
+
+- **`[Memoized]`**, a new generated marker attribute for a private field of a model class.
+  DD0019 verifies such a field as a memo of a pure computation, and stops reporting each write to
+  it. Two forms are accepted. The first is a value memo: a field of an immutable type, written only
+  by `field ??= expr` or `if (field == sentinel) field = expr`, in one member, from readonly state,
+  parameters and calls that change nothing. The second is a per-key memo: a readonly
+  `ConcurrentDictionary<K, V>` of immutable values, filled only through `GetOrAdd` with a static
+  factory. Each way out of those forms has its own DD0019 message: a plain `Dictionary`, `HashSet`
+  or `List` (a race; use a `ConcurrentDictionary`), a mutable type, a second writing member, a
+  factory that is not static, and any other write. `[Memoized]` takes no decision argument
+  (`ImmutableModel.MemoizedFieldsAreVerified`, new; `DecisionsAsTypes.AttributesAreSourceGenerated`
+  and `AttributesTakeOneDecisionType`, amended;
+  [#114](https://github.com/Hafeok/decision-driven-analyzers/issues/114)). Not breaking: without
+  the attribute, DD0019 reports exactly what it reported before.
+
 ## [0.1.0-preview.9] - 2026-10-23
 
 DD0019 no longer reports a model class for reading a collection it holds: `Contains`, `TryGetValue`,

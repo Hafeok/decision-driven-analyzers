@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
@@ -33,6 +34,11 @@ namespace DecisionDriven.Analyzers.Rules;
 /// <para>
 /// A call on such a field that only reads it, <c>_named.Contains(g)</c>, changes nothing and is
 /// not reported; <see cref="HeldCollectionReads"/> says which calls those are.
+/// </para>
+/// <para>
+/// <c>ImmutableModel.MemoizedFieldsAreVerified</c>: a <c>[Memoized]</c> field is not reported for
+/// being written. It is verified instead, by <see cref="MemoizedFields"/>, in every member of the
+/// type, private ones and accessors included, because a memo filled from anywhere is filled.
 /// </para>
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
@@ -121,8 +127,40 @@ public sealed class MutableModelAnalyzer : DiagnosticAnalyzer
         ConcurrentDictionary<IMethodSymbol, MethodFacts> facts =
             new ConcurrentDictionary<IMethodSymbol, MethodFacts>(SymbolEqualityComparer.Default);
 
+        string owner = type.ToDisplayString(Display.Format);
+
+        // ImmutableModel.MemoizedFieldsAreVerified. Every [Memoized] field is the memo check's, valid
+        // or not: a field whose shape is wrong is reported once, for its shape, rather than again for
+        // each write the shape would have allowed.
+        Dictionary<IFieldSymbol, MemoForm> memos = new Dictionary<IFieldSymbol, MemoForm>(SymbolEqualityComparer.Default);
+        List<(IFieldSymbol Field, MemoizedFields.Shape Shape)> shapes = new List<(IFieldSymbol, MemoizedFields.Shape)>();
+
+        foreach (ISymbol member in type.GetMembers())
+        {
+            if (member is IFieldSymbol field && Markers.Has(field, Markers.Memoized))
+            {
+                MemoizedFields.Shape shape = MemoizedFields.Classify(field, owner);
+                memos[field] = Markers.Has(field, Markers.DesignDecision) ? MemoForm.None : shape.Form;
+                shapes.Add((field, shape));
+            }
+        }
+
+        MemoForm FormOf(IFieldSymbol field) => memos.TryGetValue(field, out MemoForm form) ? form : MemoForm.None;
+
+        ConcurrentBag<MemoizedFields.Use> uses = new ConcurrentBag<MemoizedFields.Use>();
+
         context.RegisterOperationBlockAction(block =>
         {
+            if (memos.Count > 0
+                && block.OwningSymbol is { } owning
+                && SymbolEqualityComparer.Default.Equals(owning.ContainingType, type))
+            {
+                foreach (IOperation root in block.OperationBlocks)
+                {
+                    MemoizedFields.Scan(root, owning, owner, FormOf, uses.Add);
+                }
+            }
+
             if (block.OwningSymbol is not IMethodSymbol { IsStatic: false, MethodKind: MethodKind.Ordinary } method
                 || !SymbolEqualityComparer.Default.Equals(method.ContainingType, type))
             {
@@ -135,7 +173,7 @@ public sealed class MutableModelAnalyzer : DiagnosticAnalyzer
             {
                 foreach (IOperation operation in root.DescendantsAndSelf())
                 {
-                    found.Mutation ??= Mutation(operation, type);
+                    found.Mutation ??= Mutation(operation, type, memos);
 
                     if (operation is IInvocationOperation { Instance: IInstanceReferenceOperation { ReferenceKind: InstanceReferenceKind.ContainingTypeInstance }, TargetMethod: { } called }
                         && called.DeclaredAccessibility == Accessibility.Private
@@ -152,7 +190,10 @@ public sealed class MutableModelAnalyzer : DiagnosticAnalyzer
 
         context.RegisterSymbolEndAction(end =>
         {
-            string owner = type.ToDisplayString(Display.Format);
+            if (memos.Count > 0)
+            {
+                VerifyMemos(end, type, owner, shapes, uses, method => ChangesNothing(method, facts));
+            }
 
             foreach (MethodFacts method in facts.Values)
             {
@@ -191,8 +232,125 @@ public sealed class MutableModelAnalyzer : DiagnosticAnalyzer
         });
     }
 
+    /// <summary>
+    /// True when <paramref name="method"/>, a method of the type, changes nothing as far as the body
+    /// check sees: its own body and the private helpers it calls, one level deep, as for a finding.
+    /// </summary>
+    private static bool ChangesNothing(IMethodSymbol method, ConcurrentDictionary<IMethodSymbol, MethodFacts> facts)
+    {
+        if (!facts.TryGetValue(method, out MethodFacts? found) || found.Mutation is not null)
+        {
+            return false;
+        }
+
+        foreach (IMethodSymbol helper in found.Helpers)
+        {
+            if (!facts.TryGetValue(helper, out MethodFacts? helperFacts) || helperFacts.Mutation is not null)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// <c>ImmutableModel.MemoizedFieldsAreVerified</c>: each <c>[Memoized]</c> field's shape, the
+    /// uses of it no other part of the type bears on, the computations it is filled from, and that
+    /// one member fills it.
+    /// </summary>
+    private static void VerifyMemos(
+        SymbolAnalysisContext context,
+        INamedTypeSymbol type,
+        string owner,
+        List<(IFieldSymbol Field, MemoizedFields.Shape Shape)> shapes,
+        ConcurrentBag<MemoizedFields.Use> uses,
+        Func<IMethodSymbol, bool> changesNothing)
+    {
+        foreach ((IFieldSymbol field, MemoizedFields.Shape shape) in shapes)
+        {
+            if (Markers.Has(field, Markers.DesignDecision))
+            {
+                continue;
+            }
+
+            if (shape.Finding is { } finding)
+            {
+                Report(context, Declaration(field), finding, shape.DesignChange!);
+                continue;
+            }
+
+            // In source order, so that the finding names the same two members every run.
+            List<MemoizedFields.Use> ofField = new List<MemoizedFields.Use>();
+
+            foreach (MemoizedFields.Use use in uses)
+            {
+                if (SymbolEqualityComparer.Default.Equals(use.Field, field))
+                {
+                    ofField.Add(use);
+                }
+            }
+
+            ofField.Sort((a, b) => a.At.Syntax.SpanStart.CompareTo(b.At.Syntax.SpanStart));
+
+            List<ISymbol> writers = new List<ISymbol>();
+
+            foreach (MemoizedFields.Use use in ofField)
+            {
+                if (Exempt(use.Member))
+                {
+                    continue;
+                }
+
+                if (use.Fills && !writers.Contains(use.Member, SymbolEqualityComparer.Default))
+                {
+                    writers.Add(use.Member);
+                }
+
+                if (use.Finding is { } found)
+                {
+                    Report(context, use.At.Syntax.GetLocation(), found, use.DesignChange!);
+                    continue;
+                }
+
+                foreach ((IOperation value, ILocalSymbol? copy) in use.Computed)
+                {
+                    if (MemoizedFields.Impurity(value, copy, type, changesNothing) is { } reason)
+                    {
+                        Report(
+                            context,
+                            value.Syntax.GetLocation(),
+                            $"'{owner}.{MemoizedFields.MemberName(use.Member)}' computes [Memoized] '{field.Name}' from {reason}, "
+                                + "so what is memoised depends on when it was first asked for",
+                            "compute it only from readonly fields, other [Memoized] fields, parameters and calls that change "
+                                + "nothing, or compute it in the constructor");
+                        break;
+                    }
+                }
+            }
+
+            if (writers.Count > 1)
+            {
+                Report(
+                    context,
+                    Declaration(field),
+                    $"'{owner}.{field.Name}' is [Memoized] and is written by both '{MemoizedFields.MemberName(writers[0])}' "
+                        + $"and '{MemoizedFields.MemberName(writers[1])}', so which computation it holds depends on which ran first",
+                    "write it in one member and have the others read it through that one");
+            }
+        }
+    }
+
+    /// <summary>A member, or the property an accessor belongs to, that carries [DesignDecision].</summary>
+    private static bool Exempt(ISymbol member) =>
+        Markers.Has(member, Markers.DesignDecision)
+        || (member is IMethodSymbol { AssociatedSymbol: { } associated } && Markers.Has(associated, Markers.DesignDecision));
+
     /// <summary>The mutation <paramref name="operation"/> makes to an instance of <paramref name="type"/>, or null.</summary>
-    private static string? Mutation(IOperation operation, INamedTypeSymbol type)
+    /// <remarks>
+    /// A <c>[Memoized]</c> field is not a mutation here: <see cref="VerifyMemos"/> has every use of it.
+    /// </remarks>
+    private static string? Mutation(IOperation operation, INamedTypeSymbol type, Dictionary<IFieldSymbol, MemoForm> memos)
     {
         IOperation? written = operation switch
         {
@@ -201,6 +359,11 @@ public sealed class MutableModelAnalyzer : DiagnosticAnalyzer
             IArgumentOperation { Parameter.RefKind: RefKind.Ref or RefKind.Out } argument => argument.Value,
             _ => null,
         };
+
+        if (written is IFieldReferenceOperation { Field: { } memo } && memos.ContainsKey(memo.OriginalDefinition))
+        {
+            return null;
+        }
 
         if (written is not null)
         {
@@ -211,7 +374,7 @@ public sealed class MutableModelAnalyzer : DiagnosticAnalyzer
 
             // A setter or indexer on a field the value holds: _counts[key] = n.
             if (written is IPropertyReferenceOperation { Instance: { } instance, Property: { } property }
-                && MutableField(instance, type) is { } holder)
+                && MutableField(instance, type, memos) is { } holder)
             {
                 return CallsOnField(holder, property.IsIndexer ? "this[]" : property.Name);
             }
@@ -222,7 +385,7 @@ public sealed class MutableModelAnalyzer : DiagnosticAnalyzer
         if (operation is IInvocationOperation { Instance: { } target, TargetMethod: { } called }
             && called.MethodKind != MethodKind.DelegateInvoke
             && called.ContainingType?.SpecialType != SpecialType.System_Object
-            && MutableField(target, type) is { } field
+            && MutableField(target, type, memos) is { } field
             && !HeldCollectionReads.IsRead(called, field.Type))
         {
             return CallsOnField(field, called.Name);
@@ -231,7 +394,7 @@ public sealed class MutableModelAnalyzer : DiagnosticAnalyzer
         // The same call made through a delegate: xs.Select(_set.Add) adds as surely as _set.Add(x).
         if (operation is IMethodReferenceOperation { Instance: { } source, Method: { } referenced }
             && referenced.ContainingType?.SpecialType != SpecialType.System_Object
-            && MutableField(source, type) is { } held
+            && MutableField(source, type, memos) is { } held
             && !HeldCollectionReads.IsRead(referenced, held.Type))
         {
             return CallsOnField(held, referenced.Name);
@@ -259,9 +422,10 @@ public sealed class MutableModelAnalyzer : DiagnosticAnalyzer
     };
 
     /// <summary>An instance field of this type whose type DD0004 judges mutable.</summary>
-    private static IFieldSymbol? MutableField(IOperation operation, INamedTypeSymbol type) =>
+    private static IFieldSymbol? MutableField(IOperation operation, INamedTypeSymbol type, Dictionary<IFieldSymbol, MemoForm> memos) =>
         operation is IFieldReferenceOperation { Field: { IsStatic: false } field, Instance: IInstanceReferenceOperation { ReferenceKind: InstanceReferenceKind.ContainingTypeInstance } }
             && SymbolEqualityComparer.Default.Equals(field.ContainingType, type)
+            && !memos.ContainsKey(field.OriginalDefinition)
             && MutableTypes.IsMutable(field.Type)
             ? field
             : null;
@@ -316,7 +480,9 @@ public sealed class MutableModelAnalyzer : DiagnosticAnalyzer
                     Check(context, type, property, property.Type, property.SetMethod);
                     break;
 
-                case IFieldSymbol { IsConst: false, IsStatic: false } field:
+                // The memo check reports a [Memoized] field that is not private, once.
+                case IFieldSymbol { IsConst: false, IsStatic: false } field
+                    when !(type.TypeKind == TypeKind.Class && Markers.Has(field, Markers.Memoized)):
                     Check(context, type, field, field.Type, null, field.IsReadOnly);
                     break;
             }
