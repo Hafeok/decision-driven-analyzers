@@ -149,6 +149,10 @@ public sealed class MutableModelAnalyzer : DiagnosticAnalyzer
 
         ConcurrentBag<MemoizedFields.Use> uses = new ConcurrentBag<MemoizedFields.Use>();
 
+        // The private methods' bodies: a published-once memo may be built by one of them.
+        ConcurrentDictionary<IMethodSymbol, IOperation> bodies =
+            new ConcurrentDictionary<IMethodSymbol, IOperation>(SymbolEqualityComparer.Default);
+
         context.RegisterOperationBlockAction(block =>
         {
             if (memos.Count > 0
@@ -158,6 +162,12 @@ public sealed class MutableModelAnalyzer : DiagnosticAnalyzer
                 foreach (IOperation root in block.OperationBlocks)
                 {
                     MemoizedFields.Scan(root, owning, owner, FormOf, uses.Add);
+
+                    if (owning is IMethodSymbol { MethodKind: MethodKind.Ordinary, DeclaredAccessibility: Accessibility.Private } helper
+                        && Body(root) is { } body)
+                    {
+                        bodies[helper.OriginalDefinition] = body;
+                    }
                 }
             }
 
@@ -192,7 +202,14 @@ public sealed class MutableModelAnalyzer : DiagnosticAnalyzer
         {
             if (memos.Count > 0)
             {
-                VerifyMemos(end, type, owner, shapes, uses, method => ChangesNothing(method, facts));
+                VerifyMemos(
+                    end,
+                    type,
+                    owner,
+                    shapes,
+                    uses,
+                    method => ChangesNothing(method, facts),
+                    method => bodies.TryGetValue(method, out IOperation? body) ? body : null);
             }
 
             foreach (MethodFacts method in facts.Values)
@@ -265,7 +282,8 @@ public sealed class MutableModelAnalyzer : DiagnosticAnalyzer
         string owner,
         List<(IFieldSymbol Field, MemoizedFields.Shape Shape)> shapes,
         ConcurrentBag<MemoizedFields.Use> uses,
-        Func<IMethodSymbol, bool> changesNothing)
+        Func<IMethodSymbol, bool> changesNothing,
+        Func<IMethodSymbol, IOperation?> bodyOf)
     {
         foreach ((IFieldSymbol field, MemoizedFields.Shape shape) in shapes)
         {
@@ -294,6 +312,7 @@ public sealed class MutableModelAnalyzer : DiagnosticAnalyzer
             ofField.Sort((a, b) => a.At.Syntax.SpanStart.CompareTo(b.At.Syntax.SpanStart));
 
             List<ISymbol> writers = new List<ISymbol>();
+            HashSet<IMethodSymbol> helpers = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
 
             foreach (MemoizedFields.Use use in ofField)
             {
@@ -313,6 +332,14 @@ public sealed class MutableModelAnalyzer : DiagnosticAnalyzer
                     continue;
                 }
 
+                if (use.Published is { } publication)
+                {
+                    foreach (MemoizedFields.Finding built in MemoizedFields.Verify(publication, owner, field, type, changesNothing, bodyOf, helpers))
+                    {
+                        Report(context, built.At.Syntax.GetLocation(), built.Text, built.DesignChange);
+                    }
+                }
+
                 foreach ((IOperation value, ILocalSymbol? copy) in use.Computed)
                 {
                     if (MemoizedFields.Impurity(value, copy, type, changesNothing) is { } reason)
@@ -322,8 +349,7 @@ public sealed class MutableModelAnalyzer : DiagnosticAnalyzer
                             value.Syntax.GetLocation(),
                             $"'{owner}.{MemoizedFields.MemberName(use.Member)}' computes [Memoized] '{field.Name}' from {reason}, "
                                 + "so what is memoised depends on when it was first asked for",
-                            "compute it only from readonly fields, other [Memoized] fields, parameters and calls that change "
-                                + "nothing, or compute it in the constructor");
+                            MemoizedFields.ComputesDesignChange);
                         break;
                     }
                 }
@@ -340,6 +366,14 @@ public sealed class MutableModelAnalyzer : DiagnosticAnalyzer
             }
         }
     }
+
+    /// <summary>A method's body as one block, whether it is written as a block or an expression.</summary>
+    private static IOperation? Body(IOperation root) => root switch
+    {
+        IMethodBodyOperation method => (IOperation?)method.BlockBody ?? method.ExpressionBody,
+        IBlockOperation block => block,
+        _ => null,
+    };
 
     /// <summary>A member, or the property an accessor belongs to, that carries [DesignDecision].</summary>
     private static bool Exempt(ISymbol member) =>

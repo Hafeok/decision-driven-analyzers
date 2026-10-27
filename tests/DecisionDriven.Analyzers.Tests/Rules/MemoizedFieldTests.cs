@@ -13,15 +13,21 @@ namespace DecisionDriven.Analyzers.Tests.Rules;
 /// DD0019 and <c>[Memoized]</c>: a memo of a pure computation is verified, not reported.
 /// </summary>
 /// <remarks>
-/// <c>ImmutableModel.MemoizedFieldsAreVerified</c>. Two forms are accepted, a value filled once and a
-/// <c>ConcurrentDictionary</c> filled through <c>GetOrAdd</c> with a static factory; every way out
-/// of them has its own finding, and each finding is pinned here verbatim.
+/// <c>ImmutableModel.MemoizedFieldsAreVerified</c>. Three forms are accepted, a value filled once, a
+/// <c>ConcurrentDictionary</c> filled through <c>GetOrAdd</c> with a static factory, and a collection
+/// published once (<see cref="PublishedMemoTests"/>); every way out of them has its own finding, and
+/// each finding is pinned here verbatim.
 /// </remarks>
 public sealed class MemoizedFieldTests
 {
     private const string Memo = "[global::DecisionDriven.Memoized] ";
 
     private const string Cache = "System.Collections.Concurrent.ConcurrentDictionary<int, string>";
+
+    private const string PlainCollection =
+        "hold a readonly System.Collections.Concurrent.ConcurrentDictionary<K, V> filled only through GetOrAdd with a static factory, "
+        + "build a HashSet<T> or Dictionary<K, V> in a local and publish it once to a field that is not readonly, "
+        + "compute it in the constructor, or build it in a sealed *Builder";
 
     private const string Names = "private readonly string first = \"a\"; private readonly string last = \"b\"; ";
 
@@ -55,7 +61,7 @@ public sealed class MemoizedFieldTests
     [InlineData(Memo + "private readonly " + Cache + "? names; public string Name(int id) { if (names is null) { return id.ToString(); } return names.GetOrAdd(id, static i => i.ToString()); }")]
     [InlineData(Memo + "private readonly " + Cache + "? names; public bool Memoising() => names != null;")]
     [InlineData(Memo + "private readonly " + Cache + "? names; public string Name(int id) => null == names ? id.ToString() : names.GetOrAdd(id, static i => i.ToString());")]
-    public void A_memo_in_one_of_the_two_forms_is_not_reported(string members)
+    public void A_memo_in_one_of_the_accepted_forms_is_not_reported(string members)
     {
         Assert.Empty(Run(members));
     }
@@ -75,19 +81,19 @@ public sealed class MemoizedFieldTests
         {
             Memo + "private readonly System.Collections.Generic.Dictionary<int, string> names = new(); public string Name(int id) { if (!names.TryGetValue(id, out string? name)) { name = id.ToString(); names[id] = name; } return name; }",
             "'Consumer.Model.Value.names' is [Memoized] and is a plain 'System.Collections.Generic.Dictionary<int, string>', and a plain collection filled by concurrent readers is a race",
-            "hold a readonly System.Collections.Concurrent.ConcurrentDictionary<K, V> filled only through GetOrAdd with a static factory, compute it in the constructor, or build it in a sealed *Builder"
+            PlainCollection
         },
         // A [Memoized] List<T> returned to callers.
         {
             Memo + "private System.Collections.Generic.List<int>? items; public System.Collections.Generic.List<int> Items() => items ??= new System.Collections.Generic.List<int> { 1, 2 };",
             "'Consumer.Model.Value.items' is [Memoized] and is a plain 'System.Collections.Generic.List<int>', and a plain collection filled by concurrent readers is a race",
-            "hold a readonly System.Collections.Concurrent.ConcurrentDictionary<K, V> filled only through GetOrAdd with a static factory, compute it in the constructor, or build it in a sealed *Builder"
+            PlainCollection
         },
         // A plain HashSet.
         {
             Memo + "private readonly System.Collections.Generic.HashSet<int> seen = new(); public bool See(int id) => seen.Add(id);",
             "'Consumer.Model.Value.seen' is [Memoized] and is a plain 'System.Collections.Generic.HashSet<int>', and a plain collection filled by concurrent readers is a race",
-            "hold a readonly System.Collections.Concurrent.ConcurrentDictionary<K, V> filled only through GetOrAdd with a static factory, compute it in the constructor, or build it in a sealed *Builder"
+            PlainCollection
         },
         // A mutable type.
         {
@@ -253,7 +259,7 @@ public sealed class MemoizedFieldTests
 
     [Theory]
     [MemberData(nameof(Violations))]
-    public void A_memo_outside_the_two_forms_is_reported_with_its_own_message(string members, string finding, string designChange)
+    public void A_memo_outside_the_accepted_forms_is_reported_with_its_own_message(string members, string finding, string designChange)
     {
         Diagnostic diagnostic = Assert.Single(Run(members));
 

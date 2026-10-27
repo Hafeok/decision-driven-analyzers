@@ -158,7 +158,7 @@ jobs:
         #
         # The conforming build must be silent, and a diagnostic there is a false positive in the
         # rule until shown otherwise. The violating build must report every id in
-        # samples/Consumer/violations.expected exactly once and nothing else; a missing id is a
+        # samples/Consumer/violations.expected exactly once (or the count it gives) and nothing else; a missing id is a
         # packaging defect until shown otherwise, because the same rule passes its in-memory tests.
         # The script says which, and is the same command a contributor runs locally.
         run: |

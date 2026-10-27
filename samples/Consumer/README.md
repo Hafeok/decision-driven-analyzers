@@ -64,7 +64,8 @@ samples/Consumer/check-violations.sh <version>
 
 It restores the package into a fresh folder and checks the restored bytes match the packed ones;
 builds the conforming samples, which must be silent; builds each project with the define, which
-must report every id in `violations.expected` exactly once and nothing else; and runs DDBUILD0001
+must report every id in `violations.expected` exactly once, or as many times as the count after
+it says (`DD0019 2`), and nothing else; and runs DDBUILD0001
 against the analyzer project, since that check guards this repository's Roslyn pin and does not
 travel in the package. Logs land in `artifacts/samples-logs/`.
 

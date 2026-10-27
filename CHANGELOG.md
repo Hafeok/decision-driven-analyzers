@@ -11,6 +11,23 @@ consumer that builds with warnings as errors, and are recorded as such.
 
 ## [Unreleased]
 
+### Added
+
+- **`DD0019`** accepts a third `[Memoized]` form, the **published-once collection**: a private,
+  non-readonly `HashSet<T>` or `Dictionary<K, V>` field, or one typed as `IReadOnlySet<T>` or
+  `IReadOnlyDictionary<K, V>`, of immutable elements, keys and values, built completely in a local of
+  the one writing member (or in one private helper that creates the collection it returns) and
+  published once by `Interlocked.CompareExchange(ref field, local, null)` or `field ??= local`. After
+  that it is only read. Four new messages report the departures: the local escaping before
+  publication, a write after publication, a store that is not the publication of a fresh local, and
+  the field handed out; a set or dictionary of mutable elements, keys or values has its own shape
+  message. The plain-collection message's design change now names the new form
+  (`ImmutableModel.MemoizedFieldsAreVerified`, new version;
+  [#119](https://github.com/Hafeok/decision-driven-analyzers/issues/119)). Not breaking: every field
+  the form accepts was reported before. A non-readonly `[Memoized]` set or dictionary that was
+  reported once for its shape is now verified as this form, so its findings move to the members
+  that depart from it.
+
 ### Fixed
 
 - **`DD0019`** reported a `[Memoized]` per-key memo as handed out when it was only tested against
