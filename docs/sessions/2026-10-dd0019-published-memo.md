@@ -53,8 +53,16 @@ The new version of the key is unaccepted. No `accepted-by` was added.
 | --- | --- | --- |
 | `ci` on `3191728` (#120 merged) | [40490983173](https://github.com/Hafeok/decision-driven-analyzers/actions/runs/40490983173) | green |
 | `ci` on `69c393d` (#121 merged) | [40492188963](https://github.com/Hafeok/decision-driven-analyzers/actions/runs/40492188963) | green |
-| `ci` on `9d71855` (#122 merged), before tagging | see the session report | |
-| `publish` started by `v0.1.0-preview.11` | see the session report | |
+| `ci` on `9d71855` (#122 merged), before tagging | [40493113447](https://github.com/Hafeok/decision-driven-analyzers/actions/runs/40493113447) | green |
+| `publish` started by `v0.1.0-preview.11` | not started | waits on the tag push below |
+
+`v0.1.0-preview.11` is a signed annotated tag on `9d71855`, created in this session. Pushing it was
+refused with HTTP 403 on `refs/tags/*`, the same as in the last three sessions, and the push was not
+routed around. **The maintainer pushes the tag.** It can be recreated from `9d71855` with
+`git tag -s v0.1.0-preview.11 9d71855 -m "0.1.0-preview.11: DD0019 published-once [Memoized] collections, and null tests are reads"`.
+After that, approve the `nuget` environment for the `publish` run, and check that nuget.org lists
+`0.1.0-preview.11` for both `DecisionDriven.Analyzers` and `DecisionDriven.Report`. No manual
+`publish` run was started.
 
 ## Rulings made inside the prompt's scope
 
