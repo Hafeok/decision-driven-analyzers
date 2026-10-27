@@ -11,6 +11,14 @@ consumer that builds with warnings as errors, and are recorded as such.
 
 ## [Unreleased]
 
+### Fixed
+
+- **`DD0019`** reported a `[Memoized]` per-key memo as handed out when it was only tested against
+  null: `cache is not null ? cache.GetOrAdd(key, static k => Decide(k)) : Decide(key)`. A null test
+  (`is null`, `is not null`, `== null`, `!= null`) of a `[Memoized]` field is now a read. The field
+  returned, stored or passed is still reported (`ImmutableModel.MemoizedFieldsAreVerified`;
+  [#118](https://github.com/Hafeok/decision-driven-analyzers/issues/118)).
+
 ## [0.1.0-preview.10] - 2026-10-26
 
 A new marker attribute, **`[Memoized]`**, gives DD0019 a checked idiom for memoised fields. A

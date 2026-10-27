@@ -50,6 +50,11 @@ public sealed class MemoizedFieldTests
     [InlineData(Names + Memo + "private readonly " + Cache + " names = new(); public string Name(int id) => names.GetOrAdd(id, static (i, prefix) => prefix + i, first);")]
     // A static method group, and the dictionary's reads.
     [InlineData(Memo + "private readonly " + Cache + " names = new(); public string Name(int id) => names.GetOrAdd(id, Render); private static string Render(int i) => i.ToString(); public bool Known(int id) => names.ContainsKey(id); public int Count() => names.Count; public bool TryName(int id, out string? name) => names.TryGetValue(id, out name);")]
+    // #118: a null test of a per-key memo is a read, in each of its four spellings.
+    [InlineData(Memo + "private readonly " + Cache + "? names; public string Name(int id) => names is not null ? names.GetOrAdd(id, static i => i.ToString()) : id.ToString();")]
+    [InlineData(Memo + "private readonly " + Cache + "? names; public string Name(int id) { if (names is null) { return id.ToString(); } return names.GetOrAdd(id, static i => i.ToString()); }")]
+    [InlineData(Memo + "private readonly " + Cache + "? names; public bool Memoising() => names != null;")]
+    [InlineData(Memo + "private readonly " + Cache + "? names; public string Name(int id) => null == names ? id.ToString() : names.GetOrAdd(id, static i => i.ToString());")]
     public void A_memo_in_one_of_the_two_forms_is_not_reported(string members)
     {
         Assert.Empty(Run(members));
@@ -190,6 +195,24 @@ public sealed class MemoizedFieldTests
             "'Consumer.Model.Value.All' hands out the [Memoized] 'names' itself, and whoever gets it can write to it",
             "return what GetOrAdd or a read returns, not the dictionary"
         },
+        // #118: a null test beside it does not excuse a real hand-out. Returned.
+        {
+            Memo + "private readonly " + Cache + "? names; public object? All() => names is not null ? names : null;",
+            "'Consumer.Model.Value.All' hands out the [Memoized] 'names' itself, and whoever gets it can write to it",
+            "return what GetOrAdd or a read returns, not the dictionary"
+        },
+        // Stored.
+        {
+            Memo + "private readonly " + Cache + "? names; public void Keep(object?[] into) { if (names != null) into[0] = names; }",
+            "'Consumer.Model.Value.Keep' hands out the [Memoized] 'names' itself, and whoever gets it can write to it",
+            "return what GetOrAdd or a read returns, not the dictionary"
+        },
+        // Passed.
+        {
+            Memo + "private readonly " + Cache + "? names; public int Count() => names == null ? 0 : System.Linq.Enumerable.Count(names);",
+            "'Consumer.Model.Value.Count' hands out the [Memoized] 'names' itself, and whoever gets it can write to it",
+            "return what GetOrAdd or a read returns, not the dictionary"
+        },
         // A computation that reads mutable state.
         {
             Memo + "private int? hash; private int seed; public int Hash() => hash ??= seed * 31;",
@@ -241,6 +264,53 @@ public sealed class MemoizedFieldTests
                 + " | mark it [DesignDecision(typeof(<Set>.<Key>), Scope = ExceptionScope.<Scope>)] citing the accepted decision that says so. "
                 + "Do not add the attribute without a decision that answers this; if the reason is only that the code already looked like this, take the design change.",
             diagnostic.GetMessage());
+    }
+
+    [Fact]
+    public void A_memo_tested_against_null_is_not_handed_out()
+    {
+        // #118's reproduction: a per-key memo that may be absent, tested with 'is not null'.
+        // The usings go inside the namespace: the harness puts the assembly attribute first in the file.
+        string source = @"
+namespace Sample.Model
+{
+    using System.Collections.Concurrent;
+    using DecisionDriven;
+
+    public readonly record struct Key(int Value);
+
+    public enum Memo
+    {
+        Off,
+        On,
+    }
+
+    public sealed class Lookup
+    {
+        [Memoized]
+        private readonly ConcurrentDictionary<Key, bool>? _cache;
+
+        public Lookup(Memo memo) => _cache = memo == Memo.On ? new ConcurrentDictionary<Key, bool>() : null;
+
+        public bool Allows(Key key) => _cache is not null ? _cache.GetOrAdd(key, static k => Decide(k)) : Decide(key);
+
+        private static bool Decide(Key key) => key.Value % 2 == 0;
+    }
+
+    public sealed class AlwaysMemoised
+    {
+        [Memoized]
+        private readonly ConcurrentDictionary<Key, bool> _cache = new();
+
+        public bool Allows(Key key) => _cache.GetOrAdd(key, static k => k.Value % 2 == 0);
+    }
+}";
+
+        Assert.Empty(RuleHarness.Run(
+            new MutableModelAnalyzer(),
+            ContractSource.File(source, "[assembly: global::DecisionDriven.DomainModel(\"Sample.Model\", " + ContractSource.Decision + ")]"),
+            assemblyName: "Sample.Model",
+            archLayer: 1));
     }
 
     [Fact]

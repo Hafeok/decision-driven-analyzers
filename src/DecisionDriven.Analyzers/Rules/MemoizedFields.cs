@@ -358,9 +358,51 @@ internal static class MemoizedFields
                 return use;
         }
 
+        if (IsNullTest(reference))
+        {
+            return use;
+        }
+
         use.Finding = $"{at} hands out the [Memoized] '{field.Name}' itself, and whoever gets it can write to it";
         use.DesignChange = "return what GetOrAdd or a read returns, not the dictionary";
         return use;
+    }
+
+    /// <summary>
+    /// <c>field is null</c>, <c>field is not null</c>, <c>field == null</c> or <c>field != null</c>:
+    /// a comparison of the reference, which reads the field and gives nothing out (#118).
+    /// </summary>
+    private static bool IsNullTest(IOperation reference)
+    {
+        IOperation tested = reference;
+
+        // field == null compares as object: the field arrives through an implicit conversion.
+        while (tested.Parent is IConversionOperation { IsImplicit: true } conversion)
+        {
+            tested = conversion;
+        }
+
+        return tested.Parent switch
+        {
+            IIsPatternOperation pattern => pattern.Value == tested && IsNullPattern(pattern.Pattern),
+            IBinaryOperation { OperatorKind: BinaryOperatorKind.Equals or BinaryOperatorKind.NotEquals } comparison =>
+                (comparison.LeftOperand == tested && IsNull(comparison.RightOperand))
+                || (comparison.RightOperand == tested && IsNull(comparison.LeftOperand)),
+            _ => false,
+        };
+    }
+
+    private static bool IsNullPattern(IPatternOperation pattern) => pattern switch
+    {
+        IConstantPatternOperation constant => IsNull(constant.Value),
+        INegatedPatternOperation negated => IsNullPattern(negated.Pattern),
+        _ => false,
+    };
+
+    private static bool IsNull(IOperation operation)
+    {
+        IOperation value = Strip(operation);
+        return value.ConstantValue is { HasValue: true, Value: null };
     }
 
     private static Use OtherCall(Use use, string at, IFieldSymbol field, string called)
