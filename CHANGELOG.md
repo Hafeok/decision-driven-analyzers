@@ -11,6 +11,11 @@ consumer that builds with warnings as errors, and are recorded as such.
 
 ## [Unreleased]
 
+## [0.1.0-preview.11] - 2026-10-27
+
+DD0019 accepts a third `[Memoized]` form, a `HashSet` or `Dictionary` built in a local and published
+once, and no longer takes a null test of a `[Memoized]` field for handing it out. Not breaking.
+
 ### Added
 
 - **`DD0019`** accepts a third `[Memoized]` form, the **published-once collection**: a private,
@@ -464,7 +469,8 @@ Every decision in this repository's own `docs/decisions/` is unaccepted, which i
 working rather than an oversight: citing one produces `CS0618` on every citation, so they are usable
 on a branch and will not ship under `TreatWarningsAsErrors`.
 
-[Unreleased]: https://github.com/Hafeok/decision-driven-analyzers/compare/v0.1.0-preview.10...main
+[Unreleased]: https://github.com/Hafeok/decision-driven-analyzers/compare/v0.1.0-preview.11...main
+[0.1.0-preview.11]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.11
 [0.1.0-preview.10]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.10
 [0.1.0-preview.9]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.9
 [0.1.0-preview.8]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.8
