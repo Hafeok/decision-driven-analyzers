@@ -14,8 +14,8 @@
 #      is added to the configured sources rather than replacing them, so a package with the same
 #      id and version from anywhere else could otherwise be what gets tested.
 #   2. The conforming build is silent. Warnings are errors, so it succeeding is the check.
-#   3. With DD_SAMPLE_VIOLATIONS, every id in violations.expected is reported exactly once, and
-#      nothing else is. Silence from step 2 is also what an analyzer that never loaded would
+#   3. With DD_SAMPLE_VIOLATIONS, every id in violations.expected is reported exactly as many times
+#      as it says (once, unless a count follows the id), and nothing else is. Silence from step 2 is also what an analyzer that never loaded would
 #      produce; this is the step that tells the two apart.
 #   4. DDBUILD0001 fires when the Roslyn pin and the expected floor disagree. That check guards
 #      this repository's own build and does not travel in the package, so it is run against the
@@ -81,7 +81,7 @@ if [ "$want" != "$got" ]; then
 fi
 echo "   sha512 ${want:0:16}... matches"
 
-echo "== 3. violating build: each expected id exactly once"
+echo "== 3. violating build: each expected id exactly as often as expected"
 : > "$logs/violations.log"
 : > "$logs/violations.diagnostics"
 for project in "${projects[@]}"; do
@@ -107,17 +107,19 @@ grep -oE ': (error|warning) [A-Z]+[0-9]+:' "$logs/violations.diagnostics" \
   | sort | uniq -c | awk '{ print $2, $1 }' > "$logs/violations.counts"
 
 failed=0
-while read -r id; do
+# A line is an id, and optionally how many times it is expected: "DD0019 2". The default is once.
+while read -r id want; do
   [ -z "$id" ] && continue
+  want="${want:-1}"
   count="$(awk -v id="$id" '$1 == id { print $2 }' "$logs/violations.counts")"
   count="${count:-0}"
-  if [ "$count" = "1" ]; then
-    echo "   $id  once"
+  if [ "$count" = "$want" ]; then
+    echo "   $id  $count"
   elif [ "$count" = "0" ]; then
     echo "::error::$id was not reported. Its in-memory tests pass, so the package is not what they tested - a packaging defect until shown otherwise."
     failed=1
   else
-    echo "::error::$id was reported $count times; its violating sample is meant to break it exactly once."
+    echo "::error::$id was reported $count times; its violating samples are meant to break it exactly $want time(s)."
     failed=1
   fi
 done < "$samples/violations.expected"
@@ -125,7 +127,7 @@ done < "$samples/violations.expected"
 # Anything reported that nobody expected: a violating sample tripping a second rule, a sample that
 # does not compile for an unrelated reason, or a rule that fires where it should not.
 while read -r id count; do
-  if ! grep -qx "$id" "$samples/violations.expected"; then
+  if ! awk -v id="$id" '$1 == id { found = 1 } END { exit !found }' "$samples/violations.expected"; then
     echo "::error::$id was reported $count time(s) and is not in violations.expected."
     failed=1
   fi
@@ -161,4 +163,4 @@ if [ -n "$other" ]; then
 fi
 echo "   DDBUILD0001  once"
 
-echo "All $(grep -c . "$samples/violations.expected") packaged ids and DDBUILD0001 fired exactly once; the conforming build is silent."
+echo "All $(grep -c . "$samples/violations.expected") packaged ids fired exactly as often as expected and DDBUILD0001 once; the conforming build is silent."

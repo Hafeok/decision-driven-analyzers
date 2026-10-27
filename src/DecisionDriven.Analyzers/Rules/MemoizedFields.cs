@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis.Operations;
 
 namespace DecisionDriven.Analyzers.Rules;
 
-/// <summary>The two shapes a <c>[Memoized]</c> field may have.</summary>
+/// <summary>The three shapes a <c>[Memoized]</c> field may have.</summary>
 internal enum MemoForm
 {
     /// <summary>Not a memo DD0019 accepts; the field's shape is the finding.</summary>
@@ -16,6 +16,12 @@ internal enum MemoForm
 
     /// <summary>A private readonly <c>ConcurrentDictionary&lt;K, V&gt;</c> filled through <c>GetOrAdd</c>.</summary>
     PerKey,
+
+    /// <summary>
+    /// A private, non-readonly <c>HashSet&lt;T&gt;</c> or <c>Dictionary&lt;K, V&gt;</c>, or a read-only
+    /// interface over one, built in a local, published once and only read afterwards.
+    /// </summary>
+    Published,
 }
 
 /// <summary>
@@ -29,7 +35,7 @@ internal enum MemoForm
 /// them all as mutation, which left a consumer citing a decision for a pattern that is correct.
 /// </para>
 /// <para>
-/// The attribute is a claim, not an exemption. The rule accepts exactly two forms, and anything it
+/// The attribute is a claim, not an exemption. The rule accepts exactly three forms, and anything it
 /// cannot show is one of them stays a finding: the direction of error is the same as the rest of
 /// DD0019's body check.
 /// </para>
@@ -39,6 +45,27 @@ internal static class MemoizedFields
     private const string ConcurrentDictionary = "System.Collections.Concurrent.ConcurrentDictionary";
 
     private const string GetOrAdd = "GetOrAdd";
+
+    /// <summary>The collections a published-once memo may be built as, by name without arity.</summary>
+    private static readonly string[] Buildable =
+    {
+        "System.Collections.Generic.HashSet",
+        "System.Collections.Generic.Dictionary",
+    };
+
+    /// <summary>What a published-once memo's field may be typed as: a buildable collection or its read-only interface.</summary>
+    private static readonly string[] Publishable =
+    {
+        "System.Collections.Generic.HashSet",
+        "System.Collections.Generic.Dictionary",
+        "System.Collections.Generic.IReadOnlySet",
+        "System.Collections.Generic.IReadOnlyDictionary",
+    };
+
+    private const string PlainCollectionDesignChange =
+        "hold a readonly System.Collections.Concurrent.ConcurrentDictionary<K, V> filled only through GetOrAdd with a static factory, "
+        + "build a HashSet<T> or Dictionary<K, V> in a local and publish it once to a field that is not readonly, "
+        + "compute it in the constructor, or build it in a sealed *Builder";
 
     /// <summary>A shape finding, or the form the field takes.</summary>
     internal readonly struct Shape
@@ -84,6 +111,58 @@ internal static class MemoizedFields
 
         /// <summary>The expressions the memo is computed from, each with the local copy it may read.</summary>
         internal List<(IOperation Value, ILocalSymbol? Copy)> Computed { get; } = new List<(IOperation, ILocalSymbol?)>();
+
+        /// <summary>For a published-once memo, the publication of a fresh local this use is.</summary>
+        internal Publication? Published { get; set; }
+    }
+
+    /// <summary>
+    /// <c>Interlocked.CompareExchange(ref field, local, null)</c> or <c>field ??= local</c>, where the
+    /// local holds a collection the member creates, or one a private helper of the type returns.
+    /// </summary>
+    internal sealed class Publication
+    {
+        internal Publication(ISymbol member, IOperation root, ILocalSymbol local, IOperation declarator, IOperation at, IMethodSymbol? helper)
+        {
+            Member = member;
+            Root = root;
+            Local = local;
+            Declarator = declarator;
+            At = at;
+            Helper = helper;
+        }
+
+        internal ISymbol Member { get; }
+
+        /// <summary>The operation block of the member the publication is in.</summary>
+        internal IOperation Root { get; }
+
+        internal ILocalSymbol Local { get; }
+
+        internal IOperation Declarator { get; }
+
+        /// <summary>The assignment or the call that publishes the local.</summary>
+        internal IOperation At { get; }
+
+        /// <summary>The private helper the local is built by, or null for a collection created here.</summary>
+        internal IMethodSymbol? Helper { get; }
+    }
+
+    /// <summary>A finding on a published-once memo, where it is and what to do instead.</summary>
+    internal readonly struct Finding
+    {
+        internal Finding(IOperation at, string text, string designChange)
+        {
+            At = at;
+            Text = text;
+            DesignChange = designChange;
+        }
+
+        internal IOperation At { get; }
+
+        internal string Text { get; }
+
+        internal string DesignChange { get; }
     }
 
     /// <summary>The form <paramref name="field"/> takes, or the finding that says why it takes neither.</summary>
@@ -133,14 +212,35 @@ internal static class MemoizedFields
             return new Shape(MemoForm.PerKey);
         }
 
+        if (!field.IsReadOnly && type is INamedTypeSymbol published && IsNamed(published, Publishable))
+        {
+            // HashSet<T>, IReadOnlySet<T>: the elements. Dictionary<K, V>: the keys, then the values.
+            string[] held = published.TypeArguments.Length == 1 ? new[] { "elements" } : new[] { "keys", "values" };
+
+            for (int i = 0; i < published.TypeArguments.Length; i++)
+            {
+                ITypeSymbol argument = published.TypeArguments[i];
+
+                if (!IsImmutable(argument))
+                {
+                    return new Shape(
+                        MemoForm.None,
+                        $"{name} is [Memoized] and the {held[i]} it holds, '{argument.ToDisplayString(Display.Format)}', are mutable, "
+                            + "so what it holds can change under whoever reads it",
+                        $"hold immutable {held[i]}: a primitive, string, enum or immutable type");
+                }
+            }
+
+            return new Shape(MemoForm.Published);
+        }
+
         if (IsPlainCollection(type))
         {
             return new Shape(
                 MemoForm.None,
                 $"{name} is [Memoized] and is a plain '{type.ToDisplayString(Display.Format)}', "
                     + "and a plain collection filled by concurrent readers is a race",
-                "hold a readonly System.Collections.Concurrent.ConcurrentDictionary<K, V> filled only through "
-                    + "GetOrAdd with a static factory, compute it in the constructor, or build it in a sealed *Builder");
+                PlainCollectionDesignChange);
         }
 
         if (!IsImmutable(type))
@@ -241,6 +341,10 @@ internal static class MemoizedFields
 
                 case MemoForm.PerKey:
                     into(PerKeyUse(member, owner, field.OriginalDefinition, reference));
+                    break;
+
+                case MemoForm.Published:
+                    into(PublishedUse(root, member, owner, field.OriginalDefinition, reference));
                     break;
             }
         }
@@ -405,6 +509,570 @@ internal static class MemoizedFields
         return value.ConstantValue is { HasValue: true, Value: null };
     }
 
+    private static Use PublishedUse(IOperation root, ISymbol member, string owner, IFieldSymbol field, IFieldReferenceOperation reference)
+    {
+        Use use = new Use(field, member, reference);
+        string at = $"'{owner}.{MemberName(member)}'";
+
+        switch (reference.Parent)
+        {
+            case ICoalesceAssignmentOperation coalesce when coalesce.Target == reference && IsThis(reference.Instance):
+                return Publish(use, root, member, at, field, coalesce, coalesce.Value);
+
+            case IArgumentOperation { Parameter: { Ordinal: 0, RefKind: RefKind.Ref } } location
+                when location.Parent is IInvocationOperation exchange
+                    && IsCompareExchange(exchange.TargetMethod)
+                    && IsThis(reference.Instance):
+                IOperation? value = null;
+                IOperation? comparand = null;
+
+                foreach (IArgumentOperation argument in exchange.Arguments)
+                {
+                    switch (argument.Parameter?.Ordinal)
+                    {
+                        case 1:
+                            value = argument.Value;
+                            break;
+                        case 2:
+                            comparand = argument.Value;
+                            break;
+                    }
+                }
+
+                return value is not null && comparand is not null && IsNull(comparand)
+                    ? Publish(use, root, member, at, field, exchange, value)
+                    : Store(use, at, field);
+
+            case IInvocationOperation invocation when invocation.Instance == reference:
+                return IsCollectionRead(invocation.TargetMethod, field.Type)
+                    ? use
+                    : WriteAfter(use, at, field, $"{field.Name}.{invocation.TargetMethod.Name}");
+
+            case IMethodReferenceOperation method when method.Instance == reference:
+                return IsCollectionRead(method.Method, field.Type)
+                    ? use
+                    : WriteAfter(use, at, field, $"{field.Name}.{method.Method.Name}");
+
+            case IPropertyReferenceOperation property when property.Instance == reference:
+                return IsWritten(property, member)
+                    ? WriteAfter(use, at, field, $"{field.Name}.{(property.Property.IsIndexer ? "this[]" : property.Property.Name)}")
+                    : use;
+
+            case IForEachLoopOperation:
+            case IConversionOperation { Parent: IForEachLoopOperation }:
+                return use;
+
+            // field?.Contains(x), field?.Count: the same call, made when the field is set.
+            case IConditionalAccessOperation conditional when conditional.Operation == reference:
+                switch (conditional.WhenNotNull)
+                {
+                    case IInvocationOperation { Instance: IConditionalAccessInstanceOperation } invocation:
+                        return IsCollectionRead(invocation.TargetMethod, field.Type)
+                            ? use
+                            : WriteAfter(use, at, field, $"{field.Name}.{invocation.TargetMethod.Name}");
+
+                    case IPropertyReferenceOperation { Instance: IConditionalAccessInstanceOperation } property:
+                        return IsWritten(property, member)
+                            ? WriteAfter(use, at, field, $"{field.Name}.{(property.Property.IsIndexer ? "this[]" : property.Property.Name)}")
+                            : use;
+                }
+
+                break;
+        }
+
+        if (IsWritten(reference, member))
+        {
+            return Store(use, at, field);
+        }
+
+        return IsNullTest(reference) ? use : HandOut(use, at, field);
+    }
+
+    /// <summary>
+    /// A publication, if <paramref name="value"/> is a local of the member holding a collection the
+    /// member creates, or one a private helper of the type returns; otherwise the store finding.
+    /// </summary>
+    private static Use Publish(Use use, IOperation root, ISymbol member, string at, IFieldSymbol field, IOperation publication, IOperation value)
+    {
+        if (Strip(value) is not ILocalReferenceOperation { Local: { RefKind: RefKind.None } local }
+            || Declarator(root, local) is not { Initializer.Value: { } initial } declarator)
+        {
+            return Store(use, at, field);
+        }
+
+        IMethodSymbol? helper = null;
+
+        switch (Strip(initial))
+        {
+            case IObjectCreationOperation creation when IsFresh(creation):
+                break;
+
+            case IInvocationOperation { TargetMethod: { DeclaredAccessibility: Accessibility.Private, MethodKind: MethodKind.Ordinary } called } call
+                when SymbolEqualityComparer.Default.Equals(called.ContainingType, member.ContainingType)
+                    && (called.IsStatic || IsThis(call.Instance)):
+                helper = called.OriginalDefinition;
+                break;
+
+            default:
+                return Store(use, at, field);
+        }
+
+        use.Fills = true;
+        use.Published = new Publication(member, root, local, declarator, publication, helper);
+
+        // The publication's own result is the field, or what it held: a statement gives it to nobody.
+        if (publication.Parent is not IExpressionStatementOperation)
+        {
+            return HandOut(use, at, field);
+        }
+
+        return use;
+    }
+
+    /// <summary>
+    /// Everything about a publication that needs the rest of the type: the local's uses, what it is
+    /// built from, and the helper that builds it.
+    /// </summary>
+    /// <param name="publication">The publication.</param>
+    /// <param name="owner">The type, as findings name it.</param>
+    /// <param name="field">The memo.</param>
+    /// <param name="type">The type the memo belongs to.</param>
+    /// <param name="changesNothing">Whether a method of the type changes nothing, as the body check sees it.</param>
+    /// <param name="bodyOf">A private method's body, or null.</param>
+    /// <param name="helpersSeen">Helpers already verified, so that one shared by two publications is reported once.</param>
+    internal static List<Finding> Verify(
+        Publication publication,
+        string owner,
+        IFieldSymbol field,
+        INamedTypeSymbol type,
+        Func<IMethodSymbol, bool> changesNothing,
+        Func<IMethodSymbol, IOperation?> bodyOf,
+        HashSet<IMethodSymbol> helpersSeen)
+    {
+        List<Finding> findings = new List<Finding>();
+        string at = $"'{owner}.{MemberName(publication.Member)}'";
+
+        LocalUses(publication.Root, publication.Local, publication.At, publication.Member, at, field, findings);
+
+        IOperation[] region = Region(publication.Declarator, publication.At) ?? new[] { publication.Root };
+
+        if (BuildImpurity(region, publication.Local, publication.At, type, changesNothing) is { } impure)
+        {
+            findings.Add(Computes(impure.At, at, field, impure.Reason));
+        }
+
+        if (publication.Helper is not { } helper)
+        {
+            return findings;
+        }
+
+        IOperation? body = bodyOf(helper);
+
+        if (body is null || !ReturnsFresh(body, out ILocalSymbol? returned))
+        {
+            findings.Add(new Finding(
+                publication.At,
+                StoreFinding(at, field),
+                StoreDesignChange(field)));
+            return findings;
+        }
+
+        if (!helpersSeen.Add(helper))
+        {
+            return findings;
+        }
+
+        string inHelper = $"'{owner}.{helper.Name}'";
+
+        if (returned is not null)
+        {
+            LocalUses(body, returned, null, helper, inHelper, field, findings);
+        }
+
+        if (BuildImpurity(new[] { body }, returned, null, type, changesNothing) is { } helperImpure)
+        {
+            findings.Add(Computes(helperImpure.At, inHelper, field, helperImpure.Reason));
+        }
+
+        return findings;
+    }
+
+    /// <summary>
+    /// The uses of the local a collection is built in. Before the publication, only the collection's
+    /// own members; after it, only its reads. In a helper, its returns are the publication.
+    /// </summary>
+    private static void LocalUses(IOperation root, ILocalSymbol local, IOperation? publication, ISymbol member, string at, IFieldSymbol field, List<Finding> findings)
+    {
+        foreach (IOperation operation in root.Descendants())
+        {
+            if (operation is not ILocalReferenceOperation reference
+                || !SymbolEqualityComparer.Default.Equals(reference.Local, local))
+            {
+                continue;
+            }
+
+            if (publication is not null && Within(reference, publication))
+            {
+                continue;
+            }
+
+            IOperation node = reference;
+
+            while (node.Parent is IConversionOperation { IsImplicit: true } conversion)
+            {
+                node = conversion;
+            }
+
+            bool after = publication is not null && reference.Syntax.SpanStart >= publication.Syntax.Span.End;
+
+            if (!InFunction(reference, root))
+            {
+                switch (node.Parent)
+                {
+                    case IInvocationOperation invocation when invocation.Instance == node && IsOwnMember(invocation.TargetMethod):
+                        if (after && !IsCollectionRead(invocation.TargetMethod, local.Type))
+                        {
+                            findings.Add(WriteAfterFinding(reference, at, field, $"{local.Name}.{invocation.TargetMethod.Name}"));
+                        }
+
+                        continue;
+
+                    case IPropertyReferenceOperation property when property.Instance == node:
+                        if (after && IsWritten(property, member))
+                        {
+                            findings.Add(WriteAfterFinding(reference, at, field, $"{local.Name}.{(property.Property.IsIndexer ? "this[]" : property.Property.Name)}"));
+                        }
+
+                        continue;
+
+                    case IForEachLoopOperation loop when loop.Collection == node:
+                        continue;
+
+                    case IReturnOperation when publication is null:
+                        continue;
+                }
+
+                if (IsNullTest(reference))
+                {
+                    continue;
+                }
+            }
+
+            findings.Add(after
+                ? new Finding(reference, HandOutFinding(at, field), HandOutDesignChange)
+                : new Finding(
+                    reference,
+                    $"{at} lets '{local.Name}', the collection it publishes to [Memoized] '{field.Name}', out before publishing it, "
+                        + "so whoever has it can write to it after it is published",
+                    "fill the local only through its own members, such as Add and the indexer, and use it nowhere else until it is published"));
+        }
+    }
+
+    /// <summary>
+    /// The statements a collection is built in: from the local's declaration to the statement that
+    /// publishes it, in the block that declares it. Null when they are not in one block.
+    /// </summary>
+    private static IOperation[]? Region(IOperation declarator, IOperation publication)
+    {
+        IOperation? statement = declarator;
+
+        while (statement is not null and not IVariableDeclarationGroupOperation)
+        {
+            statement = statement.Parent;
+        }
+
+        if (statement?.Parent is not IBlockOperation block)
+        {
+            return null;
+        }
+
+        IOperation? last = publication;
+
+        while (last is not null && last.Parent != block)
+        {
+            last = last.Parent;
+        }
+
+        if (last is null)
+        {
+            return null;
+        }
+
+        int from = -1;
+        int to = -1;
+
+        for (int i = 0; i < block.Operations.Length; i++)
+        {
+            if (block.Operations[i] == statement)
+            {
+                from = i;
+            }
+
+            if (block.Operations[i] == last)
+            {
+                to = i;
+            }
+        }
+
+        if (from < 0 || to < from)
+        {
+            return null;
+        }
+
+        IOperation[] region = new IOperation[to - from + 1];
+
+        for (int i = from; i <= to; i++)
+        {
+            region[i - from] = block.Operations[i];
+        }
+
+        return region;
+    }
+
+    /// <summary>
+    /// The first operation of a build the value memo's expression rule refuses, and why. Filling the
+    /// local through its own members, and an object or collection initializer filling the new
+    /// collection, are the build itself; the publication is the store.
+    /// </summary>
+    private static (IOperation At, string Reason)? BuildImpurity(
+        IOperation[] region,
+        ILocalSymbol? local,
+        IOperation? publication,
+        INamedTypeSymbol type,
+        Func<IMethodSymbol, bool> changesNothing)
+    {
+        int start = region[0].Syntax.SpanStart;
+        int end = region[region.Length - 1].Syntax.Span.End;
+        SyntaxTree tree = region[0].Syntax.SyntaxTree;
+
+        bool Own(IOperation operation)
+        {
+            if (Strip(operation) is not ILocalReferenceOperation { Local: { } declared })
+            {
+                return false;
+            }
+
+            foreach (SyntaxReference declaration in declared.DeclaringSyntaxReferences)
+            {
+                if (declaration.SyntaxTree == tree && declaration.Span.Start >= start && declaration.Span.End <= end)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        bool Builds(IOperation? instance) =>
+            instance is not null
+            && (Strip(instance) is IInstanceReferenceOperation { ReferenceKind: InstanceReferenceKind.ImplicitReceiver }
+                || (local is not null && Strip(instance) is ILocalReferenceOperation { Local: { } on } && SymbolEqualityComparer.Default.Equals(on, local)));
+
+        Stack<IOperation> pending = new Stack<IOperation>();
+
+        for (int i = region.Length - 1; i >= 0; i--)
+        {
+            pending.Push(region[i]);
+        }
+
+        while (pending.Count > 0)
+        {
+            IOperation operation = pending.Pop();
+
+            if (operation == publication)
+            {
+                continue;
+            }
+
+            bool build = operation switch
+            {
+                IInvocationOperation invocation => Builds(invocation.Instance),
+                IMethodReferenceOperation method => Builds(method.Instance),
+                IAssignmentOperation { Target: IPropertyReferenceOperation property } => Builds(property.Instance),
+                _ => false,
+            };
+
+            if (!build && Reason(operation, Own, type, changesNothing) is { } reason)
+            {
+                return (operation, reason);
+            }
+
+            List<IOperation> children = new List<IOperation>(operation.ChildOperations);
+
+            for (int i = children.Count - 1; i >= 0; i--)
+            {
+                pending.Push(children[i]);
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Whether every return of a helper's body gives back a collection it creates: a new
+    /// <c>HashSet&lt;T&gt;</c> or <c>Dictionary&lt;K, V&gt;</c>, or one local holding one.
+    /// </summary>
+    private static bool ReturnsFresh(IOperation body, out ILocalSymbol? returned)
+    {
+        returned = null;
+        bool any = false;
+
+        foreach (IOperation operation in body.Descendants())
+        {
+            if (operation is not IReturnOperation { ReturnedValue: { } value } || InFunction(operation, body))
+            {
+                continue;
+            }
+
+            any = true;
+
+            switch (Strip(value))
+            {
+                case IObjectCreationOperation creation when IsFresh(creation):
+                    continue;
+
+                case ILocalReferenceOperation { Local: { RefKind: RefKind.None } local }
+                    when (returned is null || SymbolEqualityComparer.Default.Equals(returned, local))
+                        && Declarator(body, local) is { Initializer.Value: { } initial }
+                        && Strip(initial) is IObjectCreationOperation created
+                        && IsFresh(created):
+                    returned = local;
+                    continue;
+
+                default:
+                    return false;
+            }
+        }
+
+        return any;
+    }
+
+    private static IVariableDeclaratorOperation? Declarator(IOperation root, ILocalSymbol local)
+    {
+        foreach (IOperation operation in root.Descendants())
+        {
+            if (operation is IVariableDeclaratorOperation declarator && SymbolEqualityComparer.Default.Equals(declarator.Symbol, local))
+            {
+                return declarator;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsFresh(IObjectCreationOperation creation) =>
+        creation.Type is INamedTypeSymbol created && IsNamed(created, Buildable);
+
+    private static bool IsNamed(INamedTypeSymbol type, string[] names)
+    {
+        string name = Wrappers.Name(type);
+
+        foreach (string candidate in names)
+        {
+            if (string.Equals(name, candidate, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsCompareExchange(IMethodSymbol method) =>
+        string.Equals(method.Name, "CompareExchange", StringComparison.Ordinal)
+        && method.ContainingType is { } declaring
+        && string.Equals(Wrappers.Name(declaring), "System.Threading.Interlocked", StringComparison.Ordinal);
+
+    /// <summary>An instance member of the collection itself: how the local may be filled.</summary>
+    private static bool IsOwnMember(IMethodSymbol method) =>
+        !method.IsStatic
+        && method.MethodKind != MethodKind.ReducedExtension
+        && (method.ContainingType?.SpecialType == SpecialType.System_Object
+            || method.ContainingType?.ContainingNamespace?.ToDisplayString() == "System.Collections.Generic");
+
+    private static bool IsCollectionRead(IMethodSymbol called, ITypeSymbol held) =>
+        HeldCollectionReads.IsRead(called, held) || called.ContainingType?.SpecialType == SpecialType.System_Object;
+
+    /// <summary>Whether <paramref name="operation"/> is <paramref name="ancestor"/> or inside it.</summary>
+    private static bool Within(IOperation operation, IOperation ancestor)
+    {
+        for (IOperation? current = operation; current is not null; current = current.Parent)
+        {
+            if (current == ancestor)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Inside a lambda or local function of <paramref name="root"/>, which may run at any time.</summary>
+    private static bool InFunction(IOperation operation, IOperation root)
+    {
+        for (IOperation? current = operation.Parent; current is not null && current != root; current = current.Parent)
+        {
+            if (current is IAnonymousFunctionOperation or ILocalFunctionOperation)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static Finding Computes(IOperation at, string member, IFieldSymbol field, string reason) =>
+        new Finding(
+            at,
+            $"{member} computes [Memoized] '{field.Name}' from {reason}, so what is memoised depends on when it was first asked for",
+            ComputesDesignChange);
+
+    /// <summary>The design change for a computation outside the expression rule, for every form.</summary>
+    internal const string ComputesDesignChange =
+        "compute it only from readonly fields, other [Memoized] fields, parameters and calls that change nothing, or compute it in the constructor";
+
+    private static Use Store(Use use, string at, IFieldSymbol field)
+    {
+        use.Finding = StoreFinding(at, field);
+        use.DesignChange = StoreDesignChange(field);
+        return use;
+    }
+
+    private static string StoreFinding(string at, IFieldSymbol field) =>
+        $"{at} stores into [Memoized] '{field.Name}' something other than a collection it has just built in a local, "
+            + "so readers can share a collection that is still changing";
+
+    private static string StoreDesignChange(IFieldSymbol field) =>
+        $"build a new HashSet<T> or Dictionary<K, V> in a local and publish it once, by "
+            + $"'Interlocked.CompareExchange(ref {field.Name}, local, null)' or '{field.Name} ??= local'";
+
+    private static Use WriteAfter(Use use, string at, IFieldSymbol field, string through)
+    {
+        Finding finding = WriteAfterFinding(use.At, at, field, through);
+        use.Finding = finding.Text;
+        use.DesignChange = finding.DesignChange;
+        return use;
+    }
+
+    private static Finding WriteAfterFinding(IOperation where, string at, IFieldSymbol field, string through) =>
+        new Finding(
+            where,
+            $"{at} writes to [Memoized] '{field.Name}' through '{through}' after it is published, so a reader can see it change",
+            "finish filling the local before publishing it, and after that use only the collection's reads");
+
+    private static Use HandOut(Use use, string at, IFieldSymbol field)
+    {
+        use.Finding = HandOutFinding(at, field);
+        use.DesignChange = HandOutDesignChange;
+        return use;
+    }
+
+    private static string HandOutFinding(string at, IFieldSymbol field) =>
+        $"{at} hands out the [Memoized] '{field.Name}' itself, and whoever gets it can write to it";
+
+    private const string HandOutDesignChange =
+        "use only its reads, such as Contains, TryGetValue, Count and the indexer get, and return what they return, not the collection";
+
     private static Use OtherCall(Use use, string at, IFieldSymbol field, string called)
     {
         use.Finding = $"{at} calls '{field.Name}.{called}' on the [Memoized] '{field.Type.ToDisplayString(Display.Format)}', "
@@ -544,40 +1212,51 @@ internal static class MemoizedFields
     {
         foreach (IOperation operation in value.DescendantsAndSelf())
         {
-            switch (operation)
+            if (Reason(operation, own => IsOwnLocal(own, value, copy), type, changesNothing) is { } reason)
             {
-                case IAssignmentOperation { Target: { } target } when !IsOwnLocal(target, value, copy):
-                    return $"a write to '{target.Syntax}'";
-
-                case IIncrementOrDecrementOperation { Target: { } stepped } when !IsOwnLocal(stepped, value, copy):
-                    return $"a write to '{stepped.Syntax}'";
-
-                case IDeconstructionAssignmentOperation deconstruction:
-                    return $"a write to '{deconstruction.Target.Syntax}'";
-
-                case IArgumentOperation { Parameter.RefKind: RefKind.Ref or RefKind.Out, Value: { } passed } when !IsOwnLocal(passed, value, copy):
-                    return $"a write to '{passed.Syntax}'";
-
-                case IFieldReferenceOperation { Field: { } field }
-                    when !field.IsConst && !field.IsReadOnly && !Markers.Has(field, Markers.Memoized):
-                    return $"'{field.Name}', which is neither readonly nor [Memoized]";
-
-                case IPropertyReferenceOperation { Property: { SetMethod: { IsInitOnly: false } } property } read
-                    when property.IsStatic || IsThis(read.Instance):
-                    return $"'{property.Name}', which has a setter";
-
-                case IInvocationOperation invocation when Call(invocation.TargetMethod, invocation.Instance, type, changesNothing) is { } call:
-                    return call;
-
-                case IMethodReferenceOperation method when Call(method.Method, method.Instance, type, changesNothing) is { } reference:
-                    return reference;
-
-                case IInstanceReferenceOperation { ReferenceKind: InstanceReferenceKind.ContainingTypeInstance } self when !IsReceiver(self):
-                    return "'this' itself, which the computation could change";
-
-                case ILocalReferenceOperation local when !IsOwnLocal(local, value, copy):
-                    return $"the local '{local.Local.Name}', which is computed outside the memo";
+                return reason;
             }
+        }
+
+        return null;
+    }
+
+    /// <summary>Why one operation is outside the expression rule, or null; <paramref name="own"/> says which locals are the computation's own.</summary>
+    private static string? Reason(IOperation operation, Func<IOperation, bool> own, INamedTypeSymbol type, Func<IMethodSymbol, bool> changesNothing)
+    {
+        switch (operation)
+        {
+            case IAssignmentOperation { Target: { } target } when !own(target):
+                return $"a write to '{target.Syntax}'";
+
+            case IIncrementOrDecrementOperation { Target: { } stepped } when !own(stepped):
+                return $"a write to '{stepped.Syntax}'";
+
+            case IDeconstructionAssignmentOperation deconstruction:
+                return $"a write to '{deconstruction.Target.Syntax}'";
+
+            case IArgumentOperation { Parameter.RefKind: RefKind.Ref or RefKind.Out, Value: { } passed } when !own(passed):
+                return $"a write to '{passed.Syntax}'";
+
+            case IFieldReferenceOperation { Field: { } field }
+                when !field.IsConst && !field.IsReadOnly && !Markers.Has(field, Markers.Memoized):
+                return $"'{field.Name}', which is neither readonly nor [Memoized]";
+
+            case IPropertyReferenceOperation { Property: { SetMethod: { IsInitOnly: false } } property } read
+                when property.IsStatic || IsThis(read.Instance):
+                return $"'{property.Name}', which has a setter";
+
+            case IInvocationOperation invocation when Call(invocation.TargetMethod, invocation.Instance, type, changesNothing) is { } call:
+                return call;
+
+            case IMethodReferenceOperation method when Call(method.Method, method.Instance, type, changesNothing) is { } reference:
+                return reference;
+
+            case IInstanceReferenceOperation { ReferenceKind: InstanceReferenceKind.ContainingTypeInstance } self when !IsReceiver(self):
+                return "'this' itself, which the computation could change";
+
+            case ILocalReferenceOperation local when !own(local):
+                return $"the local '{local.Local.Name}', which is computed outside the memo";
         }
 
         return null;
