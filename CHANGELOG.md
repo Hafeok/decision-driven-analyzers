@@ -11,6 +11,17 @@ consumer that builds with warnings as errors, and are recorded as such.
 
 ## [Unreleased]
 
+### Changed
+
+- **`DD0005`** bans the plural kind names `Interfaces`, `Models`, `Dtos`, `Enums`, `Exceptions`
+  and `Constants` by default, as a namespace segment, a root namespace or an assembly name segment.
+  A namespace named for the kind of type in it says nothing about what those types are for. Singular
+  `Model` and `Services` are not added, and `dd_banned_names` still replaces the list rather than
+  extending it (`NamesAndNamespaces.BannedGrabBagNames`, new version;
+  [#126](https://github.com/Hafeok/decision-driven-analyzers/issues/126)). **Breaking** for a
+  consumer with a public type in a namespace using one of the six names and no `dd_banned_names`
+  of its own.
+
 ## [0.1.0-preview.11] - 2026-10-27
 
 DD0019 accepts a third `[Memoized]` form, a `HashSet` or `Dictionary` built in a local and published
