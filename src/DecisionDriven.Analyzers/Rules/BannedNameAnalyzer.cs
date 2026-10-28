@@ -21,6 +21,13 @@ namespace DecisionDriven.Analyzers.Rules;
 /// <c>StringExtensions</c> class says what it extends, a <c>Extensions</c> namespace says only that
 /// somebody had nowhere else to put things.
 /// </para>
+/// <para>
+/// The second version of the decision (ADR-A17) adds the plural kind names <c>Interfaces</c>,
+/// <c>Models</c>, <c>Dtos</c>, <c>Enums</c>, <c>Exceptions</c> and <c>Constants</c>: a namespace
+/// named for the kind of type in it says nothing about what those types are for. Singular
+/// <c>Model</c> is not on the list, because it names a concept boundary and is what
+/// <c>[DomainModel]</c> prefixes are commonly keyed on; neither is <c>Services</c>.
+/// </para>
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class BannedNameAnalyzer : DiagnosticAnalyzer
@@ -30,9 +37,10 @@ public sealed class BannedNameAnalyzer : DiagnosticAnalyzer
 
     private const string InternalSegment = "Internal";
 
-    /// <summary>The list from ADR-A06.</summary>
+    /// <summary>The list from ADR-A06, with the plural kind names ADR-A17 added.</summary>
     internal static readonly ImmutableArray<string> DefaultBannedNames = ImmutableArray.Create(
-        "Common", "Core", "Utils", "Utilities", "Helpers", "Abstractions", "Shared", "Misc", "Internal", "Extensions");
+        "Common", "Core", "Utils", "Utilities", "Helpers", "Abstractions", "Shared", "Misc", "Internal", "Extensions",
+        "Interfaces", "Models", "Dtos", "Enums", "Exceptions", "Constants");
 
     /// <inheritdoc/>
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =

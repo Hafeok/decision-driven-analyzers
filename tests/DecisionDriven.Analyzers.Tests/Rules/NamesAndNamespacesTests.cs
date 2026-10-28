@@ -28,6 +28,12 @@ public sealed class BannedNameTests
     [InlineData("Shared")]
     [InlineData("Misc")]
     [InlineData("Extensions")]
+    [InlineData("Interfaces")]
+    [InlineData("Models")]
+    [InlineData("Dtos")]
+    [InlineData("Enums")]
+    [InlineData("Exceptions")]
+    [InlineData("Constants")]
     public void A_grab_bag_namespace_segment_is_reported(string segment)
     {
         Diagnostic diagnostic = Assert.Single(Run($"namespace Sample.Layer1.{segment} {{ public sealed class Thing {{ }} }}"));
@@ -35,6 +41,48 @@ public sealed class BannedNameTests
         Assert.Equal("DD0005", diagnostic.Id);
         Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
         Assert.Contains(segment, diagnostic.GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("Interfaces")]
+    [InlineData("Models")]
+    [InlineData("Dtos")]
+    [InlineData("Enums")]
+    [InlineData("Exceptions")]
+    [InlineData("Constants")]
+    public void A_plural_kind_name_is_reported_as_a_root_namespace_and_as_an_assembly_name(string name)
+    {
+        // NamesAndNamespaces.BannedGrabBagNames, second version (ADR-A17): a namespace named for the
+        // kind of type in it says nothing about what those types are for. The three places a name
+        // can sit are each checked: a segment (the theory above), the root, and the assembly.
+        Diagnostic root = Assert.Single(RuleHarness.Run(
+            new BannedNameAnalyzer(),
+            $"namespace {name}.Ingest {{ public sealed class Thing {{ }} }}",
+            assemblyName: "Sample.Layer1"));
+
+        Assert.Contains($"whose segment '{name}' is a grab-bag name", root.GetMessage(), StringComparison.Ordinal);
+
+        ImmutableArray<Diagnostic> assembly = RuleHarness.Run(
+            new BannedNameAnalyzer(),
+            "namespace Sample.Layer1 { public sealed class Thing { } }",
+            assemblyName: $"Sample.{name}");
+
+        Diagnostic diagnostic = Assert.Single(assembly);
+        Assert.Contains($"assembly 'Sample.{name}' has a segment named '{name}'", diagnostic.GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("Model")]
+    [InlineData("Services")]
+    public void Singular_Model_and_Services_are_not_on_the_list(string segment)
+    {
+        // Model names a concept boundary, and is what [DomainModel] prefixes are commonly keyed on;
+        // Services was considered and not added. Neither is reported anywhere a name can sit.
+        Assert.Empty(Run($"namespace Sample.Layer1.{segment} {{ public sealed class Thing {{ }} }}"));
+        Assert.Empty(RuleHarness.Run(
+            new BannedNameAnalyzer(),
+            $"namespace Sample.{segment} {{ public sealed class Thing {{ }} }}",
+            assemblyName: $"Sample.{segment}"));
     }
 
     [Fact]
@@ -92,6 +140,13 @@ public sealed class BannedNameTests
             new BannedNameAnalyzer(),
             "namespace Sample.Layer1.Core { public sealed class Thing { } }",
             assemblyName: "Sample.Layer1",
+            editorConfig: options));
+
+        // The six names the second version added are part of the same list, and go with it.
+        Assert.Empty(RuleHarness.Run(
+            new BannedNameAnalyzer(),
+            "namespace Sample.Layer1.Models { public sealed class Thing { } }",
+            assemblyName: "Sample.Models",
             editorConfig: options));
 
         Assert.Single(RuleHarness.Run(
