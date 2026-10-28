@@ -10,6 +10,11 @@
 > are deleted. Where this narrative and `docs/decisions/names-and-namespaces.md` disagree, the
 > decision file governs.
 
+> **Amended 2026-10-28.** The grab-bag list gains the plural kind names `Interfaces`, `Models`,
+> `Dtos`, `Enums`, `Exceptions` and `Constants` (`BannedGrabBagNames`, second version), and two
+> rules on namespace structure join this set: DD0022, a namespace matches its folder, and the
+> recorded neutrality that no rule requires depth. The narrative is ADR-A17.
+
 ## Context
 
 High cohesion, as the first consumer states it, means one package, one reason to change. `Common`, `Core`, `Utils`, `Helpers` and `Abstractions` packages are where the second reason to change accumulates. Cohesion metrics (LCOM family) are too noisy to gate a build and penalise span-based code by construction, so the only honest cohesion gate is on names and package shape.

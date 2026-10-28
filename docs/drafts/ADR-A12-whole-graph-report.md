@@ -10,6 +10,10 @@
 > are deleted. Where this narrative and `docs/decisions/whole-graph-report.md` disagree, the
 > decision file governs.
 
+> **Amended 2026-10-28.** The report gains a namespace shape section (`NamespaceShapeInReport`):
+> per assembly, its namespaces with public and total type counts and the largest namespace. Non-gating,
+> like everything else here. The narrative is ADR-A17.
+
 ## Context
 
 An analyzer sees one compilation. Instability (I = Ce / (Ca + Ce)), abstractness, distance from the main sequence, afferent coupling, interface member counts with implementer/caller divergence, cohesion metrics, and "does every cited ADR exist" are properties of the whole solution or the whole repository.
