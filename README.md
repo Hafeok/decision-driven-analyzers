@@ -175,8 +175,8 @@ The N-Triples path is implemented and has no producer yet: a file tagged
 | [DD0018](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0018.md) | 1 | No `NotImplementedException` outside tests | shipped |
 | [DD0019](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0019.md) | 1 | Public domain model types are immutable; `[Memoized]` fields (a value, a per-key cache, a published-once collection) are verified | shipped |
 | [DD0020](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0020.md) | 1 | No `dynamic` in a project with `ArchLayer` set | shipped |
-| [DD0022](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0022.md) | 1 | A namespace declaration names the root namespace and the file's folder | unreleased |
-| [DD0023](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0023.md) | 1 | The namespaces of a project with `ArchLayer` set form a DAG | unreleased |
+| [DD0022](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0022.md) | 1 | A namespace declaration names the root namespace and the file's folder | shipped |
+| [DD0023](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0023.md) | 1 | The namespaces of a project with `ArchLayer` set form a DAG | shipped |
 | [DDBUILD0001](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DDBUILD0001.md) | 1 | The Roslyn pin matches the floor the analyzers declare | shipped |
 | [DDBUILD0002](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DDBUILD0002.md) | 1 | The package carries its code-fixes assembly | shipped |
 | [DDGEN0001-0006](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/ledger-input.md) | — | The decision input is well formed | shipped |

@@ -11,6 +11,25 @@ consumer that builds with warnings as errors, and are recorded as such.
 
 ## [Unreleased]
 
+## [0.1.0-preview.12] - 2026-10-28
+
+Namespaces as structure. Two new tier-1 rules check that whatever namespace structure a project has
+is real: DD0022, a namespace declaration names the file's folder, and DD0023, the namespaces of a
+project with `ArchLayer` set form a DAG. No rule requires a minimum number of namespaces or a
+minimum depth (`NamesAndNamespaces.NamespaceDepthNotRequired`): a single-namespace assembly
+conforms. The report gains a namespace shape section, non-gating. **Breaking, read before
+upgrading:**
+
+- **DD0023 may report on upgrade.** A layered project with two namespaces that refer to each other
+  compiled under 0.1.0-preview.11 and is an error now. The rule has no switch of its own; the
+  adoption path is to upgrade when the namespaces are acyclic, and the fix is to move the type that
+  closes the cycle or to merge the two namespaces.
+- **DD0005's default list grew** by the six plural kind names `Interfaces`, `Models`, `Dtos`,
+  `Enums`, `Exceptions` and `Constants`. A consumer whose `dd_banned_names` is set is unaffected,
+  because the setting replaces the list.
+- **DD0022 reports every file whose namespace does not name its folder.** The code fix renames the
+  declaration; moving the file is the other answer.
+
 ### Added
 
 - **`DD0022`**, tier 1: every namespace declaration names the root namespace (`RootNamespace`, or the
@@ -30,7 +49,6 @@ consumer that builds with warnings as errors, and are recorded as such.
   [#129](https://github.com/Hafeok/decision-driven-analyzers/issues/129)). **Breaking** for a
   layered consumer with a cycle between two of its namespaces, which compiled before and is an
   error now.
-
 - **`DecisionDriven.Report`** gains a namespace shape section: per assembly, its namespace count
   and, per namespace, public and total type counts, largest first, with the largest namespace named
   in the Markdown summary. A nested type counts in its outermost type's namespace. Non-gating, like
@@ -513,7 +531,8 @@ Every decision in this repository's own `docs/decisions/` is unaccepted, which i
 working rather than an oversight: citing one produces `CS0618` on every citation, so they are usable
 on a branch and will not ship under `TreatWarningsAsErrors`.
 
-[Unreleased]: https://github.com/Hafeok/decision-driven-analyzers/compare/v0.1.0-preview.11...main
+[Unreleased]: https://github.com/Hafeok/decision-driven-analyzers/compare/v0.1.0-preview.12...main
+[0.1.0-preview.12]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.12
 [0.1.0-preview.11]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.11
 [0.1.0-preview.10]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.10
 [0.1.0-preview.9]: https://github.com/Hafeok/decision-driven-analyzers/tree/v0.1.0-preview.9
