@@ -31,6 +31,12 @@ consumer that builds with warnings as errors, and are recorded as such.
   layered consumer with a cycle between two of its namespaces, which compiled before and is an
   error now.
 
+- **`DecisionDriven.Report`** gains a namespace shape section: per assembly, its namespace count
+  and, per namespace, public and total type counts, largest first, with the largest namespace named
+  in the Markdown summary. A nested type counts in its outermost type's namespace. Non-gating, like
+  everything in the report (`WholeGraphReport.NamespaceShapeInReport`;
+  [#132](https://github.com/Hafeok/decision-driven-analyzers/issues/132)).
+
 ### Changed
 
 - The generator moved into the `DecisionDriven.Analyzers.Generation` namespace, so its output under

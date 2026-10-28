@@ -88,10 +88,11 @@ internal static class Program
             IReadOnlyList<PackageRow> packages = PackageMetrics.Compute(assemblies);
             IReadOnlyList<ContractRow> contracts = ContractUsage.Compute(assemblies);
             IReadOnlyList<CohesionRow> cohesion = Cohesion.Compute(assemblies);
+            IReadOnlyList<AssemblyShapeRow> shapes = NamespaceShape.Compute(assemblies);
             Projection projection = Projection.Build(
                 CitationFinder.Find(assemblies), git, ledger, repository, options.Ledger, options.Since);
 
-            string markdown = MarkdownReport.Write(ToolVersion.Version, git.Head, packages, contracts, cohesion, projection);
+            string markdown = MarkdownReport.Write(ToolVersion.Version, git.Head, packages, contracts, cohesion, shapes, projection);
             string triples = CitationTriples.Write(projection, git.ObjectFormat);
 
             Directory.CreateDirectory(options.Out);

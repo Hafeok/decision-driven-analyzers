@@ -71,6 +71,27 @@ plain `record Quad(int A, int B)` would score two on exactly the types a `[Domai
 full of. Compiler-written members are left out because they touch every field by construction, and
 would join any type into one component.
 
+## Namespace shape
+
+Per assembly: how many namespaces it has, and for each namespace its public and total type counts,
+largest first. The Markdown summary names the largest namespace of each assembly.
+`WholeGraphReport.NamespaceShapeInReport`.
+
+- **A type counts** when somebody wrote it, as in the abstractness measure above: the generator's
+  marker attributes and decision types, compiler-generated types and embedded attributes are left
+  out.
+- **A nested type counts in the namespace of its outermost containing type**, which is the node
+  DD0023 attributes it to.
+- **Public** means visible outside the assembly: a public top-level type, or a nested type that is
+  public at every level.
+- **The global namespace** is shown as `(global)`.
+
+No rule requires a minimum number of namespaces or a minimum depth
+(`NamesAndNamespaces.NamespaceDepthNotRequired`), and no rule caps a namespace's size
+(`NamesAndNamespaces.CohesionMetricsAreReport`). DD0022 and DD0023 check that the structure present
+is real; this section is where a namespace holding several concepts becomes visible. A consumer that
+wants a cap writes its own decision naming the threshold and the baseline it was measured against.
+
 ## Citations
 
 One per symbol carrying `[Contract]`, `[DomainModel]`, `[HotPath]` or `[DesignDecision]`, emitted to

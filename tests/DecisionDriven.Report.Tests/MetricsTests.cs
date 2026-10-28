@@ -163,6 +163,57 @@ public sealed class MetricsTests
         Assert.Equal(new[] { "Fix.Model.Whole" }, Cohesion.Compute(built.All).Select(row => row.Type));
     }
 
+    [Fact]
+    public void Namespace_shape_counts_written_types_per_namespace_largest_first()
+    {
+        using Scratch scratch = new Scratch();
+        string shape = Build.Assembly(scratch.PathOf("bin"), "Fix.Shape", new Dictionary<string, string>
+        {
+            [scratch.PathOf("s/Shape.cs")] =
+                "[assembly: DecisionDriven.ArchLayer(0)]\n"
+                // Three types, two public; the nested ones count here, not in a namespace of their own,
+                // and Inner is public only because Outer is.
+                + "namespace Fix.Shape.Big { public sealed class A { } public sealed class Outer { public sealed class Inner { } private sealed class Hidden { } } internal sealed class B { } }\n"
+                // Two types, one public, and a public type nested in an internal one is not public.
+                + "namespace Fix.Shape.Small { public interface I { } internal sealed class Wrap { public sealed class Shown { } } }\n"
+                // One type in the global namespace.
+                + "public enum Mode { A }\n",
+            [scratch.PathOf("s/Markers.cs")] = Build.Markers,
+            [scratch.PathOf("s/Decisions.cs")] = Build.Decision("fixture", "Shape", "Unused"),
+        });
+
+        using Assemblies built = new Assemblies(shape);
+
+        AssemblyShapeRow row = Assert.Single(NamespaceShape.Compute(built.All));
+
+        Assert.Equal("Fix.Shape", row.Assembly);
+
+        // Largest first, then by name; the generated markers and decision types are not written by
+        // anybody and do not appear.
+        Assert.Equal(
+            new[]
+            {
+                new NamespaceRow("Fix.Shape.Big", 3, 5),
+                new NamespaceRow("Fix.Shape.Small", 1, 3),
+                new NamespaceRow(string.Empty, 1, 1),
+            },
+            row.Namespaces);
+        Assert.Equal("Fix.Shape.Big", row.Largest!.Namespace);
+    }
+
+    [Fact]
+    public void Namespace_shape_lists_every_assembly_given_in_name_order()
+    {
+        using Scratch scratch = new Scratch();
+        using Assemblies built = Two(scratch);
+
+        IReadOnlyList<AssemblyShapeRow> rows = NamespaceShape.Compute(built.All);
+
+        Assert.Equal(new[] { "Fix.Service", "Fix.Store" }, rows.Select(row => row.Assembly));
+        Assert.Equal(new[] { new NamespaceRow("Fix.Store", 2, 2) }, rows[1].Namespaces);
+        Assert.Equal(new[] { new NamespaceRow("Fix.Service", 2, 2) }, rows[0].Namespaces);
+    }
+
     private static Assemblies Two(Scratch scratch, int storeLayer = 0, int serviceLayer = 1)
     {
         string store = Build.Assembly(scratch.PathOf("bin"), "Fix.Store", new Dictionary<string, string>
