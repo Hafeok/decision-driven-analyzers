@@ -26,6 +26,7 @@ internal static class MarkdownReport
         IReadOnlyList<PackageRow> packages,
         IReadOnlyList<ContractRow> contracts,
         IReadOnlyList<CohesionRow> cohesion,
+        IReadOnlyList<AssemblyShapeRow> shapes,
         Projection projection)
     {
         StringBuilder md = new StringBuilder();
@@ -42,6 +43,7 @@ internal static class MarkdownReport
         Packages(md, packages);
         Contracts(md, contracts);
         Cohesion(md, cohesion);
+        Shapes(md, shapes);
         Citations(md, projection);
 
         return md.ToString();
@@ -132,6 +134,52 @@ internal static class MarkdownReport
 
         md.Append('\n');
     }
+
+    private static void Shapes(StringBuilder md, IReadOnlyList<AssemblyShapeRow> shapes)
+    {
+        md.Append("## Namespace shape\n\n");
+
+        if (shapes.Count == 0)
+        {
+            md.Append("No assembly was read.\n\n");
+            return;
+        }
+
+        md.Append("Types per namespace, public and in all. No rule requires depth; this is where a namespace holding several concepts shows.\n\n");
+
+        foreach (AssemblyShapeRow assembly in shapes)
+        {
+            md.Append("### `").Append(assembly.Assembly).Append("`\n\n");
+
+            if (assembly.Largest is not { } largest)
+            {
+                md.Append("No types.\n\n");
+                continue;
+            }
+
+            md.Append(Count(assembly.Namespaces.Count, "namespace")).Append("; the largest is `")
+                .Append(Shown(largest.Namespace)).Append("` with ")
+                .Append(Count(largest.TotalTypes, "type")).Append(", ")
+                .Append(largest.PublicTypes.ToString(CultureInfo.InvariantCulture)).Append(" public.\n\n");
+
+            md.Append("| Namespace | Public | Total |\n");
+            md.Append("| --- | ---: | ---: |\n");
+
+            foreach (NamespaceRow row in assembly.Namespaces)
+            {
+                md.Append("| `").Append(Shown(row.Namespace)).Append("` | ")
+                    .Append(row.PublicTypes.ToString(CultureInfo.InvariantCulture)).Append(" | ")
+                    .Append(row.TotalTypes.ToString(CultureInfo.InvariantCulture)).Append(" |\n");
+            }
+
+            md.Append('\n');
+        }
+    }
+
+    private static string Shown(string ns) => ns.Length == 0 ? "(global)" : ns;
+
+    private static string Count(int count, string noun) =>
+        count.ToString(CultureInfo.InvariantCulture) + " " + noun + (count == 1 ? string.Empty : "s");
 
     private static void Citations(StringBuilder md, Projection projection)
     {
