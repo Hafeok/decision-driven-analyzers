@@ -11,6 +11,17 @@ consumer that builds with warnings as errors, and are recorded as such.
 
 ## [Unreleased]
 
+### Added
+
+- **`DD0022`**, tier 1: every namespace declaration names the root namespace (`RootNamespace`, or the
+  assembly name) followed by the file's folder path relative to the project directory, one segment
+  per folder, compared ordinally. A type in the global namespace is reported the same way, and a
+  folder whose name is not a C# identifier is itself the finding. Generated code and files outside
+  the project directory are not checked; without `ProjectDir` the rule is silent. A code fix
+  declares the namespace the folder names (`NamesAndNamespaces.NamespaceMatchesFolder`;
+  [#127](https://github.com/Hafeok/decision-driven-analyzers/issues/127)). **Breaking** for a
+  consumer whose files do not sit where their namespaces say.
+
 ### Changed
 
 - **`DD0005`** bans the plural kind names `Interfaces`, `Models`, `Dtos`, `Enums`, `Exceptions`

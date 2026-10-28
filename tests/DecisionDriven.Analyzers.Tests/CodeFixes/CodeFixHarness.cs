@@ -26,6 +26,9 @@ internal static class CodeFixHarness
 {
     private const string ProjectName = "Sample.Layer1";
 
+    /// <summary>Where the one document sits unless a test says otherwise; a rule that reads paths passes its own.</summary>
+    private const string DocumentPath = "Source.cs";
+
     /// <summary>The actions a provider offers for the first diagnostic the analyzer reports.</summary>
     internal static ImmutableArray<CodeAction> OfferedActions(
         DiagnosticAnalyzer analyzer,
@@ -35,10 +38,12 @@ internal static class CodeFixHarness
         string? archFamily = null,
         int? archLayer = null,
         bool compositionRoot = false,
-        IEnumerable<RuleHarness.Referenced>? references = null)
+        IEnumerable<RuleHarness.Referenced>? references = null,
+        Dictionary<string, string>? options = null,
+        string documentPath = DocumentPath)
     {
         (Document document, ImmutableArray<Diagnostic> diagnostics) = Analyse(
-            analyzer, source, assemblyName, archFamily, archLayer, compositionRoot, references);
+            analyzer, source, assemblyName, archFamily, archLayer, compositionRoot, references, options, documentPath);
 
         if (diagnostics.IsEmpty)
         {
@@ -67,10 +72,12 @@ internal static class CodeFixHarness
         CodeFixProvider provider,
         string source,
         string assemblyName = ProjectName,
-        bool compositionRoot = false)
+        bool compositionRoot = false,
+        Dictionary<string, string>? options = null,
+        string documentPath = DocumentPath)
     {
         (Document document, ImmutableArray<Diagnostic> diagnostics) = Analyse(
-            analyzer, source, assemblyName, archFamily: null, archLayer: null, compositionRoot, references: null);
+            analyzer, source, assemblyName, archFamily: null, archLayer: null, compositionRoot, references: null, options, documentPath);
 
         Diagnostic diagnostic = diagnostics.Single();
 
@@ -150,7 +157,9 @@ internal static class CodeFixHarness
         string? archFamily,
         int? archLayer,
         bool compositionRoot,
-        IEnumerable<RuleHarness.Referenced>? references)
+        IEnumerable<RuleHarness.Referenced>? references,
+        Dictionary<string, string>? extraOptions = null,
+        string documentPath = DocumentPath)
     {
         AdhocWorkspace workspace = new AdhocWorkspace();
 
@@ -167,7 +176,7 @@ internal static class CodeFixHarness
         }
 
         DocumentId documentId = DocumentId.CreateNewId(projectId);
-        solution = solution.AddDocument(documentId, "Source.cs", SourceText.From(source));
+        solution = solution.AddDocument(documentId, Path.GetFileName(documentPath), SourceText.From(source), filePath: documentPath);
 
         Project project = solution.GetProject(projectId)!;
         Compilation compilation = project.GetCompilationAsync(CancellationToken.None).GetAwaiter().GetResult()!;
@@ -186,6 +195,11 @@ internal static class CodeFixHarness
         if (compositionRoot)
         {
             options["build_property.ArchCompositionRoot"] = "true";
+        }
+
+        foreach (KeyValuePair<string, string> option in extraOptions ?? new Dictionary<string, string>(StringComparer.Ordinal))
+        {
+            options[option.Key] = option.Value;
         }
 
         ImmutableArray<Diagnostic> diagnostics = compilation

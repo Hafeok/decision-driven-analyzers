@@ -175,6 +175,7 @@ The N-Triples path is implemented and has no producer yet: a file tagged
 | [DD0018](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0018.md) | 1 | No `NotImplementedException` outside tests | shipped |
 | [DD0019](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0019.md) | 1 | Public domain model types are immutable; `[Memoized]` fields (a value, a per-key cache, a published-once collection) are verified | shipped |
 | [DD0020](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0020.md) | 1 | No `dynamic` in a project with `ArchLayer` set | shipped |
+| [DD0022](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0022.md) | 1 | A namespace declaration names the root namespace and the file's folder | unreleased |
 | [DDBUILD0001](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DDBUILD0001.md) | 1 | The Roslyn pin matches the floor the analyzers declare | shipped |
 | [DDBUILD0002](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DDBUILD0002.md) | 1 | The package carries its code-fixes assembly | shipped |
 | [DDGEN0001-0006](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/ledger-input.md) | — | The decision input is well formed | shipped |
@@ -204,7 +205,7 @@ all unaccepted (see [Status](#status)).
 | [`diagnostic-messages`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/diagnostic-messages.md) | The finding, `Decide:` with both paths, and the guard sentence |
 | [`stable-dependency-rules`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/stable-dependency-rules.md) | Layers, `InternalsVisibleTo`, service location, `dynamic` (DD0001-DD0003, DD0020) |
 | [`static-state`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/static-state.md) | No mutable static state (DD0004) |
-| [`names-and-namespaces`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/names-and-namespaces.md) | Grab-bag names and root namespaces (DD0005, DD0006) |
+| [`names-and-namespaces`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/names-and-namespaces.md) | Grab-bag names, root namespaces and folders (DD0005, DD0006, DD0022) |
 | [`contracts`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/contracts.md) | `[Contract]`, its vocabulary and its parameters (DD0009-DD0012) |
 | [`primitive-free-surfaces`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/primitive-free-surfaces.md) | Wrappers instead of naked primitives, and flag arguments (DD0013-DD0016) |
 | [`hierarchies`](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/decisions/hierarchies.md) | Closed hierarchies and stubs (DD0017, DD0018) |

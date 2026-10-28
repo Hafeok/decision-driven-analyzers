@@ -18,4 +18,7 @@ DD0017
 DD0018
 DD0019 2
 DD0020
+# Twice: Violations/DD0022.cs, and Violations/DD0006.cs, whose namespace is outside the root on
+# purpose and so cannot name its folder either.
+DD0022 2
 DDGEN0001

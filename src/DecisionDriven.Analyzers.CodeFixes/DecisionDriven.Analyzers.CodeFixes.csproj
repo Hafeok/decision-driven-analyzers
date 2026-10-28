@@ -31,13 +31,15 @@
   </ItemGroup>
 
   <!--
-    The ids, linked rather than referenced. A ProjectReference to the analyzers would be a cycle,
+    The ids and the property keys, linked rather than referenced. A ProjectReference to the analyzers would be a cycle,
     because the analyzer project has to build this one in order to pack it. Linking the one file
     both assemblies need also keeps them independent at run time: Roslyn loads each on its own, and
-    neither has to bind to the other.
+    neither has to bind to the other. The property keys are the other thing both need: what a rule
+    attaches to a diagnostic for its fix to read.
   -->
   <ItemGroup>
     <Compile Include="../DecisionDriven.Analyzers/Rules/DiagnosticIds.cs" Link="Rules/DiagnosticIds.cs" />
+    <Compile Include="../DecisionDriven.Analyzers/Rules/DiagnosticProperties.cs" Link="Rules/DiagnosticProperties.cs" />
   </ItemGroup>
 
 </Project>
