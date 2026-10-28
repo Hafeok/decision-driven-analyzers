@@ -79,7 +79,15 @@ not routed around. **The maintainer pushes the tag.** It can be recreated from `
 `git tag -s v0.1.0-preview.12 4f6b1b4 -m "0.1.0-preview.12: namespaces as structure (DD0005 v2, DD0022, DD0023, report)"`.
 Then approve the `nuget` environment for the `publish` run, and check that nuget.org lists
 `0.1.0-preview.12` for both `DecisionDriven.Analyzers` and `DecisionDriven.Report`. No manual
-`publish` run was started, so nothing was published alongside. The earlier `ci` runs: `46faa45`
+`publish` run was started, so nothing was published alongside.
+
+**`v0.1.0-preview.11` was never pushed either.** At the end of this session the remote's newest
+tag is `v0.1.0-preview.10`, the last `publish` run is
+[40322310244](https://github.com/Hafeok/decision-driven-analyzers/actions/runs/40322310244) for
+that tag, and nuget.org lists `0.1.0-preview.10` as the latest version of both packages. The
+previous close-out left `v0.1.0-preview.11` on `9d71855` for the maintainer, and it is still
+pending. Pushing `v0.1.0-preview.12` alone publishes everything from both sessions; pushing both
+tags, oldest first, also gives `0.1.0-preview.11` its own package. The earlier `ci` runs: `46faa45`
 (#125) [40666632037](https://github.com/Hafeok/decision-driven-analyzers/actions/runs/40666632037),
 `bd7f0f2` (#128) [40668361551](https://github.com/Hafeok/decision-driven-analyzers/actions/runs/40668361551),
 `be9ff4d` (#130) [40671998348](https://github.com/Hafeok/decision-driven-analyzers/actions/runs/40671998348),
