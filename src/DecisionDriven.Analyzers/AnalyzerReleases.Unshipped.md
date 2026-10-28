@@ -32,3 +32,4 @@ DD0018 | DecisionDriven | Error | Placeholder body in non-test code, [documentat
 DD0019 | DecisionDriven | Error | Model type can be changed by its caller, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0019.md)
 DD0020 | DecisionDriven | Error | Dynamically bound code in a layered project, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0020.md)
 DD0022 | DecisionDriven | Error | Namespace does not match the file's folder, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0022.md)
+DD0023 | DecisionDriven | Error | Namespaces reference each other in a cycle, [documentation](https://github.com/Hafeok/decision-driven-analyzers/blob/main/docs/rules/DD0023.md)

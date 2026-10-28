@@ -21,9 +21,25 @@ consumer that builds with warnings as errors, and are recorded as such.
   declares the namespace the folder names (`NamesAndNamespaces.NamespaceMatchesFolder`;
   [#127](https://github.com/Hafeok/decision-driven-analyzers/issues/127)). **Breaking** for a
   consumer whose files do not sit where their namespaces say.
+- **`DD0023`**, tier 1: in a project with `ArchLayer` set, type references between the namespaces
+  of that compilation form a directed acyclic graph. Every reference on a cycle is reported once, at
+  its first location, and the message names the way back. A `using` directive alone is not a
+  reference, generated code contributes no edges, and `[DesignDecision]` on a type removes its
+  outgoing edges. Like DD0020 it has no switch of its own: a consumer adopts it by upgrading when its
+  namespaces are acyclic (`StableDependencyRules.NamespacesAcyclicWithinAssembly`;
+  [#129](https://github.com/Hafeok/decision-driven-analyzers/issues/129)). **Breaking** for a
+  layered consumer with a cycle between two of its namespaces, which compiled before and is an
+  error now.
 
 ### Changed
 
+- The generator moved into the `DecisionDriven.Analyzers.Generation` namespace, so its output under
+  `obj/` with `EmitCompilerGeneratedFiles` now sits in
+  `DecisionDriven.Analyzers/DecisionDriven.Analyzers.Generation.DecisionLedgerGenerator/`. DD0023,
+  run over this repository, found the root namespace and `Generation` referring to each other, and
+  the generator is the type that closed the cycle
+  ([#129](https://github.com/Hafeok/decision-driven-analyzers/issues/129)). Nothing a consumer
+  writes names that path.
 - **`DD0005`** bans the plural kind names `Interfaces`, `Models`, `Dtos`, `Enums`, `Exceptions`
   and `Constants` by default, as a namespace segment, a root namespace or an assembly name segment.
   A namespace named for the kind of type in it says nothing about what those types are for. Singular

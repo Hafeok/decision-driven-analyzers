@@ -75,6 +75,9 @@ internal static class DiagnosticIds
     /// <summary>A namespace declaration that does not name the file's folder.</summary>
     internal const string NamespaceFolder = "DD0022";
 
+    /// <summary>A reference between namespaces of one layered compilation that lies on a cycle.</summary>
+    internal const string NamespaceCycle = "DD0023";
+
     /// <summary>
     /// Every id family this package ships, longest first.
     /// </summary>

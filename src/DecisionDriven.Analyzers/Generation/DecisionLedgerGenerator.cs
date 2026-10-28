@@ -1,12 +1,11 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
-using DecisionDriven.Analyzers.Generation;
 using DecisionDriven.Analyzers.Ledger;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 
-namespace DecisionDriven.Analyzers;
+namespace DecisionDriven.Analyzers.Generation;
 
 /// <summary>
 /// Emits the decision types that code cites, and the marker attributes it cites them with.

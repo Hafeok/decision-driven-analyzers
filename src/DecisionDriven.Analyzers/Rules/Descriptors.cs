@@ -253,6 +253,15 @@ internal static class Descriptors
             + "for it. When the two disagree, the type is found by search and never by browsing, "
             + "and the structure the namespaces describe is not the structure the repository has.");
 
+    internal static readonly DiagnosticDescriptor NamespaceCycle = Rule(
+        DiagnosticIds.NamespaceCycle,
+        "Namespaces reference each other in a cycle",
+        "{0}. Decide: {1} | " + ExceptionPath + ". " + Guard,
+        "Two namespaces that reference each other are one namespace with two names. DD0001 keeps "
+            + "the references between assemblies pointing one way; inside an assembly, the "
+            + "namespaces are the structure, and a cycle through them is a structure that says "
+            + "nothing about which part depends on which.");
+
     /// <summary>
     /// Every descriptor this package ships, so DD0008 can read their declared tiers.
     /// </summary>
@@ -281,7 +290,8 @@ internal static class Descriptors
         NotImplemented,
         MutableModel,
         DynamicBinding,
-        NamespaceFolder);
+        NamespaceFolder,
+        NamespaceCycle);
 
     /// <summary>
     /// One descriptor, at the severity its tier declares.
