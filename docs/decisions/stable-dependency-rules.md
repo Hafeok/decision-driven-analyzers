@@ -17,6 +17,8 @@ decisions:
     statement: "A lower layer cannot type a callback to a higher-layer type without the reference DD0001 forbids; object-typed contract parameters are closed by DD0011 and dynamic by DD0020 (NoDynamicInLayeredProjects), not by banned symbols, which cannot see the binder calls the compiler writes for a dynamic operation"
   - key: NoDynamicInLayeredProjects
     statement: "DD0020: dynamic is an error in any project with ArchLayer set, as a declared type or as a dynamically bound operation; a dynamically bound call reaches whatever the runtime object happens to be, which is the loophole DD0001 and DD0011 close for static types"
+  - key: NamespacesAcyclicWithinAssembly
+    statement: "DD0023: in a compilation with ArchLayer set, type references between the namespaces of that compilation form a directed acyclic graph; every reference that lies on a cycle is an error at its first location, and the message names the cycle"
 ---
 
-Interim set file (decisions-as-types, InterimFrontMatterUntilExport). No `accepted-by`: every decision here is unaccepted until a holder with accept-decision accepts it in the ledger. Narrative: docs/drafts/ADR-A04-*.md.
+Interim set file (decisions-as-types, InterimFrontMatterUntilExport). No `accepted-by`: every decision here is unaccepted until a holder with accept-decision accepts it in the ledger. Narrative: docs/drafts/ADR-A04-*.md; NamespacesAcyclicWithinAssembly: docs/drafts/ADR-A17-*.md.

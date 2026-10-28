@@ -10,6 +10,10 @@
 > are deleted. Where this narrative and `docs/decisions/stable-dependency-rules.md` disagree, the
 > decision file governs.
 
+> **Amended 2026-10-28.** The stable-dependencies principle is now also checked inside an assembly:
+> DD0023 (`NamespacesAcyclicWithinAssembly`) requires the namespaces of a compilation with
+> `ArchLayer` set to form a directed acyclic graph. The narrative is ADR-A17.
+
 ## Context
 
 The stable dependencies principle, as the first consumer states it, is a layered DAG: a project references only projects in strictly lower layers, contracts live in the lowest layer that can define them, and a lower layer never learns of a higher one through callbacks, service location or `InternalsVisibleTo`. Two of these the first consumer already enforces with its own rules; they generalise, and the third is not yet enforced.
