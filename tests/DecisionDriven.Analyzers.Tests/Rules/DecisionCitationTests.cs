@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using DecisionDriven.Analyzers.Generation;
 using DecisionDriven.Analyzers.Rules;
 using DecisionDriven.Analyzers.Tests.Ledger;
 using Microsoft.CodeAnalysis;
@@ -116,7 +117,7 @@ public sealed class DecisionCitationTests
             t => t.FilePath.EndsWith("DecisionDriven.Ledger.SampleNs.g.cs", System.StringComparison.Ordinal));
 
         Assert.Contains(
-            "DecisionDriven.Analyzers.DecisionLedgerGenerator",
+            "DecisionDriven.Analyzers.Generation.DecisionLedgerGenerator",
             tree.FilePath,
             System.StringComparison.Ordinal);
     }
@@ -272,7 +273,7 @@ public sealed class DecisionCitationTests
         "src",
         "Consumer",
         "DecisionDriven.Analyzers",
-        "DecisionDriven.Analyzers.DecisionLedgerGenerator",
+        "DecisionDriven.Analyzers.Generation.DecisionLedgerGenerator",
         "Forged.cs");
 
     private static GeneratorHarness.Result Generate(string source, string? baseDirectory = null, string consumerPath = "") =>

@@ -10,7 +10,7 @@ Read `docs/decisions/` and `docs/drafts/` before changing anything. Every rule, 
 |---|---|
 | `src/DecisionDriven.Analyzers/Rules/` | one analyzer per rule, `Descriptors.cs` and `DiagnosticIds.cs` for ids and messages, `ArchOptions.cs` for everything read from MSBuild |
 | `src/DecisionDriven.Analyzers/Ledger/` | `NTriplesReader` (the ledger export), `FrontMatterReader` (interim set files), the shared model |
-| `src/DecisionDriven.Analyzers/Generation/`, `DecisionLedgerGenerator.cs` | the generator: one static class per set, nested class per key, the marker attributes, `[Obsolete]` for unaccepted and revoked |
+| `src/DecisionDriven.Analyzers/Generation/` | the generator (`DecisionLedgerGenerator.cs`): one static class per set, nested class per key, the marker attributes, `[Obsolete]` for unaccepted and revoked |
 | `src/DecisionDriven.Analyzers.CodeFixes/` | code fixes, a separate assembly because an analyzer assembly may not reference Workspaces (RS1038) |
 | `src/DecisionDriven.Analyzers.Package/` | the `.props`/`.targets` the nupkg ships: `CompilerVisibleProperty` for the `Arch*` settings, `AdditionalFiles` with `DdLedger` metadata |
 | `src/DecisionDriven.Report/` | tier-3 whole-graph metrics and the citation projection (`ledger:Citation` N-Triples) |
