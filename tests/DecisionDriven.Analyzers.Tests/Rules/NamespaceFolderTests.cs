@@ -124,6 +124,24 @@ public sealed class NamespaceFolderTests
     {
         // A linked file belongs to another project's structure.
         Assert.Empty(Run("/elsewhere/Shared/Reader.cs", "namespace Sample.Layer1 { public sealed class Reader { } }"));
+
+        // As the compiler hands a linked file over: the project directory followed by the relative
+        // path it was linked by, '..' included. Collapsed, it is the file above, not a file in a
+        // folder named '..'.
+        Assert.Empty(Run("/proj/../elsewhere/Shared/Reader.cs", "namespace Sample.Layer1 { public sealed class Reader { } }"));
+    }
+
+    [Fact]
+    public void Dot_segments_in_a_path_under_the_project_are_collapsed_before_comparing()
+    {
+        Assert.Empty(Run("/proj/./Ingest/../Ingest/Reader.cs", "namespace Sample.Layer1.Ingest { public sealed class Reader { } }"));
+
+        Dictionary<string, string> properties = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["build_property.ProjectDir"] = "/src/Other/../proj/",
+        };
+
+        Assert.Empty(RuleHarness.RunOn(new NamespaceFolderAnalyzer(), Compile("/src/proj/Ingest/Reader.cs", "namespace Sample.Layer1.Ingest { public sealed class Reader { } }"), properties));
     }
 
     [Theory]

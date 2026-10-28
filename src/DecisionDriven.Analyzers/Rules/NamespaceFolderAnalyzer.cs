@@ -77,7 +77,10 @@ public sealed class NamespaceFolderAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        string path = Normalise(tree.FilePath);
+        // The compiler makes a path absolute by prefixing the project directory and nothing more,
+        // so a linked file arrives as '<project>/../Other/File.cs'. Collapsed, it is outside the
+        // project directory, which is what a linked file is.
+        string path = GeneratedCode.Collapse(Normalise(tree.FilePath));
 
         // A linked file lives in another project's structure. The prefix is compared without
         // case, as the generated-code check does: MSBuild and the compiler can disagree about a
@@ -269,7 +272,7 @@ public sealed class NamespaceFolderAnalyzer : DiagnosticAnalyzer
             return null;
         }
 
-        string path = Normalise(projectDir.Trim());
+        string path = GeneratedCode.Collapse(Normalise(projectDir.Trim()));
         return path.EndsWith("/", StringComparison.Ordinal) ? path : path + "/";
     }
 
