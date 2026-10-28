@@ -1,5 +1,5 @@
 #if DD_SAMPLE_VIOLATIONS
-namespace Sample.Layer2.Model;
+namespace Sample.Layer2.Violations.Model;
 
 // DD0019: a model type with a public setter.
 /// <summary>A model type a caller can change.</summary>

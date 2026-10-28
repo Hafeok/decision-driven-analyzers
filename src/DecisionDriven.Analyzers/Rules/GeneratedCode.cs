@@ -216,8 +216,12 @@ internal sealed class GeneratedCode
 
     private static string WithSlash(string path) => path.EndsWith("/", StringComparison.Ordinal) ? path : path + "/";
 
-    /// <summary>Removes <c>.</c> and <c>..</c> segments, since MSBuild may hand either over.</summary>
-    private static string Collapse(string path)
+    /// <summary>
+    /// Removes <c>.</c> and <c>..</c> segments, since MSBuild may hand either over, and so may the
+    /// compiler: a linked file arrives as the project directory followed by its relative path,
+    /// <c>..</c> and all.
+    /// </summary>
+    internal static string Collapse(string path)
     {
         string[] parts = path.Split('/');
         System.Collections.Generic.List<string> kept = new System.Collections.Generic.List<string>(parts.Length);

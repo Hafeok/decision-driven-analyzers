@@ -1,5 +1,5 @@
 #if DD_SAMPLE_VIOLATIONS
-namespace Sample.Layer2.Model;
+namespace Sample.Layer2.Violations.Model;
 
 // DD0015: an implicit conversion from a model type to its primitive.
 /// <summary>A wrapper that converts back silently.</summary>

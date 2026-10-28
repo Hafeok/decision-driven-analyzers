@@ -70,6 +70,11 @@ internal static class DiagnosticIds
     /// <summary><c>dynamic</c>, as a type or a dynamically bound operation, in a layered project.</summary>
     internal const string DynamicBinding = "DD0020";
 
+    // DD0021 is reserved for a later session, and is not reused here.
+
+    /// <summary>A namespace declaration that does not name the file's folder.</summary>
+    internal const string NamespaceFolder = "DD0022";
+
     /// <summary>
     /// Every id family this package ships, longest first.
     /// </summary>

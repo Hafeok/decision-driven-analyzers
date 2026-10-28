@@ -1,5 +1,5 @@
 #if DD_SAMPLE_VIOLATIONS
-namespace Sample.Layer2.Model;
+namespace Sample.Layer2.Violations.Model;
 
 // DD0014: a wrapper around one primitive that is a class.
 /// <summary>A wrapper that allocates.</summary>

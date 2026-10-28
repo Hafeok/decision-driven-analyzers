@@ -268,16 +268,36 @@ internal static class RuleHarness
         IEnumerable<KeyValuePair<string, string>> buildProperties,
         IEnumerable<Referenced> references,
         params DiagnosticResult[] expected)
+        where TAnalyzer : DiagnosticAnalyzer, new() =>
+        VerifyThroughAnalyzerConfigAsync<TAnalyzer>(source, sourcePath: null, buildProperties, references, expected);
+
+    /// <summary>
+    /// <see cref="VerifyThroughAnalyzerConfigAsync{TAnalyzer}(string, IEnumerable{KeyValuePair{string, string}}, IEnumerable{Referenced}, DiagnosticResult[])"/>
+    /// with the source at <paramref name="sourcePath"/>, for a rule that reads where a file is.
+    /// </summary>
+    internal static Task VerifyThroughAnalyzerConfigAsync<TAnalyzer>(
+        string source,
+        string? sourcePath,
+        IEnumerable<KeyValuePair<string, string>> buildProperties,
+        IEnumerable<Referenced> references,
+        params DiagnosticResult[] expected)
         where TAnalyzer : DiagnosticAnalyzer, new()
     {
         CSharpAnalyzerTest<TAnalyzer, DefaultVerifier> test = new()
         {
-            TestCode = source,
-
             // The referenced projects are built against this runtime's own assemblies, so the test
             // compilation is too, rather than against a reference pack that would disagree with them.
             ReferenceAssemblies = new ReferenceAssemblies("platform"),
         };
+
+        if (sourcePath is null)
+        {
+            test.TestCode = source;
+        }
+        else
+        {
+            test.TestState.Sources.Add((sourcePath, source));
+        }
 
         test.TestState.AdditionalReferences.AddRange(PlatformReferences());
         foreach (Referenced reference in references)

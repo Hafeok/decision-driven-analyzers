@@ -245,6 +245,14 @@ internal static class Descriptors
             + "loophole DD0001 and DD0011 close for static types: a lower layer calling into a higher "
             + "one it holds no reference to.");
 
+    internal static readonly DiagnosticDescriptor NamespaceFolder = Rule(
+        DiagnosticIds.NamespaceFolder,
+        "Namespace does not match the file's folder",
+        "{0}. Decide: {1} | " + ExceptionPath + ". " + Guard,
+        "A namespace is a claim about where a type lives, and the folder is where a reader looks "
+            + "for it. When the two disagree, the type is found by search and never by browsing, "
+            + "and the structure the namespaces describe is not the structure the repository has.");
+
     /// <summary>
     /// Every descriptor this package ships, so DD0008 can read their declared tiers.
     /// </summary>
@@ -272,7 +280,8 @@ internal static class Descriptors
         OpenHierarchySwitch,
         NotImplemented,
         MutableModel,
-        DynamicBinding);
+        DynamicBinding,
+        NamespaceFolder);
 
     /// <summary>
     /// One descriptor, at the severity its tier declares.

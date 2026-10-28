@@ -37,7 +37,13 @@ build and fire. Every test in `tests/` constructs the analyzers in memory, so no
 ## The violating samples
 
 One file per rule under `Sample.Layer2/Violations/`, each wrapped in `#if DD_SAMPLE_VIOLATIONS` and
-breaking exactly one rule. Two violations are not source files, because of what they are about:
+breaking exactly one rule. Every file sits in the folder its namespace names, because DD0022 checks
+that in the violating build too: `Violations/Utils/DD0005.cs` declares
+`Sample.Layer2.Violations.Utils`, so DD0005 fires on `Utils` and DD0022 is silent, and the
+model-surface violations live in `Violations/Model/`, which is the `[DomainModel]` namespace. The
+one exception is `DD0006.cs`, whose namespace is outside the root on purpose and so cannot name its
+folder either; `violations.expected` counts DD0022 twice for that reason, with a comment saying so.
+Two violations are not source files, because of what they are about:
 
 - **DD0001** is about references, so it is `Sample.Layer1.csproj` moving the project down to layer
   0 under the define, which makes its reference to `Sample.Layer0` point sideways.
@@ -45,7 +51,8 @@ breaking exactly one rule. Two violations are not source files, because of what 
   with two decisions claiming one key, added to that project's `AdditionalFiles` under the define.
 
 `_Model.cs` is not a violation: it declares the `[DomainModel]` namespace the model-surface
-violations need. Nor is `_ContractTypeAssemblies.cs`: `Sample.Layer2` sets
+violations need, and `Model/Stores/_Stores.cs` is the sub-namespace that declaration leaves out.
+Nor is `_ContractTypeAssemblies.cs`: `Sample.Layer2` sets
 `ArchContractTypeAssemblies` to `Sample.Layer0;Sample.Layer1`, and that file is a contract naming a
 type from each. It is the check that the package's props and targets get the whole list to DD0010,
 past the compiler's analyzer config parser, which reads everything after a `;` as a comment; if
@@ -65,7 +72,7 @@ samples/Consumer/check-violations.sh <version>
 It restores the package into a fresh folder and checks the restored bytes match the packed ones;
 builds the conforming samples, which must be silent; builds each project with the define, which
 must report every id in `violations.expected` exactly once, or as many times as the count after
-it says (`DD0019 2`), and nothing else; and runs DDBUILD0001
+it says (`DD0019 2`; a `#` starts a comment), and nothing else; and runs DDBUILD0001
 against the analyzer project, since that check guards this repository's Roslyn pin and does not
 travel in the package. Logs land in `artifacts/samples-logs/`.
 
