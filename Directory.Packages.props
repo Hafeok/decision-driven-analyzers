@@ -89,7 +89,7 @@
       Test-only: nothing here reaches a consumer's package graph. Remove it when the harness
       itself resolves a version the audit accepts.
     -->
-    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
   </ItemGroup>
 
 </Project>
